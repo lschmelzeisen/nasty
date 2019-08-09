@@ -2,10 +2,12 @@
 Class collection containing the main Tweet class.
 As well as a class for Hashtag, UserMention and TweetURLMapping
 """
+import datetime
 import gzip
 import json
-import os
+import uuid
 import warnings
+from pathlib import Path
 from time import sleep
 from typing import Dict, List, Tuple
 
@@ -76,12 +78,13 @@ class Tweet:
     urls: List[TweetURLMapping]
     name: str
     screen_name: str  # aka @username
+    evaluation: List[str]
 
     # adv: bool   <= declares if its from API or ADVsearch. Want that?
 
     def __init__(self, created_at: str, tweet_id: str, full_text: str, name: str, screen_name: str,
                  hashtags: List[Hashtag], user_mentions: List[UserMention],
-                 urls: List[TweetURLMapping]) -> None:
+                 urls: List[TweetURLMapping], evaluation: List[str] = []) -> None:
         tweet_id = str(tweet_id)
         self.created_at = created_at
         self.id_str = tweet_id
@@ -91,10 +94,14 @@ class Tweet:
         self.urls = urls
         self.name = name
         self.screen_name = screen_name
+        self.evaluation = evaluation
 
     @classmethod  # ATM we dont need this def, since __init__ has optional arguments
-    def extract(cls, tweet_url: str, save_to: str, job: Dict = None) -> None:
-        """Takes a url and saves tweets to hard drive"""
+    def extract(cls, tweet_url: str, search_pattern: str, job: Dict = None) -> None:
+        """Takes a url and saves tweets to hard drive with a specific UUID
+        The metadata of the tweet is saved in "UUID.meta.json.gz
+        The actual data of the tweet is saved un "UUID.data.json.gz" """
+
         next_site = tweet_url
         tweet_collector = []
         while next_site:
@@ -103,8 +110,23 @@ class Tweet:
             tweet_collector.extend(tweets)
         # Got an error, if we used data in the current folder
         # "example.json.gz" and not "data/example.json.gz"
-        if "/" in save_to:
-            os.makedirs(os.path.dirname(save_to), exist_ok=True)
+
+        # Generating an (hopefully ;) ) unique UUID filepath
+        temp = str(uuid.uuid4())
+        with gzip.open("out/" + temp + "meta.json.gz", "wt") as idMeta:
+
+            save_to = "out/" + temp + "data.json.gz"
+
+            job["creation_time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            if tweet_collector is None:
+                job["crawl_complete"] = False
+            else:
+                job["crawl_complete"] = True
+            job["error"] = "[]"
+
+            idMeta.write(json.dumps(job))
+            idMeta.write("\n")
+
         with gzip.open(save_to, "wt") as filepath:
             for tweet in tweet_collector:
                 filepath.write(tweet.to_json())
@@ -117,7 +139,7 @@ class Tweet:
         """
         Returns tweets and saves them if you pass a filepath.
         :param html_data: html data, given as str
-        :param save_to: (Optinal) If given saves to the datapath
+        :param save_to: (optional) If given saves to the datapath
         :return: List of Tweets
         """
         _, tweets = parse_html(html_data)
@@ -152,9 +174,14 @@ class Tweet:
                 for url in line["entities"]["urls"]:
                     urls.append(TweetURLMapping(url["url"], url["expanded_url"], url["display_url"],
                                                 url["indices"]))
-                tweets.append(
-                    cls(created_at, id_str, full_text, name, screen_name, hashtags, user_mentions,
-                        urls))
+                try:
+                    evaluation = line["evaluation"]
+                except KeyError:
+                    tweets.append(cls(created_at, id_str, full_text, name, screen_name, hashtags,
+                                      user_mentions, urls))
+                else:
+                    tweets.append(cls(created_at, id_str, full_text, name, screen_name, hashtags,
+                                      user_mentions, urls, evaluation))
             return tweets
 
     def __str__(self) -> str:
@@ -165,6 +192,8 @@ class Tweet:
             f"hashtags {to_dict_list(self.hashtags)}\n" \
             f"user_mentions: {to_dict_list(self.user_mentions)}\n" \
             f"urls: {to_dict_list(self.urls)}\n"
+        if self.evaluation:
+            string += f"evaluation: {self.evaluation}"
         return string
 
     def to_json(self) -> Dict:
@@ -179,6 +208,8 @@ class Tweet:
         json_dict["full_text"] = self.full_text
         json_dict["entities"] = entities
         json_dict["user"] = user
+        if self.evaluation:
+            json_dict["evaluation"] = self.evaluation
         return json.dumps(json_dict)
 
 
@@ -203,7 +234,7 @@ def download_html(tweet_url: str, job: Dict = None) -> str:
     Downloads the site of a given URL with an older User-Agent.
 
     :param tweet_url: The URL as str you want to get downloaded
-    :param job: (Optional) If Job is given and it fails, it will save the fail data
+    :param job: (optional) If Job is given and it fails, it will save the fail data
     :return:
     """
     print(tweet_url)
@@ -211,7 +242,8 @@ def download_html(tweet_url: str, job: Dict = None) -> str:
     # does not have tweets in it's tweets list, while you see them on the website
     # headers = {'User-Agent': 'Mozilla/4.0 (compatible; MSIE 5.00; Windows 98)'}
     # headers = {'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)'}
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows; U; Windows NT 6.0; it-IT; rv:1.8.1.7) Gecko/20070914 Firefox/2.0.0.7'}
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows; U; Windows NT 6.0; it-IT; rv:1.8.1.7) Gecko/20070914 Firefox/2.0.0.7'}
     tries = 0
     max_retries = 5
 
@@ -233,6 +265,13 @@ def download_html(tweet_url: str, job: Dict = None) -> str:
                 warnings.warn("The url did not resolve to a valid site. Error 404")
             elif req.status_code == 200:
                 return req.text
+
+
+def create_time(tweet_id: str) -> str:
+    tweet_id = int(tweet_id)
+    time = (tweet_id >> 22) + 1288834974657
+    time = datetime.datetime.utcfromtimestamp(time / 1000).strftime("%a %b %d %H:%M:%S +0000 %Y")
+    return time
 
 
 def parse_html(html_data: str) -> str and List[Tweet]:
@@ -280,7 +319,9 @@ def parse_html(html_data: str) -> str and List[Tweet]:
             #       23. Juni
             #   </a>
             # </td>
-            created_at = raw_tweet.find("td", class_="timestamp").contents[1].string
+
+            # the time can be calculated with tweet_id, using that instead
+            # created_at = raw_tweet.find("td", class_="timestamp").contents[1].string
 
             # HTML collected and tested at: 2019-07-09
             # <div class="tweet-text"
@@ -293,6 +334,7 @@ def parse_html(html_data: str) -> str and List[Tweet]:
             full_text = raw_tweet_text.find("div", class_="dir-ltr").text[:-1]
             id_str = raw_tweet_text.get("data-id")
 
+            created_at = create_time(id_str)
             # More examples for the entities are in github
             # => 09-ClassesRewrite-Parallelism in "Tweet Entities.html"
             entities_wrapper = raw_tweet_text.find("div", class_="dir-ltr")
@@ -400,11 +442,15 @@ def parse_html(html_data: str) -> str and List[Tweet]:
 
 def failed_jobs_collector(job: Dict, reason: str) -> None:
     """Saves a failed job. Used to try it again later and see reason why it failed."""
-    job["failed-because"] = reason
+    job["creation_time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    job["crawl_complete"] = False
+    job["error"] = reason
     with open("failedJobs.json", "a") as failed:
         failed.write(json.dumps(job))
         failed.write("\n")
 
 
 if __name__ == '__main__':
-    Tweet.extract("https://mobile.twitter.com/search?q=ape%20since%3A2019-5-20%20until%3A2019-5-21%20lang%3Aen&src=typed_query", "out/test.json.gz")
+    Tweet.extract(
+        "https://mobile.twitter.com/search?q=ape%20since%3A2019-5-20%20until%3A2019-5-21%20lang%3Aen&src=typed_query",
+        "out/test.json.gz", {"keyword": "something", "start_date": "sth else", "end_date": "well", "lang": "..."})
