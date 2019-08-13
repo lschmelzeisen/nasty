@@ -10,7 +10,7 @@ import warnings
 from pathlib import Path
 from time import sleep
 from typing import Dict, List, Tuple
-
+import os
 import requests
 from bs4 import BeautifulSoup
 
@@ -111,17 +111,21 @@ class Tweet:
         # Got an error, if we used data in the current folder
         # "example.json.gz" and not "data/example.json.gz"
 
+        # This one is great.. do not delete it again, without reason :P
+        # Not a fan of the "out/" twice down below.
+        os.makedirs(os.path.dirname("out/"), exist_ok=True)
+
         # Generating an (hopefully ;) ) unique UUID filepath
         temp = str(uuid.uuid4())
-        with gzip.open("out/" + temp + "meta.json.gz", "wt") as idMeta:
+        with gzip.open(f"out/{temp}meta.json.gz", "wt") as idMeta:
 
-            save_to = "out/" + temp + "data.json.gz"
+            save_to = f"out/{temp}data.json.gz"
 
             job["creation_time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            if tweet_collector is None:
-                job["crawl_complete"] = False
-            else:
+            if tweet_collector:
                 job["crawl_complete"] = True
+            else:
+                job["crawl_complete"] = False
             job["error"] = "[]"
 
             idMeta.write(json.dumps(job))
@@ -151,38 +155,34 @@ class Tweet:
         return tweets
 
     @classmethod
-    def build_from_json(cls, read_from: str) -> List["Tweet"]:
-        """Return a list of tweets from a json.gz file. API or HTML saved data"""
-        with gzip.open(read_from, "rt") as json_file:
-            tweets = []
-            for line in json_file:
-                line = json.loads(line)
-                created_at = line["created_at"]
-                id_str = line["id_str"]
-                full_text = line["full_text"]
-                name = line["user"]["name"]
-                screen_name = line["user"]["screen_name"]
-                hashtags = []
-                user_mentions = []
-                urls = []
-                for hashtag in line["entities"]["hashtags"]:
-                    hashtags.append(Hashtag(hashtag["text"], hashtag["indices"]))
-                for user_mention in line["entities"]["user_mentions"]:
-                    user_mentions.append(
-                        UserMention(user_mention["screen_name"], user_mention["id_str"],
-                                    user_mention["indices"]))
-                for url in line["entities"]["urls"]:
-                    urls.append(TweetURLMapping(url["url"], url["expanded_url"], url["display_url"],
-                                                url["indices"]))
-                try:
-                    evaluation = line["evaluation"]
-                except KeyError:
-                    tweets.append(cls(created_at, id_str, full_text, name, screen_name, hashtags,
-                                      user_mentions, urls))
-                else:
-                    tweets.append(cls(created_at, id_str, full_text, name, screen_name, hashtags,
-                                      user_mentions, urls, evaluation))
-            return tweets
+    def build_from_line(cls, line: str or Dict) -> "Tweet":
+        if isinstance(line, str):
+            line = json.loads(line)
+        created_at = line["created_at"]
+        id_str = line["id_str"]
+        full_text = line["full_text"]
+        name = line["user"]["name"]
+        screen_name = line["user"]["screen_name"]
+        hashtags = []
+        user_mentions = []
+        urls = []
+        for hashtag in line["entities"]["hashtags"]:
+            hashtags.append(Hashtag(hashtag["text"], hashtag["indices"]))
+        for user_mention in line["entities"]["user_mentions"]:
+            user_mentions.append(
+                UserMention(user_mention["screen_name"], user_mention["id_str"],
+                            user_mention["indices"]))
+        for url in line["entities"]["urls"]:
+            urls.append(TweetURLMapping(url["url"], url["expanded_url"], url["display_url"],
+                                        url["indices"]))
+        try:
+            evaluation = line["evaluation"]
+        except KeyError:
+            return cls(created_at, id_str, full_text, name, screen_name, hashtags, user_mentions,
+                       urls)
+        else:
+            return cls(created_at, id_str, full_text, name, screen_name, hashtags, user_mentions,
+                       urls, evaluation)
 
     def __str__(self) -> str:
         string = f"created_at: {self.created_at}\n" \
@@ -211,6 +211,15 @@ class Tweet:
         if self.evaluation:
             json_dict["evaluation"] = self.evaluation
         return json.dumps(json_dict)
+
+
+def build_from_json(read_from: str or Path) -> List["Tweet"]:
+    """Return a list of tweets from a json.gz file. API or HTML saved data"""
+    with gzip.open(read_from, "rt") as json_file:
+        tweets = []
+        for line in json_file:
+            tweets.append(Tweet.build_from_line(line))
+        return tweets
 
 
 def to_dict_list(entities: List) -> List[Dict]:
@@ -448,9 +457,3 @@ def failed_jobs_collector(job: Dict, reason: str) -> None:
     with open("failedJobs.json", "a") as failed:
         failed.write(json.dumps(job))
         failed.write("\n")
-
-
-if __name__ == '__main__':
-    Tweet.extract(
-        "https://mobile.twitter.com/search?q=ape%20since%3A2019-5-20%20until%3A2019-5-21%20lang%3Aen&src=typed_query",
-        "out/test.json.gz", {"keyword": "something", "start_date": "sth else", "end_date": "well", "lang": "..."})
