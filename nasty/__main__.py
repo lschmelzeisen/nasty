@@ -8,9 +8,9 @@ from typing import Dict, List
 import toml
 
 import nasty
-from nasty.generator import generate_jobs
-from nasty.util.args import yyyy_mm_dd_date
+from nasty.jobs import build_jobs, write_jobs
 from nasty.util.logging import setup_logging
+from nasty.util.time import yyyy_mm_dd_date
 from nasty.worker import run
 
 
@@ -26,7 +26,11 @@ def main(argv: List[str]):
 
     config = load_config(source_folder / 'config.toml')
 
-    generate_jobs(args.keywords, args.time[0], args.time[1], args.lang)
+    write_jobs(build_jobs(keywords=args.keywords,
+                          start_date=args.time[0],
+                          end_date=args.time[1],
+                          lang=args.lang),
+               source_folder / 'jobs.jsonl')
     run(4, True)
 
 

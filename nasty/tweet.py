@@ -142,7 +142,7 @@ class Tweet:
                 filepath.write("\n")
             if job:
                 print(f"Saved the search for '{job['keyword']}' from "
-                      f"{job['start_date']}")
+                      f"{job['date']}")
 
     # ATM we dont need this def, since __init__ has optional arguments
     @classmethod
