@@ -11,4 +11,4 @@ venv/
 
 # Generated files
 out/
-jobs.json
+jobs.jsonl

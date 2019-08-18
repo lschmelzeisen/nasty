@@ -7,7 +7,7 @@ from calendar import monthrange
 
 def generate_jobs() -> None:
     """
-    Generates a jobs.json file, that worker can use to download tweets.
+    Generates a jobs.jsonl file, that worker can use to download tweets.
     """
     # Load config.json and fill the variables
     with open("config.json") as config:
@@ -29,7 +29,7 @@ def generate_jobs() -> None:
         # atm also no error message. If a date is missing, we will get an error.
         # Create or overwrite a Jobs file. Each Line is a job, saved as valid
         # JSON.
-        with open("jobs.json", "w") as jobs:
+        with open("jobs.jsonl", "w") as jobs:
             for keyword in keywords:
                 for year in range(start_year, end_year + 1):
                     # If the year right now is not the start_year,

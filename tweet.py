@@ -104,7 +104,7 @@ class Tweet:
             -> None:
         """Takes a url and saves tweets to hard drive with a specific UUID
         The metadata of the tweet is saved in "UUID.meta.json"
-        The actual data of the tweet is saved un "UUID.data.json.gz" """
+        The actual data of the tweet is saved un "UUID.data.jsonl.gz" """
 
         next_site = tweet_url
         tweet_collector = []
@@ -113,7 +113,7 @@ class Tweet:
             next_site, tweets = parse_html(html_data)
             tweet_collector.extend(tweets)
         # Got an error, if we used data in the current folder
-        # "example.json.gz" and not "data/example.json.gz"
+        # "example.jsonl.gz" and not "data/example.jsonl.gz"
 
         # This one is great.. do not delete it again, without reason :P
         # Not a fan of the "out/" twice down below.
@@ -123,7 +123,7 @@ class Tweet:
         temp = str(uuid.uuid4())
         with open(f"out/{temp}.meta.json", "wt") as idMeta:
 
-            save_to = f"out/{temp}.data.json.gz"
+            save_to = f"out/{temp}.data.jsonl.gz"
 
             job["creation_time"] = datetime.datetime.now().strftime(
                 "%Y-%m-%d %H:%M:%S")
@@ -491,6 +491,6 @@ def failed_jobs_collector(job: Dict, reason: str) -> None:
     job["creation_time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     job["crawl_complete"] = False
     job["error"] = reason
-    with open("failedJobs.json", "a") as failed:
+    with open("failedJobs.jsonl", "a") as failed:
         failed.write(json.dumps(job))
         failed.write("\n")
