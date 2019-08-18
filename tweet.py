@@ -15,8 +15,6 @@ from typing import Dict, List, Tuple
 import requests
 from bs4 import BeautifulSoup
 
-from string_modification import get_indices, html_to_api_converter
-
 
 class Hashtag:
     """The Hashtag class. Hashtag has it's text and the indices."""
@@ -315,6 +313,9 @@ def parse_html(html_data: str) -> Tuple[str, List[Tweet]]:
     :param html_data: html data, given as str
     :return: The url of the next site and a list of tweets from this site
     """
+
+    from string_modification import get_indices, html_to_api_converter
+
     # If download_html fails, e.g. due to connection lost,
     # BeautifulSoup raises a error for None as data
     if not html_data:
