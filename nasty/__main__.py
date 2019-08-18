@@ -9,8 +9,9 @@ import toml
 
 import nasty
 from nasty.generator import generate_jobs
-from nasty.worker import run
+from nasty.util.args import yyyy_mm_dd_date
 from nasty.util.logging import setup_logging
+from nasty.worker import run
 
 
 def main(argv: List[str]):
@@ -25,7 +26,7 @@ def main(argv: List[str]):
 
     config = load_config(source_folder / 'config.toml')
 
-    generate_jobs(config)
+    generate_jobs(args.keywords, args.time[0], args.time[1], args.lang)
     run(4, True)
 
 
@@ -44,6 +45,20 @@ def load_args(argv: List[str]) -> ArgumentNamespace:
     argparser.add_argument('-v', '--version', action='version',
                            version='%(prog)s development version',
                            help='Show program\'s version number and exit.')
+
+    argparser.add_argument('-k', '--keywords', metavar='<KEYWORD>',
+                           type=str, nargs='+', required=True, dest='keywords',
+                           help='Keywords to search for.')
+
+    argparser.add_argument('-t', '--time', metavar='<DATE>',
+                           type=yyyy_mm_dd_date, nargs=2, required=True,
+                           dest='time',
+                           help='Time range the returned tweets need to be in. '
+                                'Date format needs to be "YYYY-MM-DD".')
+
+    argparser.add_argument('--lang', metavar='<LANG>', type=str, dest='lang',
+                           default='en', help='Twitter Language to crawl with '
+                                              '(default: "en").')
 
     argparser.add_argument('--log-level', metavar='<level>', type=str,
                            choices=['DEBUG', 'INFO', 'WARN', 'ERROR'],

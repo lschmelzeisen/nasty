@@ -3,26 +3,21 @@
 Change config.json to define what keywords and time-range or language to use."""
 import json
 from calendar import monthrange
-from typing import Dict
+from datetime import date
+from typing import List
 
 
-def generate_jobs(config: Dict) -> None:
+def generate_jobs(keywords: List[str], start: date, end: date, lang: str) \
+        -> None:
     """
     Generates a jobs.jsonl file, that worker can use to download tweets.
     """
-    keywords = config["keywords"]
-    start = config["since"]
-    end = config["until"]
     start_year = start.year
     start_month = start.month
     start_day = start.day
     end_year = end.year
     end_month = end.month
     end_day = end.day
-    try:
-        lang = config["lang"]
-    except KeyError:
-        lang = "en"
     # If the end day is before the start day, no new file will be created,
     # atm also no error message. If a date is missing, we will get an error.
     # Create or overwrite a Jobs file. Each Line is a job, saved as valid
@@ -98,4 +93,4 @@ def generate_jobs(config: Dict) -> None:
 
 
 if __name__ == '__main__':
-    generate_jobs()
+    generate_jobs(['safari'], date(2019, 7, 20), date(2019, 7, 26), 'en')
