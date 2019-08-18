@@ -103,7 +103,7 @@ class Tweet:
     def extract(cls, tweet_url: str, search_pattern: str, job: Dict = None) \
             -> None:
         """Takes a url and saves tweets to hard drive with a specific UUID
-        The metadata of the tweet is saved in "UUID.meta.json.gz
+        The metadata of the tweet is saved in "UUID.meta.json"
         The actual data of the tweet is saved un "UUID.data.json.gz" """
 
         next_site = tweet_url
@@ -121,9 +121,9 @@ class Tweet:
 
         # Generating an (hopefully ;) ) unique UUID filepath
         temp = str(uuid.uuid4())
-        with gzip.open(f"out/{temp}meta.json.gz", "wt") as idMeta:
+        with open(f"out/{temp}.meta.json", "wt") as idMeta:
 
-            save_to = f"out/{temp}data.json.gz"
+            save_to = f"out/{temp}.data.json.gz"
 
             job["creation_time"] = datetime.datetime.now().strftime(
                 "%Y-%m-%d %H:%M:%S")
