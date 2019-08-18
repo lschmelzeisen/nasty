@@ -31,7 +31,7 @@ def main(argv: List[str]):
                           end_date=args.time[1],
                           lang=args.lang),
                source_folder / 'jobs.jsonl')
-    run(4, True)
+    # run(4, True)
 
 
 def load_args(argv: List[str]) -> ArgumentNamespace:
