@@ -8,6 +8,7 @@ import json
 import os
 import uuid
 import warnings
+from datetime import date, timedelta
 from pathlib import Path
 from time import sleep
 from typing import Dict, List, Tuple
@@ -97,6 +98,23 @@ class Tweet:
         self.name = name
         self.screen_name = screen_name
         self.evaluation = evaluation
+
+    # Quick hacky implementation, will fix soon.
+    @classmethod
+    def run_job(cls, keyword: str, date: date, lang: str) -> List['Tweet']:
+        since = date
+        until = date + timedelta(days=1)
+        url = (f"https://mobile.twitter.com/search?q={keyword}"
+               f"%20since%3A{since}"
+               f"%20until%3A{until}"
+               f"%20lang%3A{lang}&src=typed_query")
+        next_site = url
+        tweet_collector = []
+        while next_site:
+            html_data = download_html(next_site, job=None)
+            next_site, tweets = parse_html(html_data)
+            tweet_collector.extend(tweets)
+        return tweet_collector
 
     # ATM we dont need this def, since __init__ has optional arguments
     @classmethod

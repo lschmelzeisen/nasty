@@ -1,24 +1,32 @@
 import json
-from datetime import date
-from pathlib import Path
-from typing import Dict, Iterable
-from uuid import UUID, uuid4
-
+import gzip
+from datetime import date, datetime
 from logging import getLogger
+from multiprocessing import Pool
+from pathlib import Path
+from typing import Dict, Iterable, List, Optional, Tuple
+from uuid import uuid4
+
 import nasty
+from nasty.util.consts import DATE_TIME_FORMAT
+from nasty.util.json import JsonSerializedException
 from nasty.util.time import daterange, yyyy_mm_dd_date
+from nasty.tweet import Tweet
 
 
 class Job:
-    def __init__(self, id_: UUID, keyword: str, date_: date, lang: str):
+    def __init__(self, id_: str, keyword: str, date_: date, lang: str):
         self.id = id_
         self.keyword = keyword
         self.date = date_
         self.lang = lang
 
+    def __repr__(self):
+        return type(self).__name__ + repr(self.to_json())
+
     def to_json(self) -> Dict:
         return {
-            'id': self.id.hex,
+            'id': self.id,
             'keyword': self.keyword,
             'date': self.date.isoformat(),
             'lang': self.lang,
@@ -26,7 +34,7 @@ class Job:
 
     @classmethod
     def from_json(cls, obj: Dict) -> 'Job':
-        return cls(id_=UUID(hex=obj['id']),
+        return cls(id_=obj['id'],
                    keyword=obj['keyword'],
                    date_=yyyy_mm_dd_date(obj['date']),
                    lang=obj['lang'])
@@ -38,7 +46,7 @@ def build_jobs(keywords: Iterable[str],
                lang: str) -> Iterable[Job]:
     for date_ in daterange(start_date, end_date):
         for keyword in keywords:
-            yield Job(uuid4(), keyword, date_, lang)
+            yield Job(uuid4().hex, keyword, date_, lang)
 
 
 def write_jobs(jobs: Iterable[Job], file: Path) -> None:
@@ -47,7 +55,8 @@ def write_jobs(jobs: Iterable[Job], file: Path) -> None:
 
     with file.open('w', encoding='UTF-8') as fout:
         for job in jobs:
-            fout.write(json.dumps(job.to_json()) + '\n')
+            json.dump(job.to_json(), fout)
+            fout.write('\n')
 
 
 def read_jobs(file: Path) -> Iterable[Job]:
@@ -57,3 +66,83 @@ def read_jobs(file: Path) -> Iterable[Job]:
     with file.open('r', encoding='UTF-8') as fin:
         for line in fin:
             yield Job.from_json(json.loads(line))
+
+
+class JobMeta:
+    def __init__(self,
+                 job: Job,
+                 completed_at: Optional[datetime] = None,
+                 exceptions: Optional[List[JsonSerializedException]] = None):
+        self.job = job
+        self.completed_at = completed_at
+        self.exceptions = exceptions or []
+
+    def __repr__(self):
+        return type(self).__name__ + repr(self.to_json())
+
+    def to_json(self) -> Dict:
+        return {
+            'job': self.job.to_json(),
+            'completed-at': (self.completed_at.strftime(DATE_TIME_FORMAT)
+                             if self.completed_at else None),
+            'exceptions': [e.to_json() for e in self.exceptions],
+        }
+
+    @classmethod
+    def from_json(cls, obj: Dict) -> 'JobMeta':
+        return cls(job=Job.from_json(obj['job']),
+                   completed_at=(datetime.strptime(obj['completed_at'],
+                                                   DATE_TIME_FORMAT)
+                                 if obj['completed-at'] else None),
+                   exceptions=[JsonSerializedException.from_json(e)
+                               for e in obj['exceptions']])
+
+
+def _run_job(args: Tuple[Path, Job]) -> None:
+    out_directory, job = args
+
+    logger = getLogger(nasty.__name__)
+    logger.debug('Running job "{}".'.format(job.id))
+
+    meta_file = out_directory / '{}.meta.json'.format(job.id)
+    data_file = out_directory / '{}.data.jsonl.gz'.format(job.id)
+
+    if meta_file.exists():
+        with meta_file.open('r', encoding='UTF-8') as fin:
+            meta = JobMeta.from_json(json.load(fin))
+    else:
+        meta = JobMeta(job=job)
+
+    if meta.completed_at:
+        logger.debug('  Job marked as already completed at "{}".'
+                     .format(meta.completed_at.strftime(DATE_TIME_FORMAT)))
+        return
+
+    if meta.exceptions:
+        logger.debug('  Job failed previously.')
+
+    if data_file.exists():
+        data_file.unlink()
+
+    tweets = []
+    try:
+        tweets = Tweet.run_job(job.keyword, job.date, job.lang)
+        meta.completed_at = datetime.now()
+    except Exception as e:
+        logger.exception('  Job failed with exception.')
+        meta.exceptions.append(JsonSerializedException.from_exception(e))
+
+    with gzip.open(data_file, 'wt', encoding='UTF-8') as fout:
+        for tweet in tweets:
+            fout.write(tweet.to_json() + '\n')
+
+    with meta_file.open('w', encoding='UTF-8') as fout:
+        json.dump(meta.to_json(), fout, indent=2)
+
+
+def run_jobs(jobs: Iterable[Job], num_processes: int = 1) -> None:
+    out_directory = Path('out')
+    Path.mkdir(out_directory, exist_ok=True, parents=True)
+
+    with Pool(processes=num_processes) as pool:
+        pool.map(_run_job, ((out_directory, job) for job in jobs))
