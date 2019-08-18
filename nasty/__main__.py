@@ -1,9 +1,10 @@
 import argparse
-import json
 import sys
 from argparse import ArgumentParser, Namespace as ArgumentNamespace
 from pathlib import Path
 from typing import Dict, List
+
+import toml
 
 from nasty.generator import generate_jobs
 from nasty.worker import run
@@ -15,7 +16,7 @@ def main(argv: List[str]):
 
     args = load_args(argv)
 
-    config = load_config(source_folder / 'config.json')
+    config = load_config(source_folder / 'config.toml')
     from pprint import pprint
     pprint(config)
 
@@ -49,7 +50,7 @@ def load_config(path: Path) -> Dict:
         sys.exit()
 
     with path.open(encoding='UTF-8') as fin:
-        config = json.load(fin)
+        config = toml.load(fin)
 
     return config
 

@@ -11,14 +11,14 @@ def generate_jobs(config: Dict) -> None:
     Generates a jobs.jsonl file, that worker can use to download tweets.
     """
     keywords = config["keywords"]
-    start = config["since"].split("-")
-    end = config["until"].split("-")
-    start_year = int(start[0])
-    start_month = int(start[1])
-    start_day = int(start[2])
-    end_year = int(end[0])
-    end_month = int(end[1])
-    end_day = int(end[2])
+    start = config["since"]
+    end = config["until"]
+    start_year = start.year
+    start_month = start.month
+    start_day = start.day
+    end_year = end.year
+    end_month = end.month
+    end_day = end.day
     try:
         lang = config["lang"]
     except KeyError:
