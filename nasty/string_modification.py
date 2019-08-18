@@ -1,7 +1,7 @@
 import html
 from typing import List, Tuple
 
-from tweet import TweetURLMapping, UserMention
+from nasty.tweet import TweetURLMapping, UserMention
 
 
 def html_to_api_converter(full_text: str,

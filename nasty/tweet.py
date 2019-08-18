@@ -314,7 +314,7 @@ def parse_html(html_data: str) -> Tuple[str, List[Tweet]]:
     :return: The url of the next site and a list of tweets from this site
     """
 
-    from string_modification import get_indices, html_to_api_converter
+    from nasty.string_modification import get_indices, html_to_api_converter
 
     # If download_html fails, e.g. due to connection lost,
     # BeautifulSoup raises a error for None as data
