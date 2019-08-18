@@ -1,24 +1,29 @@
 import argparse
 import sys
 from argparse import ArgumentParser, Namespace as ArgumentNamespace
+from logging import getLogger
 from pathlib import Path
 from typing import Dict, List
 
 import toml
 
+import nasty
 from nasty.generator import generate_jobs
 from nasty.worker import run
+from nasty.util.logging import setup_logging
 
 
 def main(argv: List[str]):
     source_folder = Path(__file__).parent.parent
-    print(source_folder)
 
     args = load_args(argv)
 
+    setup_logging(args.log_level)
+    logger = getLogger(nasty.__name__)
+    logger.debug('Raw arguments: {}'.format(argv))
+    logger.debug('Parsed arguments: {}'.format(vars(args)))
+
     config = load_config(source_folder / 'config.toml')
-    from pprint import pprint
-    pprint(config)
 
     generate_jobs(config)
     run(4, True)
@@ -35,9 +40,15 @@ def load_args(argv: List[str]) -> ArgumentNamespace:
     argparser.add_argument('-h', '--help', action='help',
                            default=argparse.SUPPRESS,
                            help='Show this help message and exit.')
+
     argparser.add_argument('-v', '--version', action='version',
                            version='%(prog)s development version',
                            help='Show program\'s version number and exit.')
+
+    argparser.add_argument('--log-level', metavar='<level>', type=str,
+                           choices=['DEBUG', 'INFO', 'WARN', 'ERROR'],
+                           default='INFO', dest='log_level',
+                           help='Set logging level (DEBUG, INFO, WARN, ERROR).')
 
     args = argparser.parse_args(argv)
 
@@ -45,12 +56,19 @@ def load_args(argv: List[str]) -> ArgumentNamespace:
 
 
 def load_config(path: Path) -> Dict:
+    logger = getLogger(nasty.__name__)
+
     if not path.exists():
-        print('Could not find config file in "{}".'.format(path))
+        logger.error('Could not find config file in "{}".'.format(path))
         sys.exit()
 
+    logger.debug('Loading config from "{}".'.format(path))
     with path.open(encoding='UTF-8') as fin:
         config = toml.load(fin)
+
+    logger.debug('Loaded config:')
+    for line in toml.dumps(config).splitlines():
+        logger.debug('  ' + line)
 
     return config
 
