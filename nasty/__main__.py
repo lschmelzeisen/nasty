@@ -1,16 +1,25 @@
 import argparse
+import json
 import sys
 from argparse import ArgumentParser, Namespace as ArgumentNamespace
-from typing import List
+from pathlib import Path
+from typing import Dict, List
 
 from nasty.generator import generate_jobs
 from nasty.worker import run
 
 
 def main(argv: List[str]):
+    source_folder = Path(__file__).parent.parent
+    print(source_folder)
+
     args = load_args(argv)
 
-    generate_jobs()
+    config = load_config(source_folder / 'config.json')
+    from pprint import pprint
+    pprint(config)
+
+    generate_jobs(config)
     run(4, True)
 
 
@@ -32,6 +41,17 @@ def load_args(argv: List[str]) -> ArgumentNamespace:
     args = argparser.parse_args(argv)
 
     return args
+
+
+def load_config(path: Path) -> Dict:
+    if not path.exists():
+        print('Could not find config file in "{}".'.format(path))
+        sys.exit()
+
+    with path.open(encoding='UTF-8') as fin:
+        config = json.load(fin)
+
+    return config
 
 
 if __name__ == '__main__':
