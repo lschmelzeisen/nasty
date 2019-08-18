@@ -1,6 +1,6 @@
 """This module generates jobs.
 
-Change config.json to define what keywords and timerange or language to use."""
+Change config.json to define what keywords and time-range or language to use."""
 import json
 from calendar import monthrange
 
@@ -8,7 +8,6 @@ from calendar import monthrange
 def generate_jobs() -> None:
     """
     Generates a jobs.json file, that worker can use to download tweets.
-    :return:
     """
     # Load config.json and fill the variables
     with open("config.json") as config:
@@ -26,10 +25,10 @@ def generate_jobs() -> None:
             lang = config["lang"]
         except KeyError:
             lang = "en"
-        # If the end day is before the start day,
-        # no new file will be created, atm also no error message
-        # If a date is missing, we will get an error
-        # Create or overwrite a Jobs file. Each Line is a job, saved as valid JSON.
+        # If the end day is before the start day, no new file will be created,
+        # atm also no error message. If a date is missing, we will get an error.
+        # Create or overwrite a Jobs file. Each Line is a job, saved as valid
+        # JSON.
         with open("jobs.json", "w") as jobs:
             for keyword in keywords:
                 for year in range(start_year, end_year + 1):
@@ -39,7 +38,8 @@ def generate_jobs() -> None:
                         start_month_range = 1
                     # Else (the year is the start_year)
                     # we have to start from the specified month, not earlier
-                    # To not overwrite the start_month for the next year/keyword -> new variable
+                    # To not overwrite the start_month for the next
+                    # year/keyword -> new variable
                     else:
                         start_month_range = start_month
                     # If the year is not the end_year,
@@ -52,11 +52,12 @@ def generate_jobs() -> None:
                     else:
                         end_month_range = end_month
                     for month in range(start_month_range, end_month_range + 1):
-                        # If we are in the last year to search and in the last month,
-                        # we end at the specified end day
+                        # If we are in the last year to search and in the last
+                        # month, we end at the specified end day
                         if year == end_year and month == end_month:
                             day_range = end_day
-                        # Else we want to search for as long as the month has days
+                        # Else we want to search for as long as the month has
+                        # days
                         else:
                             day_range = monthrange(year, month)[1] + 1
                         # If we are not in the start_month,
@@ -71,9 +72,12 @@ def generate_jobs() -> None:
                             # If the day is the last day of the month,
                             # we need "until" to jump to the first of the next
                             if day == monthrange(year, month)[1]:
-                                # If its also December we need to jump to the next year
-                                if day == monthrange(year, month)[1] and month == 12:
-                                    since = f"{year}-{month}-{day}"  # for 0x use month:02
+                                # If its also December we need to jump to the
+                                # next year
+                                if day == monthrange(year, month)[1] \
+                                        and month == 12:
+                                    # for 0x use month:02
+                                    since = f"{year}-{month}-{day}"
                                     until = f"{year + 1}-01-01"
                                 # Else -> jump to the first of the next month
                                 else:
@@ -84,7 +88,8 @@ def generate_jobs() -> None:
                             else:
                                 since = f"{year}-{month}-{day}"
                                 until = f"{year}-{month}-{day + 1}"
-                            # Save the keyword and dates to a dict, for easy json dumping
+                            # Save the keyword and dates to a dict, for easy
+                            # json dumping
                             data_dict = dict()
                             data_dict["keyword"] = keyword
                             data_dict["start_date"] = since
