@@ -1,0 +1,14 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE files
+.idea/
+
+# Virtual environments
+venv/
+
+# Generated files
+out/
+jobs.json
