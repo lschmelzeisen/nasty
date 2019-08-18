@@ -133,7 +133,7 @@ class Tweet:
                 job["crawl_complete"] = False
             job["error"] = "[]"
 
-            idMeta.write(json.dumps(job))
+            idMeta.write(json.dumps(job, indent=2))
             idMeta.write("\n")
 
         with gzip.open(save_to, "wt") as filepath:
