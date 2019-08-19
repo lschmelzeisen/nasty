@@ -12,7 +12,7 @@ from urllib3 import Retry
 
 import nasty
 from nasty.string_modification import get_indices, html_to_api_converter
-from nasty.tweet import Hashtag, Tweet, TweetURLMapping, UserMention
+from nasty.tweet import Hashtag, Tweet, TweetUrlMapping, UserMention
 
 
 def perform_advanced_search(keyword: str, date: date, lang: str) -> List[Tweet]:
@@ -210,7 +210,7 @@ def parse_html(html_data: str) -> Tuple[str, List[Tweet]]:
                                       "has-expanded-path")
             urls = []
             for url in urls_list:
-                urls.append(TweetURLMapping(url.get("href"),
+                urls.append(TweetUrlMapping(url.get("href"),
                                             url.get("data-url"),
                                             url.text, (0, 0)))
 

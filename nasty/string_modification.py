@@ -1,14 +1,14 @@
 import html
 from typing import List, Tuple
 
-from nasty.tweet import TweetURLMapping, UserMention
+from nasty.tweet import TweetUrlMapping, UserMention
 
 
 def html_to_api_converter(full_text: str,
-                          urls: List[TweetURLMapping],
+                          urls: List[TweetUrlMapping],
                           user_mentions: List[UserMention],
                           screen_name: str) \
-        -> Tuple[str, List[TweetURLMapping], List[UserMention]]:
+        -> Tuple[str, List[TweetUrlMapping], List[UserMention]]:
     """
     This method converts a tweet text from the advanced search method, to a
     lookalike tweet text of the official twitter API.
@@ -42,7 +42,7 @@ def html_to_api_converter(full_text: str,
     for url in urls:
         full_text = full_text.replace(url.display_url, url.url, 1)
     for user_mention in user_mentions:
-        if user_mention.screen_name != screen_name and not user_mention.id_str:
+        if user_mention.screen_name != screen_name and not user_mention.id:
             # Unsure about the functionality. Some tweets are wrong.
             if ("@" + user_mention.screen_name) not in full_text:
                 full_text = "@" + user_mention.screen_name + " " + full_text
@@ -50,7 +50,7 @@ def html_to_api_converter(full_text: str,
     for url in urls:
         url.indices = get_indices(url.url, full_text)
     for user_mention in user_mentions:
-        if user_mention.id_str:
+        if user_mention.id:
             user_mention.indices = get_indices("@" + user_mention.screen_name,
                                                full_text)
     full_text = mod_string_unescape(full_text)

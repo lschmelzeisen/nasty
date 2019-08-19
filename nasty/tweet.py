@@ -2,8 +2,7 @@
 Class collection containing the main Tweet class.
 As well as a class for Hashtag, UserMention and TweetURLMapping
 """
-import json
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 
 class Hashtag:
@@ -15,27 +14,51 @@ class Hashtag:
         # e.g. (16,22)
         self.indices = indices
 
-    def __str__(self):
-        return self.__dict__.__str__()
+    def __repr__(self):
+        return type(self).__name__ + repr(self.to_json())
+
+    def to_json(self) -> Dict:
+        return {
+            'text': self.text,
+            'indices': self.indices,
+        }
+
+    @classmethod
+    def from_json(cls, obj: Dict) -> 'Hashtag':
+        return cls(text=obj['text'],
+                   indices=tuple(obj['indices']))
 
 
 class UserMention:
     """The UserMention class. Got a @screen_name,
     if mentioned and not only answered too the user_id and the indices"""
 
-    def __init__(self, screen_name: str, id_str: str, indices: Tuple[int, int]):
+    def __init__(self, screen_name: str, id_: str, indices: Tuple[int, int]):
         # e.g. OHiwi-2
         self.screen_name = screen_name
         # e.g. "1117712996795658241"
-        self.id_str = id_str
+        self.id = id_
         # e.g. (14, 21)
         self.indices = indices
 
-    def __str__(self):
-        return self.__dict__.__str__()
+    def __repr__(self):
+        return type(self).__name__ + repr(self.to_json())
+
+    def to_json(self) -> Dict:
+        return {
+            'screen_name': self.screen_name,
+            'id': self.id,
+            'indices': self.indices,
+        }
+
+    @classmethod
+    def from_json(cls, obj: Dict) -> 'UserMention':
+        return cls(screen_name=obj['screen_name'],
+                   id_=obj['id'],
+                   indices=tuple(obj['indices']))
 
 
-class TweetURLMapping:
+class TweetUrlMapping:
     """The TweetURLMapping class. Got the short url, the url and the displayed
     url + indices"""
 
@@ -53,8 +76,23 @@ class TweetURLMapping:
         # e.g. (18,41)
         self.indices = indices
 
-    def __str__(self):
-        return self.__dict__.__str__()
+    def __repr__(self):
+        return type(self).__name__ + repr(self.to_json())
+
+    def to_json(self) -> Dict:
+        return {
+            'url': self.url,
+            'expanded_url': self.expanded_url,
+            'display_url': self.display_url,
+            'indices': self.indices,
+        }
+
+    @classmethod
+    def from_json(cls, obj: Dict) -> 'TweetUrlMapping':
+        return cls(url=obj['url'],
+                   expanded_url=obj['expanded_url'],
+                   display_url=obj['display_url'],
+                   indices=tuple(obj['indices']))
 
 
 class Tweet:
@@ -75,9 +113,11 @@ class Tweet:
                  screen_name: str,
                  hashtags: List[Hashtag],
                  user_mentions: List[UserMention],
-                 urls: List[TweetURLMapping],
-                 evaluation: List[str] = list()) -> None:
+                 urls: List[TweetUrlMapping],
+                 evaluation: Optional[List[str]] = None) -> None:
+        # TODO: is this necessary (parameter type says its already a string)?
         tweet_id = str(tweet_id)
+
         self.created_at = created_at
         self.id_str = tweet_id
         self.full_text = full_text
@@ -86,32 +126,45 @@ class Tweet:
         self.urls = urls
         self.name = name
         self.screen_name = screen_name
-        self.evaluation = evaluation
+        self.evaluation = evaluation or []
 
     def __repr__(self):
-        return type(self).__name__ + self.to_json()
+        return type(self).__name__ + repr(self.to_json())
 
-    def to_json(self) -> str:
-        """Return a json serializable dict of this tweet"""
+    def to_json(self) -> Dict:
+        result = {
+            'created_at': self.created_at,
+            'id_str': self.id_str,
+            'full_text': self.full_text,
+            'entities': {
+                'hashtags': [hashtag.to_json() for hashtag in self.hashtags],
+                'user_mentions': [user_mention.to_json()
+                                  for user_mention in self.user_mentions],
+                'urls': [url.to_json() for url in self.urls]
+            },
+            'user': {
+                'name': self.name,
+                'screen_name': self.screen_name,
+            }
+        }
 
-        def to_dict_list(entities: List) -> List[Dict]:
-            """Collects every entity of one type and form a list of dicts.
-            Manly for toString cases."""
-            temp = []
-            for entity in entities:
-                temp.append(entity.__dict__)
-            return temp
-
-        user = {"name": self.name, "screen_name": self.screen_name}
-        entities = {"hashtags": to_dict_list(self.hashtags),
-                    "user_mentions": to_dict_list(self.user_mentions),
-                    "urls": to_dict_list(self.urls)}
-        json_dict = dict()
-        json_dict["created_at"] = self.created_at
-        json_dict["id_str"] = self.id_str
-        json_dict["full_text"] = self.full_text
-        json_dict["entities"] = entities
-        json_dict["user"] = user
         if self.evaluation:
-            json_dict["evaluation"] = self.evaluation
-        return json.dumps(json_dict)
+            result['evaluation'] = self.evaluation
+
+        return result
+
+    @classmethod
+    def from_json(cls, obj: Dict) -> 'Tweet':
+        return cls(created_at=obj['created_at'],
+                   tweet_id=obj['id_str'],
+                   full_text=obj['full_text'],
+                   name=obj['user']['name'],
+                   screen_name=obj['user']['screen_name'],
+                   hashtags=[Hashtag.from_json(hashtag)
+                             for hashtag in obj['entities']['hashtags']],
+                   user_mentions=[UserMention.from_json(user_mention)
+                                  for user_mention
+                                  in obj['entities']['user_mentions']],
+                   urls=[TweetUrlMapping.from_json(url)
+                         for url in obj['entities']['urls']],
+                   evaluation=obj.get('evaluation'))

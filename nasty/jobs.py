@@ -134,7 +134,8 @@ def _run_job(args: Tuple[Path, Job]) -> None:
 
     with gzip.open(data_file, 'wt', encoding='UTF-8') as fout:
         for tweet in tweets:
-            fout.write(tweet.to_json() + '\n')
+            json.dump(tweet.to_json(), fout)
+            fout.write('\n')
 
     with meta_file.open('w', encoding='UTF-8') as fout:
         json.dump(meta.to_json(), fout, indent=2)
