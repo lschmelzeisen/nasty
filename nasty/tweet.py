@@ -267,13 +267,11 @@ def only_whitespaces(text):
     return True
 
 
-def download_html(tweet_url: str, job: Dict = None) -> str:
+def download_html(tweet_url: str) -> str:
     """
     Downloads the site of a given URL with an older User-Agent.
 
     :param tweet_url: The URL as str you want to get downloaded
-    :param job: (optional) If Job is given and it fails, it will save the fail
-        data
     :return:
     """
     print(tweet_url)
@@ -501,14 +499,3 @@ def parse_html(html_data: str) -> Tuple[str, List[Tweet]]:
             .find("a").get("href")
         return next_site_head + next_site_tail, tweets
     return "", tweets
-
-
-def failed_jobs_collector(job: Dict, reason: str) -> None:
-    """Saves a failed job. Used to try it again later and see reason why it
-    failed."""
-    job["creation_time"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    job["crawl_complete"] = False
-    job["error"] = reason
-    with open("failedJobs.jsonl", "a") as failed:
-        failed.write(json.dumps(job))
-        failed.write("\n")
