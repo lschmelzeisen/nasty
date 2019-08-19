@@ -11,7 +11,7 @@ import nasty
 from nasty.util.consts import DATE_TIME_FORMAT
 from nasty.util.json import JsonSerializedException
 from nasty.util.time import daterange, yyyy_mm_dd_date
-from nasty.tweet import Tweet
+from nasty.tweet import perform_advanced_search
 
 
 class Job:
@@ -102,7 +102,7 @@ def _run_job(args: Tuple[Path, Job]) -> None:
     out_directory, job = args
 
     logger = getLogger(nasty.__name__)
-    logger.debug('Running job "{}".'.format(job.id))
+    logger.debug('Running job {}.'.format(job))
 
     meta_file = out_directory / '{}.meta.json'.format(job.id)
     data_file = out_directory / '{}.data.jsonl.gz'.format(job.id)
@@ -126,7 +126,7 @@ def _run_job(args: Tuple[Path, Job]) -> None:
 
     tweets = []
     try:
-        tweets = Tweet.run_job(job.keyword, job.date, job.lang)
+        tweets = perform_advanced_search(job.keyword, job.date, job.lang)
         meta.completed_at = datetime.now()
     except Exception as e:
         logger.exception('  Job failed with exception.')

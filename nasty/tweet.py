@@ -104,27 +104,6 @@ class Tweet:
         self.screen_name = screen_name
         self.evaluation = evaluation
 
-    # Quick hacky implementation, will fix soon.
-    @classmethod
-    def run_job(cls, keyword: str, date: date, lang: str) -> List['Tweet']:
-        next_cursor = None
-        tweet_collector = []
-
-        while True:
-            html_data = download_advanced_search_page(
-                keyword, date, date + timedelta(days=1), lang, next_cursor)
-
-            next_site, tweets = parse_html(html_data)
-
-            if not next_site:
-                break
-            next_cursor = next_site[
-                          next_site.find('next_cursor=') + len('next_cursor='):]
-
-            tweet_collector.extend(tweets)
-
-        return tweet_collector
-
     # ATM we dont need this def, since __init__ has optional arguments
     @classmethod
     def extract(cls, tweet_url: str, search_pattern: str, job: Dict = None) \
@@ -273,6 +252,24 @@ def only_whitespaces(text):
         if character != " ":
             return False
     return True
+
+
+def perform_advanced_search(keyword: str, date: date, lang: str) -> List[Tweet]:
+    tweets = []
+
+    next_cursor = None
+    while True:
+        html_data = download_advanced_search_page(
+            keyword, date, date + timedelta(days=1), lang, next_cursor)
+        next_page_url, tweets_on_page = parse_html(html_data)
+        tweets.extend(tweets_on_page)
+
+        if not next_page_url:
+            break
+        next_cursor = next_page_url[
+                      next_page_url.find('next_cursor=') + len('next_cursor='):]
+
+    return tweets
 
 
 def download_advanced_search_page(keyword: str,
