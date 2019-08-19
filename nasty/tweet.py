@@ -9,13 +9,17 @@ import os
 import uuid
 import warnings
 from datetime import date, timedelta
+from logging import getLogger
 from pathlib import Path
-from time import sleep
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
+from urllib.parse import quote_plus
 
 import requests
 from bs4 import BeautifulSoup
-from requests.exceptions import ConnectionError, Timeout
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+import nasty
 
 
 class Hashtag:
@@ -103,18 +107,22 @@ class Tweet:
     # Quick hacky implementation, will fix soon.
     @classmethod
     def run_job(cls, keyword: str, date: date, lang: str) -> List['Tweet']:
-        since = date
-        until = date + timedelta(days=1)
-        url = (f"https://mobile.twitter.com/search?q={keyword}"
-               f"%20since%3A{since}"
-               f"%20until%3A{until}"
-               f"%20lang%3A{lang}&src=typed_query")
-        next_site = url
+        next_cursor = None
         tweet_collector = []
-        while next_site:
-            html_data = download_html(next_site, job=None)
+
+        while True:
+            html_data = download_advanced_search_page(
+                keyword, date, date + timedelta(days=1), lang, next_cursor)
+
             next_site, tweets = parse_html(html_data)
+
+            if not next_site:
+                break
+            next_cursor = next_site[
+                          next_site.find('next_cursor=') + len('next_cursor='):]
+
             tweet_collector.extend(tweets)
+
         return tweet_collector
 
     # ATM we dont need this def, since __init__ has optional arguments
@@ -125,10 +133,10 @@ class Tweet:
         The metadata of the tweet is saved in "UUID.meta.json"
         The actual data of the tweet is saved un "UUID.data.jsonl.gz" """
 
-        next_site = tweet_url
+        next_cursor = None
         tweet_collector = []
         while next_site:
-            html_data = download_html(next_site, job)
+            html_data = download_advanced_search_page(next_site, job)
             next_site, tweets = parse_html(html_data)
             tweet_collector.extend(tweets)
         # Got an error, if we used data in the current folder
@@ -267,45 +275,48 @@ def only_whitespaces(text):
     return True
 
 
-def download_html(tweet_url: str) -> str:
-    """
-    Downloads the site of a given URL with an older User-Agent.
+def download_advanced_search_page(keyword: str,
+                                  start_date: date,
+                                  end_date: date,
+                                  lang: str,
+                                  next_cursor: Optional[str] = None) -> str:
+    logger = getLogger(nasty.__name__)
+    logger.debug('Download advanced search page (keyword: "{}", time-range: '
+                 '"{}" to "{}", lang: "{}", next-cursor: "{}").'
+                 .format(keyword, start_date.isoformat(), end_date.isoformat(),
+                         lang, next_cursor))
 
-    :param tweet_url: The URL as str you want to get downloaded
-    :return:
-    """
-    print(tweet_url)
-    # Needed to change. The old didn't return tweets. So try this if you the
-    # parser does not have tweets in it's tweets list, while you see them on the
-    # website
-    # headers = {'User-Agent': 'Mozilla/4.0 (compatible; MSIE 5.00; '
-    #                          'Windows 98)'}
-    # headers = {'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; '
-    #                          'Windows NT 5.1)'}
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows; U; Windows NT 6.0; it-IT; '
-                             'rv:1.8.1.7) Gecko/20070914 Firefox/2.0.0.7'}
-    tries = 0
-    max_retries = 5
+    url = 'https://mobile.twitter.com/search?q='
+    url += quote_plus('{} since:{} until:{} lang:{}'.format(
+        keyword, start_date.isoformat(), end_date.isoformat(), lang))
+    if next_cursor:
+        url += '&next_cursor=' + next_cursor
 
-    while tries < max_retries:
-        try:
-            req = requests.get(tweet_url, headers=headers, timeout=5)
-        except ConnectionError:
-            tries += 1
-            sleep(5)
-            if tries == max_retries:
-                raise
-        except Timeout:
-            tries += 1
-            sleep(5)
-            if tries == max_retries:
-                raise
-        else:
-            if req.status_code == 404:
-                warnings.warn(
-                    "The url did not resolve to a valid site. Error 404")
-            elif req.status_code == 200:
-                return req.text
+    # Configure retry behaviour. See the following for some explanation:
+    # https://stackoverflow.com/a/35504626/211404
+    session = requests.Session()
+    session.mount('https://', HTTPAdapter(max_retries=Retry(
+        total=5, connect=5, redirect=10, backoff_factor=0.1,
+        raise_on_redirect=True, raise_on_status=True,
+        status_forcelist=[404, 408, 409, 500, 501, 502, 503, 504])))
+
+    # We mask ourselves behind an ancient User-Agent string here in order to
+    # avoid Twitter responding with its modern website version which requires
+    # running Javascript to load the actual content. The older version we get
+    # with the following contains all content in HTML and is thus easier
+    # crawled. However, this breaks from time to time and the user-Agent string
+    # might need to be updated.
+    # user_agent = 'Mozilla/4.0 (compatible; MSIE 5.00; Windows 98)'
+    # user_agent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)'
+    user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 6.0; it-IT; ' \
+                 'rv:1.8.1.7) Gecko/20070914 Firefox/2.0.0.7'
+
+    request = session.get(url, headers={'User-Agent': user_agent}, timeout=5)
+    if request.status_code != 200:
+        raise ValueError('Unexpected status code: {}.'
+                         .format(request.status_code))
+
+    return request.text
 
 
 def create_time(tweet_id: str) -> str:
