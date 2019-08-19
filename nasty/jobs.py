@@ -11,7 +11,7 @@ import nasty
 from nasty.util.consts import DATE_TIME_FORMAT
 from nasty.util.json import JsonSerializedException
 from nasty.util.time import daterange, yyyy_mm_dd_date
-from nasty.tweet import perform_advanced_search
+from nasty.advanced_search import perform_advanced_search
 
 
 class Job:
