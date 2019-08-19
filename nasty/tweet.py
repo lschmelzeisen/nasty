@@ -15,6 +15,7 @@ from typing import Dict, List, Tuple
 
 import requests
 from bs4 import BeautifulSoup
+from requests.exceptions import ConnectionError, Timeout
 
 
 class Hashtag:
@@ -291,17 +292,16 @@ def download_html(tweet_url: str, job: Dict = None) -> str:
     while tries < max_retries:
         try:
             req = requests.get(tweet_url, headers=headers, timeout=5)
-        except requests.exceptions.ConnectionError:
+        except ConnectionError:
             tries += 1
             sleep(5)
-            if tries == max_retries and job is not None:
-                failed_jobs_collector(
-                    job, reason="requests.exceptions.ConnectionError")
-        except requests.exceptions.Timeout:
+            if tries == max_retries:
+                raise
+        except Timeout:
             tries += 1
             sleep(5)
-            if tries == max_retries and job is not None:
-                failed_jobs_collector(job, reason="requests.exceptions.Timeout")
+            if tries == max_retries:
+                raise
         else:
             if req.status_code == 404:
                 warnings.warn(
