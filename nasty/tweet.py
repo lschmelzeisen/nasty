@@ -3,14 +3,10 @@ Class collection containing the main Tweet class.
 As well as a class for Hashtag, UserMention and TweetURLMapping
 """
 import datetime
-import gzip
 import json
-import os
-import uuid
 import warnings
 from datetime import date, timedelta
 from logging import getLogger
-from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import quote_plus
 
@@ -104,115 +100,20 @@ class Tweet:
         self.screen_name = screen_name
         self.evaluation = evaluation
 
-    # ATM we dont need this def, since __init__ has optional arguments
-    @classmethod
-    def extract(cls, tweet_url: str, search_pattern: str, job: Dict = None) \
-            -> None:
-        """Takes a url and saves tweets to hard drive with a specific UUID
-        The metadata of the tweet is saved in "UUID.meta.json"
-        The actual data of the tweet is saved un "UUID.data.jsonl.gz" """
+    def __repr__(self):
+        return type(self).__name__ + self.to_json()
 
-        next_cursor = None
-        tweet_collector = []
-        while next_site:
-            html_data = download_advanced_search_page(next_site, job)
-            next_site, tweets = parse_html(html_data)
-            tweet_collector.extend(tweets)
-        # Got an error, if we used data in the current folder
-        # "example.jsonl.gz" and not "data/example.jsonl.gz"
-
-        # This one is great.. do not delete it again, without reason :P
-        # Not a fan of the "out/" twice down below.
-        os.makedirs(os.path.dirname("out/"), exist_ok=True)
-
-        # Generating an (hopefully ;) ) unique UUID filepath
-        temp = str(uuid.uuid4())
-        with open(f"out/{temp}.meta.json", "wt") as idMeta:
-
-            save_to = f"out/{temp}.data.jsonl.gz"
-
-            job["creation_time"] = datetime.datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S")
-            if tweet_collector:
-                job["crawl_complete"] = True
-            else:
-                job["crawl_complete"] = False
-            job["error"] = "[]"
-
-            idMeta.write(json.dumps(job, indent=2))
-            idMeta.write("\n")
-
-        with gzip.open(save_to, "wt") as filepath:
-            for tweet in tweet_collector:
-                filepath.write(tweet.to_json())
-                filepath.write("\n")
-            if job:
-                print(f"Saved the search for '{job['keyword']}' from "
-                      f"{job['date']}")
-
-    # ATM we dont need this def, since __init__ has optional arguments
-    @classmethod
-    def build_from_html(cls, html_data: str, save_to: str = None) \
-            -> List["Tweet"]:
-        """
-        Returns tweets and saves them if you pass a filepath.
-        :param html_data: html data, given as str
-        :param save_to: (optional) If given saves to the datapath
-        :return: List of Tweets
-        """
-        _, tweets = parse_html(html_data)
-        if save_to:
-            with gzip.open(save_to, "wt") as filepath:
-                for tweet in tweets:
-                    filepath.write(tweet.to_json())
-                    filepath.write("\n")
-        return tweets
-
-    @classmethod
-    def build_from_line(cls, line: str or Dict) -> "Tweet":
-        if isinstance(line, str):
-            line = json.loads(line)
-        created_at = line["created_at"]
-        id_str = line["id_str"]
-        full_text = line["full_text"]
-        name = line["user"]["name"]
-        screen_name = line["user"]["screen_name"]
-        hashtags = []
-        user_mentions = []
-        urls = []
-        for hashtag in line["entities"]["hashtags"]:
-            hashtags.append(Hashtag(hashtag["text"], hashtag["indices"]))
-        for user_mention in line["entities"]["user_mentions"]:
-            user_mentions.append(
-                UserMention(user_mention["screen_name"], user_mention["id_str"],
-                            user_mention["indices"]))
-        for url in line["entities"]["urls"]:
-            urls.append(TweetURLMapping(url["url"], url["expanded_url"],
-                                        url["display_url"],
-                                        url["indices"]))
-        try:
-            evaluation = line["evaluation"]
-        except KeyError:
-            return cls(created_at, id_str, full_text, name, screen_name,
-                       hashtags, user_mentions, urls)
-        else:
-            return cls(created_at, id_str, full_text, name, screen_name,
-                       hashtags, user_mentions, urls, evaluation)
-
-    def __str__(self) -> str:
-        string = f"created_at: {self.created_at}\n" \
-                 f"id_str: {self.id_str}\n" \
-                 f"full_text: {self.full_text}\n" \
-                 f"user: {self.name}, {self.screen_name}\n" \
-                 f"hashtags {to_dict_list(self.hashtags)}\n" \
-                 f"user_mentions: {to_dict_list(self.user_mentions)}\n" \
-                 f"urls: {to_dict_list(self.urls)}\n"
-        if self.evaluation:
-            string += f"evaluation: {self.evaluation}"
-        return string
-
-    def to_json(self) -> Dict:
+    def to_json(self) -> str:
         """Return a json serializable dict of this tweet"""
+
+        def to_dict_list(entities: List) -> List[Dict]:
+            """Collects every entity of one type and form a list of dicts.
+            Manly for toString cases."""
+            temp = []
+            for entity in entities:
+                temp.append(entity.__dict__)
+            return temp
+
         user = {"name": self.name, "screen_name": self.screen_name}
         entities = {"hashtags": to_dict_list(self.hashtags),
                     "user_mentions": to_dict_list(self.user_mentions),
@@ -226,32 +127,6 @@ class Tweet:
         if self.evaluation:
             json_dict["evaluation"] = self.evaluation
         return json.dumps(json_dict)
-
-
-def build_from_json(read_from: str or Path) -> List[Tweet]:
-    """Return a list of tweets from a json.gz file. API or HTML saved data"""
-    with gzip.open(read_from, "rt") as json_file:
-        tweets = []
-        for line in json_file:
-            tweets.append(Tweet.build_from_line(line))
-        return tweets
-
-
-def to_dict_list(entities: List) -> List[Dict]:
-    """Collects every entity of one type and form a list of dicts. Manly for
-    toString cases."""
-    temp = []
-    for entity in entities:
-        temp.append(entity.__dict__)
-    return temp
-
-
-def only_whitespaces(text):
-    """This methods scans for text that only contains whitespaces."""
-    for character in text:
-        if character != " ":
-            return False
-    return True
 
 
 def perform_advanced_search(keyword: str, date: date, lang: str) -> List[Tweet]:
@@ -316,14 +191,6 @@ def download_advanced_search_page(keyword: str,
     return request.text
 
 
-def create_time(tweet_id: str) -> str:
-    tweet_id = int(tweet_id)
-    time = (tweet_id >> 22) + 1288834974657
-    time = datetime.datetime.utcfromtimestamp(time / 1000) \
-        .strftime("%a %b %d %H:%M:%S +0000 %Y")
-    return time
-
-
 def parse_html(html_data: str) -> Tuple[str, List[Tweet]]:
     """
     This method parses the html data.
@@ -337,6 +204,20 @@ def parse_html(html_data: str) -> Tuple[str, List[Tweet]]:
     :param html_data: html data, given as str
     :return: The url of the next site and a list of tweets from this site
     """
+
+    def only_whitespaces(text):
+        """This methods scans for text that only contains whitespaces."""
+        for character in text:
+            if character != " ":
+                return False
+        return True
+
+    def create_time(tweet_id: str) -> str:
+        tweet_id = int(tweet_id)
+        time = (tweet_id >> 22) + 1288834974657
+        time = datetime.datetime.utcfromtimestamp(time / 1000) \
+            .strftime("%a %b %d %H:%M:%S +0000 %Y")
+        return time
 
     from nasty.string_modification import get_indices, html_to_api_converter
 
