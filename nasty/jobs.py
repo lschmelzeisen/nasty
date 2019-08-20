@@ -108,6 +108,7 @@ def _run_job(args: Tuple[Path, Job]) -> None:
     data_file = out_directory / '{}.data.jsonl.gz'.format(job.id)
 
     if meta_file.exists():
+        logger.debug('  Loading JobMeta from previously created meta file.')
         with meta_file.open('r', encoding='UTF-8') as fin:
             meta = JobMeta.from_json(json.load(fin))
     else:
@@ -122,6 +123,8 @@ def _run_job(args: Tuple[Path, Job]) -> None:
         logger.debug('  Job failed previously.')
 
     if data_file.exists():
+        logger.debug('  Deleting previously created data file because job did '
+                     'not complete.')
         data_file.unlink()
 
     tweets = []
