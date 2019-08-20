@@ -2,16 +2,15 @@
 Class collection containing the main Tweet class.
 As well as a class for Hashtag, UserMention and TweetURLMapping
 """
+from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
 
 class Hashtag:
-    """The Hashtag class. Hashtag has it's text and the indices."""
-
     def __init__(self, text: str, indices: Tuple[int, int]):
         # e.g. "brexit"
         self.text = text
-        # e.g. (16,22)
+        # e.g. (16, 22)
         self.indices = indices
 
     def __repr__(self):
@@ -30,9 +29,6 @@ class Hashtag:
 
 
 class UserMention:
-    """The UserMention class. Got a @screen_name,
-    if mentioned and not only answered too the user_id and the indices"""
-
     def __init__(self, screen_name: str, id_: str, indices: Tuple[int, int]):
         # e.g. OHiwi-2
         self.screen_name = screen_name
@@ -47,21 +43,18 @@ class UserMention:
     def to_json(self) -> Dict:
         return {
             'screen_name': self.screen_name,
-            'id': self.id,
+            'id_str': self.id,
             'indices': self.indices,
         }
 
     @classmethod
     def from_json(cls, obj: Dict) -> 'UserMention':
         return cls(screen_name=obj['screen_name'],
-                   id_=obj['id'],
+                   id_=obj['id_str'],
                    indices=tuple(obj['indices']))
 
 
 class TweetUrlMapping:
-    """The TweetURLMapping class. Got the short url, the url and the displayed
-    url + indices"""
-
     def __init__(self,
                  url: str,
                  expanded_url: str,
@@ -96,18 +89,11 @@ class TweetUrlMapping:
 
 
 class Tweet:
-    """
-    The main Tweet class.
-    Got all information we can currently get from extracting it out of html
-    data. That is: creation date, id, the text, hashtags, user mentions, urls,
-    the authors name and short name.
-    """
-
-    # adv: bool   <= declares if its from API or ADVsearch. Want that?
+    # TODO: Do we want to carry a source flag whether a Tweet is from the API or from the advanced search?
 
     def __init__(self,
                  created_at: str,
-                 tweet_id: str,
+                 id_: str,
                  full_text: str,
                  name: str,
                  screen_name: str,
@@ -116,7 +102,7 @@ class Tweet:
                  urls: List[TweetUrlMapping],
                  evaluation: Optional[List[str]] = None) -> None:
         self.created_at = created_at
-        self.id_str = tweet_id
+        self.id = id_
         self.full_text = full_text
         self.hashtags = hashtags
         self.user_mentions = user_mentions
@@ -131,7 +117,7 @@ class Tweet:
     def to_json(self) -> Dict:
         result = {
             'created_at': self.created_at,
-            'id_str': self.id_str,
+            'id_str': self.id,
             'full_text': self.full_text,
             'entities': {
                 'hashtags': [hashtag.to_json() for hashtag in self.hashtags],
@@ -153,7 +139,7 @@ class Tweet:
     @classmethod
     def from_json(cls, obj: Dict) -> 'Tweet':
         return cls(created_at=obj['created_at'],
-                   tweet_id=obj['id_str'],
+                   id_=obj['id_str'],
                    full_text=obj['full_text'],
                    name=obj['user']['name'],
                    screen_name=obj['user']['screen_name'],
@@ -165,3 +151,8 @@ class Tweet:
                    urls=[TweetUrlMapping.from_json(url)
                          for url in obj['entities']['urls']],
                    evaluation=obj.get('evaluation'))
+
+    @classmethod
+    def calc_created_at_time_from_id(cls, id_: str) -> datetime:
+        return datetime.utcfromtimestamp(
+            ((int(id_) >> 22) + 1288834974657) / 1000)

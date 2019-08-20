@@ -1,5 +1,5 @@
-import json
 import gzip
+import json
 from datetime import date, datetime
 from logging import getLogger
 from multiprocessing import Pool
@@ -8,10 +8,10 @@ from typing import Dict, Iterable, List, Optional, Tuple
 from uuid import uuid4
 
 import nasty
+from nasty.advanced_search import perform_advanced_search
 from nasty.util.consts import DATE_TIME_FORMAT
 from nasty.util.json import JsonSerializedException
 from nasty.util.time import daterange, yyyy_mm_dd_date
-from nasty.advanced_search import perform_advanced_search
 
 
 class Job:

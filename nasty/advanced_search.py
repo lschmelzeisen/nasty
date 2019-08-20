@@ -1,5 +1,4 @@
-import datetime
-import warnings
+import html
 from datetime import date, timedelta
 from logging import getLogger
 from typing import List, Optional, Tuple
@@ -7,11 +6,11 @@ from urllib.parse import quote_plus
 
 import requests
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
 import nasty
-from nasty.string_modification import get_indices, html_to_api_converter
 from nasty.tweet import Hashtag, Tweet, TweetUrlMapping, UserMention
 
 
@@ -20,24 +19,23 @@ def perform_advanced_search(keyword: str, date: date, lang: str) -> List[Tweet]:
 
     next_cursor = None
     while True:
-        html_data = download_advanced_search_page(
+        page = _download_advanced_search_page(
             keyword, date, date + timedelta(days=1), lang, next_cursor)
-        next_page_url, tweets_on_page = parse_html(html_data)
+        tweets_on_page, next_cursor = \
+            _extract_tweets_from_advanced_search_page(page)
         tweets.extend(tweets_on_page)
 
-        if not next_page_url:
+        if not next_cursor:
             break
-        next_cursor = next_page_url[
-                      next_page_url.find('next_cursor=') + len('next_cursor='):]
 
     return tweets
 
 
-def download_advanced_search_page(keyword: str,
-                                  start_date: date,
-                                  end_date: date,
-                                  lang: str,
-                                  next_cursor: Optional[str] = None) -> str:
+def _download_advanced_search_page(keyword: str,
+                                   start_date: date,
+                                   end_date: date,
+                                   lang: str,
+                                   next_cursor: Optional[str] = None) -> str:
     logger = getLogger(nasty.__name__)
     logger.debug('Download advanced search page (keyword: "{}", time-range: '
                  '"{}" to "{}", lang: "{}", next-cursor: "{}").'
@@ -69,6 +67,8 @@ def download_advanced_search_page(keyword: str,
     user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 6.0; it-IT; ' \
                  'rv:1.8.1.7) Gecko/20070914 Firefox/2.0.0.7'
 
+    # The following line throws an exception in case of connection problems, or
+    # timeouts.
     request = session.get(url, headers={'User-Agent': user_agent}, timeout=5)
     if request.status_code != 200:
         raise ValueError('Unexpected status code: {}.'
@@ -77,198 +77,244 @@ def download_advanced_search_page(keyword: str,
     return request.text
 
 
-def parse_html(html_data: str) -> Tuple[str, List[Tweet]]:
+def _extract_tweets_from_advanced_search_page(page: str) \
+        -> Tuple[List[Tweet], Optional[str]]:
+    """Takes a downloaded advanced search page and extracts all contained Tweets.
+
+    :param page: The advanced search page to extract Tweets from. This needs to
+        be an HTML document of the search results page of the old version of
+        Twitter.
+    :return: Tuple of extracted tweets and next_cursor. next_cursor is
+        the parameter to pass to download_download_advanced_search_page() to
+        download the next page or None if no next page exists.
     """
-    This method parses the html data.
-    It filters for the old/mobile twitter site and collects the following
-    entries:
+
+    # We use the "html5lib" parser here, since other parsers fail to preserve
+    # whitespace exactly. For example, only html5lib parses "&#10;&#10;" to the
+    # correct "\n\n", other just to "\n".
+    soup = BeautifulSoup(page, features='html5lib')
+
+    tweet_tables = soup.find_all('table', class_='tweet')
+    tweets = [_extract_tweet_from_tweet_table(t)
+              for t in tweet_tables
+              # TODO: can we document why the following line is needed?
+              if not t.find('td', class_='tombstone-tweet-text')]
+
+    next_cursor = None
+    more_button = soup.find('div', class_='w-button-more')
+    if more_button:
+        next_page_url = more_button.find('a').get('href')
+        next_cursor = next_page_url[next_page_url.find('next_cursor=')
+                                    + len('next_cursor='):]
+
+    return tweets, next_cursor
+
+
+def _extract_tweet_from_tweet_table(tweet_table: Tag) -> Tweet:
+    """Extracts a Tweet from its HTML table representation.
+
+    Currently, extracts the following attributes:
     - date
     - id
     - text
     - author and his @tag
     - UserMentions, Hashtags and URLs/Media
-    :param html_data: html data, given as str
-    :return: The url of the next site and a list of tweets from this site
     """
 
-    def only_whitespaces(text):
-        """This methods scans for text that only contains whitespaces."""
-        for character in text:
-            if character != " ":
-                return False
-        return True
+    id_str, created_at = _extract_tweet_meta_from_tweet_table(tweet_table)
+    name, screen_name = \
+        _extract_author_information_from_tweet_table(tweet_table)
+    hashtags = _extract_hashtags_from_tweet_table(tweet_table)
+    url_mappings = _extract_url_mappings_from_tweet_table(tweet_table)
+    user_mentions = _extract_user_mentions_from_tweet_table(tweet_table)
+    full_text = _extract_text_from_tweet_table(
+        tweet_table, screen_name, url_mappings, user_mentions)
 
-    def create_time(tweet_id: str) -> str:
-        tweet_id = int(tweet_id)
-        time = (tweet_id >> 22) + 1288834974657
-        time = datetime.datetime.utcfromtimestamp(time / 1000) \
-            .strftime("%a %b %d %H:%M:%S +0000 %Y")
-        return time
+    _look_up_and_set_indices(full_text, hashtags, url_mappings, user_mentions)
 
-    # If download_html fails, e.g. due to connection lost,
-    # BeautifulSoup raises a error for None as data
-    if not html_data:
-        warnings.warn("Empty or None html data in parse_html")
-        return "", []
-    # BeautifulSoup parser our html data. The chosen parser is "html5lib"
-    # since otherwise you get fails at: &#10;&#10; => \n instead of => \n\n
-    soup = BeautifulSoup(html_data, features="html5lib")
-    tweet_list = soup.find_all("table", class_="tweet")
+    return Tweet(created_at, id_str, full_text, name, screen_name, hashtags,
+                 user_mentions, url_mappings)
 
-    tweets = []
-    # This block parses the name, screen_name (@x), created_at, text and id from
-    # a normal tweet.
-    # e.g. one of the replies
-    # for includes if len(tweet_list) == 0, thanks to range()
-    for raw_tweet in tweet_list:
-        if raw_tweet.find("td", class_="tombstone-tweet-text") is None:
 
-            # HTML collected and tested at: 2019-07-09
-            # <a href="/MoshTimes?p=s">
-            #   <strong class="fullname">
-            #       Moshville Times
-            #   </strong>
-            # <div class="username"><span>@</span>MoshTimes</div></a>
-            name = raw_tweet.find("strong", class_="fullname") \
-                .contents[0].string
-            # .find().content => ['\n      ', <span>@</span>, 'oste8minutes\n    ']
-            screen_name = raw_tweet.find("div", class_="username") \
-                              .contents[2].string[:-5]
+def _extract_tweet_meta_from_tweet_table(tweet_table: Tag) -> Tuple[str, str]:
+    # HTML collected and tested at: 2019-07-09
+    # <td class="timestamp">
+    #   <a name="tweet_1142868564866719744"
+    #      href="/MoshTimes/status/1142868564866719744?p=p">
+    #     23. Juni
+    #   </a>
+    # </td>
 
-            # HTML collected and tested at: 2019-07-09
-            # <td class="timestamp">
-            #   <a name="tweet_1142868564866719744"
-            #   href="/MoshTimes/status/1142868564866719744?p=p">
-            #       23. Juni
-            #   </a>
-            # </td>
+    # the time can be calculated with tweet_id, using that instead
+    # created_at = raw_tweet.find("td", class_="timestamp") \
+    #     .contents[1].string
 
-            # the time can be calculated with tweet_id, using that instead
-            # created_at = raw_tweet.find("td", class_="timestamp") \
-            #     .contents[1].string
+    # HTML collected and tested at: 2019-07-09
+    # <div class="tweet-text" data-id="1142868564866719744">
+    #   <div class="dir-ltr" dir="ltr">
+    #     Tweet Text, entities (links, mentions, hashtags)
+    #   </div>
+    # </div>
 
-            # HTML collected and tested at: 2019-07-09
-            # <div class="tweet-text"
-            # data-id="1142868564866719744">
-            #   <div class="dir-ltr" dir="ltr">
-            #       Tweet Text, entities (links, mentions, hashtags)
-            #   </div>
-            # </div>
-            raw_tweet_text = raw_tweet.find("div", class_="tweet-text")
-            full_text = raw_tweet_text.find("div", class_="dir-ltr").text[:-1]
-            id_str = raw_tweet_text.get("data-id")
+    id_str = tweet_table.find('div', class_='tweet-text').get('data-id')
+    created_at = Tweet.calc_created_at_time_from_id(id_str).strftime(
+        '%a %b %d %H:%M:%S +0000 %Y')
 
-            created_at = create_time(id_str)
-            # More examples for the entities are in github
-            # => 09-ClassesRewrite-Parallelism in "Tweet Entities.html"
-            entities_wrapper = raw_tweet_text.find("div", class_="dir-ltr")
+    return id_str, created_at
 
-            # HTML collected and tested at: 2019-07-09
-            # <a href="/hashtag/Testtweet?src=hash"
-            # data-query-source="hashtag_click"
-            # class="twitter-hashtag dir-ltr"dir="ltr">
-            # #Testtweet
-            # </a>
-            hashtags_list = entities_wrapper.find_all(
-                "a", class_="twitter-hashtag dir-ltr")
-            hashtags = []
-            for hashtag in hashtags_list:
-                hashtags.append(Hashtag(hashtag.text[1:], (0, 0)))
 
-            # HTML collected and tested at: 2019-07-09
-            # <a href="https://t.co/I8NMVQeekO"
-            # rel="nofollow noopener"
-            # dir="ltr"
-            # data-expanded-url="https://twitter.com/OHiwi2/status/1146162915491364866"
-            # data-url="https://twitter.com/OHiwi2/status/1146162915491364866"
-            # class="twitter_external_link dir-ltr tco-link"
-            # target="_blank"
-            # title="https://twitter.com/OHiwi2/status/1146162915491364866">
-            #   twitter.com/OHiwi2/status/…
-            # </a>
-            urls_list = entities_wrapper.find_all(
-                "a", class_="twitter_external_link dir-ltr tco-link")
+def _extract_author_information_from_tweet_table(tweet_table: Tag) \
+        -> Tuple[str, str]:
+    # HTML collected and tested at: 2019-07-09
+    # <a href="/MoshTimes?p=s">
+    #   <strong class="fullname">Moshville Times</strong>
+    #   <div class="username">
+    #     <span>@</span>MoshTimes
+    #   </div>
+    # </a>
 
-            # HTML collected and tested at: 2019-07-09
-            # <a href="https://t.co/c076qpkzt2"
-            # data-pre-embedded="true"
-            # rel="nofollow"
-            # data-entity-id="1146165309189087233"
-            # dir="ltr"
-            # data-url="https://twitter.com/OHiwi2/status/1146165689390120960/video/1"
-            # data-tco-id="c076qpkzt2"
-            # class="twitter_external_link dir-ltr tco-link has-expanded-path"
-            # target="_top"
-            # data-expanded-path="/OHiwi2/status/1146165689390120960/video/1">
-            #   pic.twitter.com/c076qpkzt2
-            # </a>
+    name = tweet_table.find('strong', class_='fullname').text.strip()
+    screen_name = \
+        tweet_table.find('div', class_='username').text.strip()[len('@'):]
 
-            # Since we don't differentiate between links and uploaded media, we
-            # just add the media
-            urls_list += entities_wrapper \
-                .find_all("a", class_="twitter_external_link dir-ltr tco-link "
-                                      "has-expanded-path")
-            urls = []
-            for url in urls_list:
-                urls.append(TweetUrlMapping(url.get("href"),
-                                            url.get("data-url"),
-                                            url.text, (0, 0)))
+    return name, screen_name
 
-            # HTML collected and tested at: 2019-07-09
-            # <span class="tweet-reply-context username">
-            # Reply to
-            # <a href="/TJCobain">@TJCobain</a>
-            # <a href="/TJ_Cobain">@TJ_Cobain</a>
-            # and
-            # <a href="/angelgab0525/status/1142583459698761728/reply">
-            # 5
-            # others
-            # </a>
-            # </span>
-            reply_names = raw_tweet.find("div",
-                                         class_="tweet-reply-context username")
-            user_mentions = []
-            if reply_names is not None:
-                reply_names = reply_names.find_all("a")
-                for reply in reply_names:
-                    if not only_whitespaces(reply.text[1:]):
-                        user_mentions.append(
-                            UserMention(reply.text[1:], "", (0, 0)))
 
-            # HTML collected and tested at: 2019-07-09
-            # <a href="/OHiwi2"
-            # class="twitter-atreply dir-ltr"
-            # dir="ltr"
-            # data-mentioned-user-id="1117712996795658241"
-            # data-screenname="OHiwi2">
-            #   @OHiwi2
-            # </a>
-            user_mentions_list = entities_wrapper.find_all(
-                "a", class_="twitter-atreply dir-ltr")
-            for user in user_mentions_list:
-                user_mentions.append(
-                    UserMention(user.text[1:],
-                                user.get("data-mentioned-user-id"), (0, 0)))
+def _extract_hashtags_from_tweet_table(tweet_table: Tag) -> List[Hashtag]:
+    # HTML collected and tested at: 2019-07-09
+    # <a href="/hashtag/Testtweet?src=hash"
+    #    data-query-source="hashtag_click"
+    #    class="twitter-hashtag dir-ltr"
+    #    dir="ltr">
+    #   #Testtweet
+    # </a>
 
-            # Modify string, get right indices for urls and user_mentions
-            full_text, urls, user_mentions = html_to_api_converter(
-                full_text, urls, user_mentions, screen_name)
-            # Now also get indices of hashtags
-            for hashtag in hashtags:
-                start, end = get_indices(hashtag.text, full_text)
-                hashtag.indices = (start - 1, end)
-            user_mentions.reverse()
-            # Create the tweet, and modify the full_text so its more like the
-            # API
-            tweet = Tweet(created_at, id_str, full_text, name, screen_name,
-                          hashtags, user_mentions, urls)
+    return [Hashtag(h.text[len('#'):], (0, 0))
+            for h in tweet_table.find_all('a', class_='twitter-hashtag')]
 
-            tweets.append(tweet)
 
-    if soup.find("div", class_="w-button-more") is not None:
-        next_site_head = "https://mobile.twitter.com"
-        print("Next page is on the way.")
-        next_site_tail = soup.find("div", class_="w-button-more") \
-            .find("a").get("href")
-        return next_site_head + next_site_tail, tweets
-    return "", tweets
+def _extract_url_mappings_from_tweet_table(tweet_table: Tag) \
+        -> List[TweetUrlMapping]:
+    # More examples for the entities are in github
+    # => 09-ClassesRewrite-Parallelism in "Tweet Entities.html"
+
+    # HTML collected and tested at: 2019-07-09
+    # <a href="https://t.co/I8NMVQeekO"
+    #    rel="nofollow noopener"
+    #    dir="ltr"
+    #    data-expanded-url="https://twitter.com/OHiwi2/status/1146162915491364866"
+    #    data-url="https://twitter.com/OHiwi2/status/1146162915491364866"
+    #    class="twitter_external_link dir-ltr tco-link"
+    #    target="_blank"
+    #    title="https://twitter.com/OHiwi2/status/1146162915491364866">
+    #   twitter.com/OHiwi2/status/...
+    # </a>
+
+    # HTML collected and tested at: 2019-07-09
+    # <a href="https://t.co/c076qpkzt2"
+    #    data-pre-embedded="true"
+    #    rel="nofollow"
+    #    data-entity-id="1146165309189087233"
+    #    dir="ltr"
+    #    data-url="https://twitter.com/OHiwi2/status/1146165689390120960/video/1"
+    #    data-tco-id="c076qpkzt2"
+    #    class="twitter_external_link dir-ltr tco-link has-expanded-path"
+    #    target="_top"
+    #    data-expanded-path="/OHiwi2/status/1146165689390120960/video/1">
+    #   pic.twitter.com/c076qpkzt2
+    # </a>
+
+    return [TweetUrlMapping(u.get('href'), u.get('data-url'), u.text, (0, 0))
+            for u in tweet_table.find_all('a', class_='twitter_external_link')]
+
+
+def _extract_user_mentions_from_tweet_table(tweet_table: Tag) \
+        -> List[UserMention]:
+    # HTML collected and tested at: 2019-07-09
+    # <span class="tweet-reply-context username">
+    #   Reply to
+    #   <a href="/TJCobain">@TJCobain</a>
+    #   <a href="/TJ_Cobain">@TJ_Cobain</a>
+    #   and
+    #   <a href="/angelgab0525/status/1142583459698761728/reply">
+    #     5 others
+    #   </a>
+    # </span>
+
+    # HTML collected and tested at: 2019-07-09
+    # <a href="/OHiwi2"
+    #    class="twitter-atreply dir-ltr"
+    #    dir="ltr"
+    #    data-mentioned-user-id="1117712996795658241"
+    #    data-screenname="OHiwi2">
+    #   @OHiwi2
+    # </a>
+
+    user_mentions = []
+
+    reply_names = tweet_table.find('div', class_='tweet-reply-context username')
+    if reply_names is not None:
+        for reply in reply_names.find_all('a'):
+            if reply.text.startswith('@'):
+                user_mentions.append(UserMention(
+                    reply.text[len('@'):], '', (0, 0)))
+
+    user_mentions.extend(
+        UserMention(u.text[len('@'):], u.get('data-mentioned-user-id'), (0, 0))
+        for u in tweet_table.find_all('a', class_='twitter-atreply'))
+
+    return user_mentions
+
+
+def _extract_text_from_tweet_table(tweet_table: Tag,
+                                   screen_name: str,
+                                   url_mappings: List[TweetUrlMapping],
+                                   user_mentions: List[UserMention]) -> str:
+    full_text = tweet_table.find('div', class_='dir-ltr').text.strip()
+
+    for url in url_mappings:
+        full_text = full_text.replace(url.display_url, url.url, 1)
+
+    prepended_user_mentions = ''.join(
+        '@' + user_mention.screen_name + ' '
+        for user_mention in reversed(user_mentions)
+        if (user_mention.screen_name != screen_name
+            and not user_mention.id
+            and ('@' + user_mention.screen_name) not in full_text))
+
+    full_text = _twitter_api_unescape(prepended_user_mentions + full_text)
+
+    return full_text
+
+
+def _twitter_api_unescape(text: str) -> str:
+    """
+    This method unescapes html codes of a given string. But adds &lt;, &gt; and
+    &amp; , due to match the output of the API & needs to be escaped first,
+    since the others contain &.
+    """
+    text = html.unescape(text)
+    text = text.replace('＠', '@')
+    text = text.replace('&', '&amp;')
+    text = text.replace('<', '&lt;')
+    text = text.replace('>', '&gt;')
+    return text
+
+
+def _look_up_and_set_indices(full_text: str,
+                             hashtags: List[Hashtag],
+                             url_mappings: List[TweetUrlMapping],
+                             user_mentions: List[UserMention]) -> None:
+    for hashtag in hashtags:
+        hashtag.indices = _indices('#' + hashtag.text, full_text)
+    for url in url_mappings:
+        url.indices = _indices(url.url, full_text)
+    for user_mention in user_mentions:
+        if user_mention.id:
+            user_mention.indices = _indices("@" + user_mention.screen_name,
+                                            full_text)
+
+
+def _indices(needle: str, haystack: str) -> Tuple[int, int]:
+    start = haystack.index(needle)
+    return start, start + len(needle)
