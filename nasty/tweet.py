@@ -115,9 +115,6 @@ class Tweet:
                  user_mentions: List[UserMention],
                  urls: List[TweetUrlMapping],
                  evaluation: Optional[List[str]] = None) -> None:
-        # TODO: is this necessary (parameter type says its already a string)?
-        tweet_id = str(tweet_id)
-
         self.created_at = created_at
         self.id_str = tweet_id
         self.full_text = full_text
