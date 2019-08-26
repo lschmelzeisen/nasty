@@ -23,7 +23,7 @@ def main(argv: List[str]):
     logger.debug('Raw arguments: {}'.format(argv))
     logger.debug('Parsed arguments: {}'.format(vars(args)))
 
-    config = load_config(source_folder / 'config.toml')
+    #config = load_config(source_folder / 'config.toml')
 
     jobs = build_jobs(keywords=args.keywords,
                       start_date=args.time[0],
