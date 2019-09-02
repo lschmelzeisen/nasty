@@ -28,6 +28,11 @@ def perform_advanced_search(keyword: str, date: date, lang: str) -> List[Tweet]:
         if not next_cursor:
             break
 
+    if not tweets:
+        logger = getLogger(nasty.__name__)
+        logger.debug('Found no tweets for this search. '
+                     'Maybe you need to change user agents.')
+
     return tweets
 
 
@@ -63,9 +68,9 @@ def _download_advanced_search_page(keyword: str,
     # crawled. However, this breaks from time to time and the user-Agent string
     # might need to be updated.
     # user_agent = 'Mozilla/4.0 (compatible; MSIE 5.00; Windows 98)'
-    user_agent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)'
-    # user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 6.0; it-IT; ' \
-    #              'rv:1.8.1.7) Gecko/20070914 Firefox/2.0.0.7'
+    # user_agent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)'
+    user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 6.0; it-IT; ' \
+                 'rv:1.8.1.7) Gecko/20070914 Firefox/2.0.0.7'
 
     # The following line throws an exception in case of connection problems, or
     # timeouts.
