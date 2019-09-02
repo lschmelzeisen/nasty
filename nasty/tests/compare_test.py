@@ -2,7 +2,6 @@ import unittest
 import sys
 import gzip
 import os
-import json
 
 from nasty.__main__ import main
 from api_loader import load
@@ -54,13 +53,14 @@ def execute_compare_test() -> bool:
             with gzip.open(from_filename, "rt") as html:
                 with gzip.open(to_filename, "rt") as api:
                     print(html.read())
+                    print(api.read())
 
                     html_tweets = list()
                     for line in html.read():
                         html_tweets.append(line)
 
                     api_tweets = list()
-                    for line in html.read():
+                    for line in api.read():
                         api_tweets.append(line)
                     # html_tweets = json.loads(html.read())
                     # api_tweets = json.load(api.read())
@@ -76,6 +76,10 @@ def execute_compare_test() -> bool:
                         os.remove(to_filename)
                         # The crawled data is deleted in this case,
                         # so that one does not have to delete it.
+        else:
+            os.remove("nasty-twitter-crawler/nasty/out/" + filename)
+            # The crawled data is deleted in this case,
+            # so that one does not have to delete it.
     return True
 
 
@@ -106,6 +110,7 @@ def compare(html_tweets: List[Tweet], api_tweets: List[Tweet]) -> None:
     api_tweets = sort_by_id(api_tweets)
 
     for (html_tweet, api_tweet) in zip(html_tweets, api_tweets):
+        print("__________________________POINTER____________")
         if not (compare_text(html_tweet.full_text, api_tweet.full_text,
                              html_tweet.id_str, api_tweet.id_str,
                              html_tweet.user_mentions)):
@@ -154,6 +159,7 @@ def compare_text(html_text: str, api_text: str, html_id: str, api_id: str,
     :param html_mentions:
     :return None:
     """
+    print("__________________________POINTER____________")
     if html_id != api_id:
         raise Exception("The id's of the tweets are not the same.\n Identifier: compare_text")
 
