@@ -53,6 +53,7 @@ def load_file_paths(folder) -> \
     return meta_files, data_files
 
 
+# Code found at: https://stackoverflow.com/a/37875919 2019-09-02
 def gz_is_empty(fname):
     """ Test if gzip file fname is empty
         Return True if the uncompressed data in fname has zero length
