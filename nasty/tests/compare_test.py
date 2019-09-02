@@ -2,6 +2,7 @@ import unittest
 import sys
 import gzip
 import os
+import json
 
 from nasty.__main__ import main
 from api_loader import load
@@ -23,6 +24,7 @@ class Test(unittest.TestCase):
         # main(["-k", "ape", "-t", "2019-01-01", "2019-01-02"]) Alternative way
         execute_compare_test()
 
+    """
     def test_compare_nuclear(self):
         sys.argv.append("-k")
         sys.argv.append("nuclear")
@@ -40,6 +42,7 @@ class Test(unittest.TestCase):
         sys.argv.append("2019-01-02")
         main(sys.argv[1:])
         execute_compare_test()
+    """
 
 
 def execute_compare_test() -> bool:
@@ -49,23 +52,16 @@ def execute_compare_test() -> bool:
             from_filename = "nasty-twitter-crawler/nasty/out/" + filename
             to_filename = "nasty-twitter-crawler/nasty/tests/api_data/" + filename
             load(from_filename, to_filename)
-
             with gzip.open(from_filename, "rt") as html:
                 with gzip.open(to_filename, "rt") as api:
-                    print(html.read())
-                    print(api.read())
 
                     html_tweets = list()
-                    for line in html.read():
-                        html_tweets.append(line)
+                    for line in html:
+                        html_tweets.append(json.loads(line))
 
                     api_tweets = list()
-                    for line in api.read():
-                        api_tweets.append(line)
-                    # html_tweets = json.loads(html.read())
-                    # api_tweets = json.load(api.read())
-
-                    # print(html_tweets)
+                    for line2 in api:
+                        api_tweets.append(json.loads(line2))
 
                     if not (compare(html_tweets, api_tweets)):
                         return False
@@ -105,15 +101,16 @@ def compare(html_tweets: List[Tweet], api_tweets: List[Tweet]) -> None:
     :param api_tweets: Gets a list of tweet objects from the official API handed over.
     :return None:
     """
+    print(html_tweets)
+    print(api_tweets)
 
     html_tweets = sort_by_id(html_tweets)
     api_tweets = sort_by_id(api_tweets)
 
     for (html_tweet, api_tweet) in zip(html_tweets, api_tweets):
-        print("__________________________POINTER____________")
-        if not (compare_text(html_tweet.full_text, api_tweet.full_text,
-                             html_tweet.id_str, api_tweet.id_str,
-                             html_tweet.user_mentions)):
+        if not (compare_text(html_tweet["full_text"], api_tweet["full_text"],
+                             html_tweet["id_str"], api_tweet["id_str"],
+                             html_tweet["entities"]["user_mentions"])):
             return False
     return True
 
@@ -126,11 +123,14 @@ def sort_by_id(tweet_objects: [Tweet]) -> List:
     :return None:
     """
 
+    """"
     data = list()
 
     for line in tweet_objects:
         data.append(line)
     data.sort(key=lambda k: k.id_str)
+    """
+    data = sorted(tweet_objects, key=lambda i: i['id_str'])
 
     return data
 
@@ -159,12 +159,11 @@ def compare_text(html_text: str, api_text: str, html_id: str, api_id: str,
     :param html_mentions:
     :return None:
     """
-    print("__________________________POINTER____________")
     if html_id != api_id:
         raise Exception("The id's of the tweets are not the same.\n Identifier: compare_text")
 
     for user in html_mentions:
-        if "\n      others\n      \n  " in user.screen_name:
+        if "\n      others\n      \n  " in user["screen_name"]:
             list_texts = improvised_reply(html_text, api_text, html_mentions)
             html_text = list_texts[0]
             api_text = list_texts[1]
