@@ -16,21 +16,20 @@ class Test(unittest.TestCase):
         sys.argv.append("-k")
         sys.argv.append("ape")
         sys.argv.append("-t")
-        sys.argv.append("2019-01-01")
-        sys.argv.append("2019-01-02")
+        sys.argv.append("2019-06-01")
+        sys.argv.append("2019-06-02")
         sys.argv.append("--log-level")
         sys.argv.append("INFO")
         main(sys.argv[1:])
         # main(["-k", "ape", "-t", "2019-01-01", "2019-01-02"]) Alternative way
         execute_compare_test()
 
-    """
     def test_compare_nuclear(self):
         sys.argv.append("-k")
         sys.argv.append("nuclear")
         sys.argv.append("-t")
-        sys.argv.append("2019-01-01")
-        sys.argv.append("2019-01-02")
+        sys.argv.append("2019-06-01")
+        sys.argv.append("2019-06-02")
         main(sys.argv[1:])
         execute_compare_test()
 
@@ -42,7 +41,6 @@ class Test(unittest.TestCase):
         sys.argv.append("2019-01-02")
         main(sys.argv[1:])
         execute_compare_test()
-    """
 
 
 def execute_compare_test() -> bool:
