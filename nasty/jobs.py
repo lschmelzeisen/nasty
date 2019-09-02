@@ -153,6 +153,8 @@ def run_jobs(jobs: Iterable[Job], num_processes: int = 1) -> None:
     # from the twitter-extraction repository.
     if os.path.abspath(".").__contains__("nasty-twitter-crawler/nasty"):
         out_directory = Path('out')
+    elif os.path.abspath(".").__contains__("nasty-twitter-crawler"):
+        out_directory = Path('nasty/out')
     else:
         out_directory = Path('nasty-twitter-crawler/nasty/out')
     Path.mkdir(out_directory, exist_ok=True, parents=True)
