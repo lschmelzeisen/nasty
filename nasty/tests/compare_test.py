@@ -38,8 +38,11 @@ def execute_compare_test() -> bool:
                         # The crawled data is not deleted in this case,
                         # so that one can debug it.
                     else:
-                        os.remove(from_filename)
-                        os.remove(to_filename)
+                        try:
+                            os.remove(from_filename)
+                            os.remove(to_filename)
+                        except:
+                            pass
     return True
 
 
