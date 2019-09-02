@@ -2,9 +2,10 @@ import unittest
 import sys
 import gzip
 import os
+import json
 
 from nasty.__main__ import main
-from nasty.api_loader import load
+from api_loader import load
 from typing import List
 
 from nasty.tweet import Tweet, UserMention
@@ -23,6 +24,24 @@ class Test(unittest.TestCase):
         # main(["-k", "ape", "-t", "2019-01-01", "2019-01-02"]) Alternative way
         execute_compare_test()
 
+    def test_compare_nuclear(self):
+        sys.argv.append("-k")
+        sys.argv.append("nuclear")
+        sys.argv.append("-t")
+        sys.argv.append("2019-01-01")
+        sys.argv.append("2019-01-02")
+        main(sys.argv[1:])
+        execute_compare_test()
+
+    def test_compare_metal(self):
+        sys.argv.append("-k")
+        sys.argv.append("metal")
+        sys.argv.append("-t")
+        sys.argv.append("2019-01-01")
+        sys.argv.append("2019-01-02")
+        main(sys.argv[1:])
+        execute_compare_test()
+
 
 def execute_compare_test() -> bool:
     todo_path = "nasty-twitter-crawler/nasty/out/"
@@ -31,19 +50,42 @@ def execute_compare_test() -> bool:
             from_filename = "nasty-twitter-crawler/nasty/out/" + filename
             to_filename = "nasty-twitter-crawler/nasty/tests/api_data/" + filename
             load(from_filename, to_filename)
+
             with gzip.open(from_filename, "rt") as html:
                 with gzip.open(to_filename, "rt") as api:
-                    if not compare(html.read(), api.read()):
+                    print(html.read())
+
+                    html_tweets = list()
+                    for line in html.read():
+                        html_tweets.append(line)
+
+                    api_tweets = list()
+                    for line in html.read():
+                        api_tweets.append(line)
+                    # html_tweets = json.loads(html.read())
+                    # api_tweets = json.load(api.read())
+
+                    # print(html_tweets)
+
+                    if not (compare(html_tweets, api_tweets)):
                         return False
                         # The crawled data is not deleted in this case,
                         # so that one can debug it.
                     else:
-                        try:
-                            os.remove(from_filename)
-                            os.remove(to_filename)
-                        except:
-                            pass
+                        os.remove(from_filename)
+                        os.remove(to_filename)
+                        # The crawled data is deleted in this case,
+                        # so that one does not have to delete it.
     return True
+
+
+def build_from_json(read_from: str or "Path") -> List["Tweet"]:
+    """Return a list of tweets from a json.gz file. API or HTML saved data"""
+    with gzip.open(read_from, "rt") as json_file:
+        tweets = []
+        for line in json_file:
+            tweets.append(Tweet.from_json(line))
+        return tweets
 
 
 def compare(html_tweets: List[Tweet], api_tweets: List[Tweet]) -> None:
@@ -78,8 +120,8 @@ def sort_by_id(tweet_objects: [Tweet]) -> List:
     :param tweet_objects:
     :return None:
     """
+
     data = list()
-    print(tweet_objects)
 
     for line in tweet_objects:
         data.append(line)
