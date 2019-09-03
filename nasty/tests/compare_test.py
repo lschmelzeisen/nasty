@@ -16,31 +16,30 @@ class Test(unittest.TestCase):
         sys.argv.append("-k")
         sys.argv.append("ape")
         sys.argv.append("-t")
-        sys.argv.append("2019-06-01")
-        sys.argv.append("2019-06-02")
-        sys.argv.append("--log-level")
-        sys.argv.append("INFO")
+        sys.argv.append("2019-05-01")
+        sys.argv.append("2019-05-02")
         main(sys.argv[1:])
         # main(["-k", "ape", "-t", "2019-01-01", "2019-01-02"]) Alternative way
-        execute_compare_test()
-
+        self.assertTrue(execute_compare_test())
+    """
     def test_compare_nuclear(self):
         sys.argv.append("-k")
         sys.argv.append("nuclear")
         sys.argv.append("-t")
-        sys.argv.append("2019-06-01")
-        sys.argv.append("2019-06-02")
+        sys.argv.append("2018-09-01")
+        sys.argv.append("2018-09-02")
         main(sys.argv[1:])
-        execute_compare_test()
+        self.assertTrue(execute_compare_test())
 
     def test_compare_metal(self):
         sys.argv.append("-k")
         sys.argv.append("metal")
         sys.argv.append("-t")
-        sys.argv.append("2019-01-01")
-        sys.argv.append("2019-01-02")
+        sys.argv.append("2018-09-01")
+        sys.argv.append("2018-09-02")
         main(sys.argv[1:])
-        execute_compare_test()
+        self.assertTrue(execute_compare_test())
+    """
 
 
 def execute_compare_test() -> bool:
@@ -99,9 +98,6 @@ def compare(html_tweets: List[Tweet], api_tweets: List[Tweet]) -> None:
     :param api_tweets: Gets a list of tweet objects from the official API handed over.
     :return None:
     """
-    print(html_tweets)
-    print(api_tweets)
-
     html_tweets = sort_by_id(html_tweets)
     api_tweets = sort_by_id(api_tweets)
 
@@ -119,14 +115,6 @@ def sort_by_id(tweet_objects: [Tweet]) -> List:
 
     :param tweet_objects:
     :return None:
-    """
-
-    """"
-    data = list()
-
-    for line in tweet_objects:
-        data.append(line)
-    data.sort(key=lambda k: k.id_str)
     """
     data = sorted(tweet_objects, key=lambda i: i['id_str'])
 
@@ -210,7 +198,6 @@ def improvised_reply(html_text: str, api_text: str, mentions: [str]) -> [str, st
     Da wir aus der HTML Datei nicht wissen, welche User alle erwähnt werden, können wir in
     diesem Fehlerfall nur alle "@" Mentions löschen.
     """
-
     for mention in mentions:  # HTML Modification Part I
         # --> Deleting all mentioned users in the html text.
         # (Most importantly deleting the "others" menntion)
