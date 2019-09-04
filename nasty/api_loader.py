@@ -1,18 +1,22 @@
 import gzip
 import json
 import os
+import toml
 from typing import List
 
 import tweepy
 
-# Authentication
-CONSUMER_KEY = "hniLShzTr9Lcp9db4Lrb6Vhxq"
-CONSUMER_SECRET = "pcswbLNZ6WxjC0UQKXG7QLCWLgjWcQr8FOuKNWJwevdbywecc4"
-ACCESS_TOKEN = "1117712996795658241-5VRKHLKRRBF7Mb1h0UAqWiJT42AI3m"
-ACCESS_TOKEN_SECRET = "z3lCUT0lCBZ8Yv3FV6dtWhPmad3lSpjwQYZHJdd86MPBn"
+# Authentication through a config toml file.
+with open("config_api_keys.toml","r") as KEYS:
+    credentials = toml.loads(KEYS.read())
+    CONSUMER_KEY = credentials['CONSUMER_KEY']
+    CONSUMER_SECRET = credentials['CONSUMER_SECRET']
+    ACCESS_TOKEN = credentials['ACCESS_TOKEN']
+    ACCESS_TOKEN_SECRET = credentials['ACCESS_TOKEN_SECRET']
+
 tweet_counter = 0
 
-AUTH = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+AUTH = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_KEY)
 AUTH.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
 
 API = tweepy.API(AUTH)
