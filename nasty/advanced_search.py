@@ -79,6 +79,9 @@ def _download_advanced_search_page(keyword: str,
         raise ValueError('Unexpected status code: {}.'
                          .format(request.status_code))
 
+    # To eliminate the "ResourceWarning: unclosed <ssl.SSLSocket..." Warning
+    session.close()
+
     return request.text
 
 
