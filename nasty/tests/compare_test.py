@@ -16,6 +16,7 @@ class Test(unittest.TestCase):
         tweet_list = perform_advanced_search(keyword, day, language)
         api_tweets = load(tweet_list)
         result_dict = _compare(tweet_list, api_tweets)
+        print(result_dict)
         self.assertEqual(0, result_dict["tweets_not_equal"])
 
 
@@ -30,6 +31,8 @@ def _compare(html_tweets: List[Tweet], api_tweets: List[Tweet]) -> dict:
 
     The function returns a dictionary, which stores information about the
     comparison test.
+    The tweets_not_equal variable is minus one, so if no tweet gets compared
+    and nothing is changed in the dict, the test will fail.
 
     :param html_tweets:
     Gets a list of tweet objects from advancedSearch handed over.
@@ -39,16 +42,20 @@ def _compare(html_tweets: List[Tweet], api_tweets: List[Tweet]) -> dict:
     """
     dict_result = {"tweets_equal": 0,
                    "tweets_equal_mentions": 0,
-                   "tweets_not_equal": 0}
+                   "tweets_not_equal": -1}
 
     html_tweets = _sort_by_id(html_tweets)
     api_tweets = _sort_by_id(api_tweets)
 
     for (html_tweet, api_tweet) in zip(html_tweets, api_tweets):
-        result = _compare_text(html_tweet.full_text, api_tweet.full_text,
-                               html_tweet.id, api_tweet.id,
-                               html_tweet.user_mentions)
-        dict_result[result] += 1
+        if len(html_tweets) == len(api_tweets):
+            if dict_result["tweets_not_equal"] == -1:
+                dict_result["tweets_not_equal"] = 0
+
+            result = _compare_text(html_tweet.full_text, api_tweet.full_text,
+                                   html_tweet.id, api_tweet.id,
+                                   html_tweet.user_mentions)
+            dict_result[result] += 1
 
     return dict_result
 
@@ -99,7 +106,6 @@ def _compare_text(html_text: str, api_text: str, html_id: str, api_id: int,
     # compared.
 
     if html_id != api_id:
-        print(type(html_id), type(api_id))
         raise Exception("The id's of the tweets are not the same.\n "
                         "Identifier: compare_text")
 
@@ -112,16 +118,46 @@ def _compare_text(html_text: str, api_text: str, html_id: str, api_id: int,
             api_text = list_texts[1]
             break
 
-    if html_text != api_text:
-        print(
-            f"_________Fail_ID: {html_id} _________\n{html_text}\n"
-            f"==================\n{api_text}\n")
-        return "tweets_not_equal"
-    else:
+    if html_text == api_text:
         if flag_mention == 1:
             return "tweets_equal_mentions"
         else:
             return "tweets_equal"
+    else:
+        # Checking, if the tweets are only unequal,
+        # because of the user mentions.
+        [html_text, api_text] = _delete_mentions(html_text, api_text)
+        if html_text == api_text:
+            return "tweets_equal_mentions"
+        else:
+            print(
+                f"_________Fail_ID: {html_id} _________\n{html_text}\n"
+                f"==================\n{api_text}\n"
+                f"_________UserMentions: {html_mentions}\n")
+
+            return "tweets_not_equal"
+
+
+def _delete_mentions(html_text: str, api_text: str) -> [str, str]:
+    """
+    This method deletes all "@mentions" in the html text and api text,
+    so that they can be compared without the @mentions
+
+    :param html_text: str
+    :param api_text: str
+    :return: [str,str]
+    """
+    html_text_edited = ""
+    for word in html_text.split():
+        if "@" not in word:
+            html_text_edited = html_text_edited + word
+
+    api_text_edited = ""
+    for word in api_text.split():
+        if "@" not in word:
+            api_text_edited = api_text_edited + word
+
+    return [html_text_edited, api_text_edited]
 
 
 def _improvised_reply(html_text: str, api_text: str,

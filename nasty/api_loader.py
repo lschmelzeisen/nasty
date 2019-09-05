@@ -47,7 +47,7 @@ def load(html_tweets: List[Tweet]) -> List[Tweet]:
         while i < 100:
             send.append(id_list[i + 100 * stack])
             i += 1
-            print(i + 100 * stack)
+            # print(i + 100 * stack)
         tweets.extend(API.statuses_lookup(send, tweet_mode='extended'))
 
     send = list()
@@ -56,7 +56,7 @@ def load(html_tweets: List[Tweet]) -> List[Tweet]:
     while i < divmod(len(id_list), 100)[1]:
         send.append(id_list[i + 100 * stack])
         i += 1
-        print(i + 100 * stack)
+        # print(i + 100 * stack)
     tweets.extend(API.statuses_lookup(send, tweet_mode='extended'))
     # Got an error, if we used data in the current folder
     # "example.json.gz" and not "data/example.json.gz"
