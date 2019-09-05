@@ -1,51 +1,45 @@
-import gzip
 import json
-import os
 import toml
 from typing import List
+from nasty.tweet import Tweet
 
 import tweepy
 
 # Authentication through a config toml file.
-with open("config_api_keys.toml","r") as KEYS:
+with open("config_api_keys.toml", "r") as KEYS:
     credentials = toml.loads(KEYS.read())
     CONSUMER_KEY = credentials['CONSUMER_KEY']
     CONSUMER_SECRET = credentials['CONSUMER_SECRET']
     ACCESS_TOKEN = credentials['ACCESS_TOKEN']
     ACCESS_TOKEN_SECRET = credentials['ACCESS_TOKEN_SECRET']
-
 tweet_counter = 0
 
-AUTH = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_KEY)
+AUTH = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
 AUTH.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
 
 API = tweepy.API(AUTH)
 
 
-def get_ids(read_from: str) -> List[str]:
-    """
-    Here we read the ids out of a file and return a list of them.
-    :param read_from:
-    :return: List of Tweets IDs (str)
-    """
-    id_list = list()
-    with gzip.open(read_from, "rt") as fp:
-        for line in fp:
-            data = json.loads(line)
-            id_list.append(data["id_str"])
-    return id_list
+def get_ids(html_tweets: List[Tweet]) -> List[str]:
+    result = []
+    for tweet in html_tweets:
+        result.append(tweet.id)
+    return result
 
 
-def load(read_from: str, save_to: str) -> None:
+def load(html_tweets: List[Tweet]) -> List[Tweet]:
     """
-    Reads all ids from a file, downloads them in packs of 100 and
-    saves the API data into a file.
+    Reads all ids from a list of tweets, downloads them in packs of 100,
+    using the ID search functionality of the API, and returns
+    a list containing the crawled tweets.
 
-    :param read_from: The file to read from.
-    :param save_to: The file to save the API._json to
-    :return:
+    :param html_tweets: The tweets, crawled by the advanced search, from wich
+                        we extract the ID's.
+    :return: List[Tweet] : Returns a list of the crawled api tweets, which
+                            futhermore can be compared to the .
     """
-    id_list = get_ids(read_from)
+
+    id_list = get_ids(html_tweets)
     tweets = []
     for stack in range(divmod(len(id_list), 100)[0]):
         send = list()
@@ -66,12 +60,7 @@ def load(read_from: str, save_to: str) -> None:
     tweets.extend(API.statuses_lookup(send, tweet_mode='extended'))
     # Got an error, if we used data in the current folder
     # "example.json.gz" and not "data/example.json.gz"
-    if "/" in save_to:
-        os.makedirs(os.path.dirname(save_to), exist_ok=True)
-    with gzip.open(save_to, "wt") as fp:
-        for tweet in tweets:
-            fp.write(json.dumps(tweet._json))
-            fp.write("\n")
+    return tweets
 
 
 if __name__ == '__main__':

@@ -1,11 +1,8 @@
 import unittest
-import sys
-import gzip
-import os
-import json
+from datetime import date
+from nasty.advanced_search import perform_advanced_search
 
-from nasty.__main__ import main
-from api_loader import load
+from nasty.api_loader import load
 from typing import List
 
 from nasty.tweet import Tweet, UserMention
@@ -13,79 +10,16 @@ from nasty.tweet import Tweet, UserMention
 
 class Test(unittest.TestCase):
     def test_compare_ape(self):
-        sys.argv.append("-k")
-        sys.argv.append("ape")
-        sys.argv.append("-t")
-        sys.argv.append("2019-05-01")
-        sys.argv.append("2019-05-02")
-        main(sys.argv[1:])
-        # main(["-k", "ape", "-t", "2019-01-01", "2019-01-02"]) Alternative way
-        self.assertTrue(execute_compare_test())
-    """
-    def test_compare_nuclear(self):
-        sys.argv.append("-k")
-        sys.argv.append("nuclear")
-        sys.argv.append("-t")
-        sys.argv.append("2018-09-01")
-        sys.argv.append("2018-09-02")
-        main(sys.argv[1:])
-        self.assertTrue(execute_compare_test())
-
-    def test_compare_metal(self):
-        sys.argv.append("-k")
-        sys.argv.append("metal")
-        sys.argv.append("-t")
-        sys.argv.append("2018-09-01")
-        sys.argv.append("2018-09-02")
-        main(sys.argv[1:])
-        self.assertTrue(execute_compare_test())
-    """
+        keyword = "ape"
+        day = date(year=2018, month=11, day=12)
+        language = "en"
+        tweet_list = perform_advanced_search(keyword, day, language)
+        api_tweets = load(tweet_list)
+        result_dict = _compare(tweet_list, api_tweets)
+        self.assertEqual(0, result_dict["tweets_not_equal"])
 
 
-def execute_compare_test() -> bool:
-    todo_path = "nasty-twitter-crawler/nasty/out/"
-    for filename in os.listdir(todo_path):
-        if "data.jsonl.gz" in filename:
-            from_filename = "nasty-twitter-crawler/nasty/out/" + filename
-            to_filename = "nasty-twitter-crawler/nasty/tests/api_data/" + filename
-            load(from_filename, to_filename)
-            with gzip.open(from_filename, "rt") as html:
-                with gzip.open(to_filename, "rt") as api:
-
-                    html_tweets = list()
-                    for line in html:
-                        html_tweets.append(json.loads(line))
-
-                    api_tweets = list()
-                    for line2 in api:
-                        api_tweets.append(json.loads(line2))
-
-                    if not (compare(html_tweets, api_tweets)):
-                        return False
-                        # The crawled data is not deleted in this case,
-                        # so that one can debug it.
-                    else:
-                        os.remove(from_filename)
-                        os.remove(to_filename)
-                        # The crawled data is deleted in this case,
-                        # so that one does not have to delete it.
-        else:
-            os.remove("nasty-twitter-crawler/nasty/out/" + filename)
-            # The crawled data is deleted in this case,
-            # so that one does not have to delete it.
-    return True
-
-
-def build_from_json(read_from: str or "Path") -> List["Tweet"]:
-    """Return a list of tweets from a json.gz file. API or HTML saved data"""
-    with gzip.open(read_from, "rt") as json_file:
-        tweets = []
-        for line in json_file:
-            tweets.append(Tweet.from_json(line))
-        return tweets
-
-
-def compare(html_tweets: List[Tweet], api_tweets: List[Tweet]) -> None:
+def _compare(html_tweets: List[Tweet], api_tweets: List[Tweet]) -> dict:
     """
     Compares the tweets out of two lists of Tweet Objects.
 
@@ -94,35 +28,45 @@ def compare(html_tweets: List[Tweet], api_tweets: List[Tweet]) -> None:
 
     Additionally the two lists of elements are being sorted by their ID.
 
-    :param html_tweets: Gets a list of tweet objects from advancedSearch handed over.
-    :param api_tweets: Gets a list of tweet objects from the official API handed over.
-    :return None:
+    The function returns a dictionary, which stores information about the
+    comparison test.
+
+    :param html_tweets:
+    Gets a list of tweet objects from advancedSearch handed over.
+    :param api_tweets:
+    Gets a list of tweet objects from the official API handed over.
+    :return dict:
     """
-    html_tweets = sort_by_id(html_tweets)
-    api_tweets = sort_by_id(api_tweets)
+    dict_result = {"tweets_equal": 0,
+                   "tweets_equal_mentions": 0,
+                   "tweets_not_equal": 0}
+
+    html_tweets = _sort_by_id(html_tweets)
+    api_tweets = _sort_by_id(api_tweets)
 
     for (html_tweet, api_tweet) in zip(html_tweets, api_tweets):
-        if not (compare_text(html_tweet["full_text"], api_tweet["full_text"],
-                             html_tweet["id_str"], api_tweet["id_str"],
-                             html_tweet["entities"]["user_mentions"])):
-            return False
-    return True
+        result = _compare_text(html_tweet.full_text, api_tweet.full_text,
+                               html_tweet.id, api_tweet.id,
+                               html_tweet.user_mentions)
+        dict_result[result] += 1
+
+    return dict_result
 
 
-def sort_by_id(tweet_objects: [Tweet]) -> List:
+def _sort_by_id(tweet_objects: List[Tweet]) -> List[Tweet]:
     """
     This method sorts a list of tweet objects by their ID's ascending.
 
-    :param tweet_objects:
-    :return None:
+    :param tweet_objects: List[Tweet]
+    :return List[Tweet]:
     """
-    data = sorted(tweet_objects, key=lambda i: i['id_str'])
+    data = sorted(tweet_objects, key=lambda i: i.id)
 
     return data
 
 
-def compare_text(html_text: str, api_text: str, html_id: str, api_id: str,
-                 html_mentions: List[UserMention]) -> "Boolean":
+def _compare_text(html_text: str, api_text: str, html_id: str, api_id: int,
+                  html_mentions: List[UserMention]) -> str:
     """
     This function compares two lists of strings (from tweets).
     The tweets of the HTML-Crawling must be unescaped of HTML Codes.
@@ -130,7 +74,8 @@ def compare_text(html_text: str, api_text: str, html_id: str, api_id: str,
     in order to match the results by the API.
 
     Additionally this method needs the ID of the html and API tweets for /
-    debugging and also the mentions of the html tweet, for the improvised method.
+    debugging and also the mentions of the html tweet,
+    for the improvised method.
 
     In the moment there is an improvised method, that deletes all user
     mentions, if there are more than 2.
@@ -138,34 +83,51 @@ def compare_text(html_text: str, api_text: str, html_id: str, api_id: str,
     If there is a difference between a pair of tweets,
     the method will print their texts and ID's out.
 
+    The method returns a string, which gives information about if the
+    comparison has been successful, successful without user mentions
+    or not successful.
+
     :param html_text:
     :param api_text:
     :param html_id:
     :param api_id:
     :param html_mentions:
-    :return None:
+    :return str:
     """
-    if html_id != api_id:
-        raise Exception("The id's of the tweets are not the same.\n Identifier: compare_text")
+    api_id = str(api_id)
+    # To convert the ID of the API to string, so that html and API ID's can be
+    # compared.
 
+    if html_id != api_id:
+        print(type(html_id), type(api_id))
+        raise Exception("The id's of the tweets are not the same.\n "
+                        "Identifier: compare_text")
+
+    flag_mention = 0
     for user in html_mentions:
-        if "\n      others\n      \n  " in user["screen_name"]:
-            list_texts = improvised_reply(html_text, api_text, html_mentions)
+        if "\n      others\n      \n  " in user.screen_name:
+            flag_mention = 1
+            list_texts = _improvised_reply(html_text, api_text, html_mentions)
             html_text = list_texts[0]
             api_text = list_texts[1]
             break
 
     if html_text != api_text:
         print(
-            f"_________Fail_ID: {html_id} _________\n{html_text}\n==================\n{api_text}\n")
-        return False
+            f"_________Fail_ID: {html_id} _________\n{html_text}\n"
+            f"==================\n{api_text}\n")
+        return "tweets_not_equal"
     else:
-        return True
+        if flag_mention == 1:
+            return "tweets_equal_mentions"
+        else:
+            return "tweets_equal"
 
 
-def improvised_reply(html_text: str, api_text: str, mentions: [str]) -> [str, str]:
+def _improvised_reply(html_text: str, api_text: str,
+                      mentions: [str]) -> [str, str]:
     """
-    This is an improvised method for swapping out "@" mentions in twitter tweets.
+    This is an improvised method for swapping out @mentions in twitter tweets.
     At the moment we can not get all user mentions, if there are more than 2
     in a tweet.
 
@@ -174,8 +136,8 @@ def improvised_reply(html_text: str, api_text: str, mentions: [str]) -> [str, st
 
     :param html_text: The html tweet.
     :param api_text: The API tweet.
-    :param mentions: The user mentions of the tweet. --> This need to be deleted/
-    in the html tweet.
+    :param mentions: The user mentions of the tweet.
+    --> This need to be deleted/in the html tweet.
     :return [str, str]:
     """
     print(
@@ -195,29 +157,36 @@ def improvised_reply(html_text: str, api_text: str, mentions: [str]) -> [str, st
 
     15.07.2019 12:42
     In diesem Tweet ist ein gelöschter User als mention angeführt.
-    Da wir aus der HTML Datei nicht wissen, welche User alle erwähnt werden, können wir in
-    diesem Fehlerfall nur alle "@" Mentions löschen.
+    Da wir aus der HTML Datei nicht wissen, welche User alle 
+    erwähnt werden, können wir in diesem Fehlerfall nur alle 
+    "@" Mentions löschen.
     """
     for mention in mentions:  # HTML Modification Part I
         # --> Deleting all mentioned users in the html text.
         # (Most importantly deleting the "others" menntion)
-        html_text = html_text.replace("@" + mention.screen_name + " ", "")  # HTML Modification
-        html_text = html_text.replace(mention.screen_name + " ", "")  # HTML Modification
+        html_text = html_text.replace("@" + mention.screen_name + " ", "")
+        # HTML Modification
+        html_text = html_text.replace(mention.screen_name + " ", "")
+        # HTML Modification
 
     splitted_text = html_text.split(" ")  # HTML Modification Part II
     sum_splitted = []
 
-    for text in splitted_text:  # HTML Modification ---> Deleting all "@" mentions. (unfortunately)
+    for text in splitted_text:
+        # HTML Modification ---> Deleting all "@" mentions. (unfortunately)
         if "@" in text:
             text = ""
         else:
             sum_splitted.append(text)
-    html_text = " ".join(sum_splitted)  # For the HTML it works fine.
+    html_text = " ".join(sum_splitted)
+    # For the HTML it works fine.
 
-    splitted_text_2 = api_text.split(" ")  # API Modification Start
+    splitted_text_2 = api_text.split(" ")
+    # API Modification Start
     sum_splitted_2 = []
 
-    for text in splitted_text_2:  # API Modification  --> Deleting all "@" mentions. (unfortunately)
+    for text in splitted_text_2:
+        # API Modification  --> Deleting all "@" mentions. (unfortunately)
         if "@" in text:
             text = ""
         else:
