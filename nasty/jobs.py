@@ -1,6 +1,5 @@
 import gzip
 import json
-import os
 from datetime import date, datetime
 from logging import getLogger
 from multiprocessing import Pool
