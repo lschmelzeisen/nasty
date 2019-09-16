@@ -328,5 +328,9 @@ def _look_up_and_set_indices(full_text: str,
 
 
 def _indices(needle: str, haystack: str) -> Tuple[int, int]:
-    start = haystack.index(needle)
+    try:
+        start = haystack.index(needle)
+    except ValueError as exc:
+        print(exc.__traceback__)
+        start = -1
     return start, start + len(needle)
