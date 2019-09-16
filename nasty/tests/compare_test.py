@@ -11,7 +11,7 @@ from nasty.tweet import Tweet, UserMention
 class Test(unittest.TestCase):
     def test_compare_ape(self):
         keyword = "ape"
-        day = date(year=2018, month=11, day=23)
+        day = date(year=2017, month=11, day=23)
         language = "en"
         tweet_list = perform_advanced_search(keyword, day, language)
         api_tweets = load(tweet_list)
@@ -31,13 +31,26 @@ class Test(unittest.TestCase):
 
     def test_compare_climate(self):
         keyword = "climate"
+        day = date(year=2020, month=1, day=1)
+        language = "en"
+        tweet_list = perform_advanced_search(keyword, day, language)
+        api_tweets = load(tweet_list)
+        result_dict = _compare(tweet_list, api_tweets)
+        print(result_dict)
+        self.assertEqual(-1, result_dict["tweets_not_equal"])
+
+    def test_compare_uncommon(self):
+        keyword = "fgjkdfgjhkddgjldgslövnaölreubnvöaurubvjnkaluebnvnlöauoahj" \
+                  "gljgdfsjkgjlknsbnlkjfsdbgslkjghjfdnbjkdnfbjdkfgblkfn nljn" \
+                  "drjklhgnjdflbrdtrjotshlgudfkjhbngbdfgjkbndlrghjkgabkncfbj"
         day = date(year=2018, month=11, day=23)
         language = "en"
         tweet_list = perform_advanced_search(keyword, day, language)
         api_tweets = load(tweet_list)
         result_dict = _compare(tweet_list, api_tweets)
         print(result_dict)
-        self.assertEqual(0, result_dict["tweets_not_equal"])
+        self.assertEqual(-1, result_dict["tweets_not_equal"])
+
 
 
 def _compare(html_tweets: List[Tweet], api_tweets: List[Tweet]) -> dict:
