@@ -84,14 +84,14 @@ def load_config(path: Path) -> Dict:
         sys.exit()
 
     logger.debug('Loading config from "{}".'.format(path))
-    with path.open(encoding='UTF-8') as fin:
-        config = toml.load(fin)
+    # with path.open(encoding='UTF-8') as fin:
+        # config = toml.load(fin)
 
-    logger.debug('Loaded config:')
-    for line in toml.dumps(config).splitlines():
-        logger.debug('  ' + line)
+    # logger.debug('Loaded config:')
+    # for line in toml.dumps(config).splitlines():
+    #     logger.debug('  ' + line)
 
-    return config
+    # return config
 
 
 if __name__ == '__main__':
