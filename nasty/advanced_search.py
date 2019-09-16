@@ -107,6 +107,8 @@ def _extract_tweets_from_advanced_search_page(page: str) \
     tweets = [_extract_tweet_from_tweet_table(t)
               for t in tweet_tables
               # TODO: can we document why the following line is needed?
+              # This line was needed for the search of random individual tweets
+              # It saved the case a deleted tweet was found
               if not t.find('td', class_='tombstone-tweet-text')]
 
     next_cursor = None
