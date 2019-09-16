@@ -11,7 +11,27 @@ from nasty.tweet import Tweet, UserMention
 class Test(unittest.TestCase):
     def test_compare_ape(self):
         keyword = "ape"
-        day = date(year=2018, month=11, day=12)
+        day = date(year=2018, month=11, day=23)
+        language = "en"
+        tweet_list = perform_advanced_search(keyword, day, language)
+        api_tweets = load(tweet_list)
+        result_dict = _compare(tweet_list, api_tweets)
+        print(result_dict)
+        self.assertEqual(0, result_dict["tweets_not_equal"])
+
+    def test_compare_metal(self):
+        keyword = "metal"
+        day = date(year=2018, month=11, day=23)
+        language = "en"
+        tweet_list = perform_advanced_search(keyword, day, language)
+        api_tweets = load(tweet_list)
+        result_dict = _compare(tweet_list, api_tweets)
+        print(result_dict)
+        self.assertEqual(0, result_dict["tweets_not_equal"])
+
+    def test_compare_climate(self):
+        keyword = "climate"
+        day = date(year=2018, month=11, day=23)
         language = "en"
         tweet_list = perform_advanced_search(keyword, day, language)
         api_tweets = load(tweet_list)
@@ -147,15 +167,15 @@ def _delete_mentions(html_text: str, api_text: str) -> [str, str]:
     :param api_text: str
     :return: [str,str]
     """
-    html_text_edited = ""
+    html_text_edited = "Improvised tweet text:"
     for word in html_text.split():
         if "@" not in word:
-            html_text_edited = html_text_edited + word
+            html_text_edited = html_text_edited + " " + word
 
-    api_text_edited = ""
+    api_text_edited = "Improvised tweet text:"
     for word in api_text.split():
         if "@" not in word:
-            api_text_edited = api_text_edited + word
+            api_text_edited = api_text_edited + " " + word
 
     return [html_text_edited, api_text_edited]
 
