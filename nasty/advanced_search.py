@@ -87,7 +87,8 @@ def _download_advanced_search_page(keyword: str,
 
 def _extract_tweets_from_advanced_search_page(page: str) \
         -> Tuple[List[Tweet], Optional[str]]:
-    """Takes a downloaded advanced search page and extracts all contained Tweets.
+    """Takes a downloaded advanced search page and extracts
+        all contained Tweets.
 
     :param page: The advanced search page to extract Tweets from. This needs to
         be an HTML document of the search results page of the old version of
@@ -260,7 +261,8 @@ def _extract_user_mentions_from_tweet_table(tweet_table: Tag) \
 
     user_mentions = []
 
-    reply_names = tweet_table.find('div', class_='tweet-reply-context username')
+    reply_names = tweet_table.find('div',
+                                   class_='tweet-reply-context username')
     if reply_names is not None:
         for reply in reply_names.find_all('a'):
             if reply.text.startswith('@'):

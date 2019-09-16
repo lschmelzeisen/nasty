@@ -2,8 +2,8 @@
 Test if your crawl is complete.
 
 Checks if all meta files are marked as completed. (Done each rerun of nasty)
-Checks if all meta files have a data file. (Not tested in test_for_empty_fil...)
-Checks if data files are filled. (Checked in test_for_empty_files_marked_com...)
+Checks if all meta files have a data file. (Not tested in test_for_empty_fil..)
+Checks if data files are filled. (Checked in test_for_empty_files_marked_com..)
 """
 
 import unittest

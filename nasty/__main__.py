@@ -41,7 +41,7 @@ def load_args(argv: List[str]) -> ArgumentNamespace:
                                            'Tweet Yielder, a Twitter crawler.',
                                add_help=False)
 
-    # The following line and the add_help=False above is to be able to customize
+    # The following line & the add_help=False above is to be able to customize
     # the help message. See: https://stackoverflow.com/a/35848313/211404
     argparser.add_argument('-h', '--help', action='help',
                            default=argparse.SUPPRESS,
@@ -58,17 +58,18 @@ def load_args(argv: List[str]) -> ArgumentNamespace:
     argparser.add_argument('-t', '--time', metavar='<DATE>',
                            type=yyyy_mm_dd_date, nargs=2, required=True,
                            dest='time',
-                           help='Time range the returned tweets need to be in. '
-                                'Date format needs to be "YYYY-MM-DD".')
+                           help='Time range the returned tweets need to be in.'
+                                ' Date format needs to be "YYYY-MM-DD".')
 
     argparser.add_argument('--lang', metavar='<LANG>', type=str, dest='lang',
-                           default='en', help='Twitter Language to crawl with '
-                                              '(default: "en").')
+                           default='en', help='Twitter Language to crawl with'
+                                              ' (default: "en").')
 
     argparser.add_argument('--log-level', metavar='<level>', type=str,
                            choices=['DEBUG', 'INFO', 'WARN', 'ERROR'],
                            default='INFO', dest='log_level',
-                           help='Set logging level (DEBUG, INFO, WARN, ERROR).')
+                           help='Set logging level (DEBUG, INFO, WARN, ERROR).'
+                           )
 
     args = argparser.parse_args(argv)
 
