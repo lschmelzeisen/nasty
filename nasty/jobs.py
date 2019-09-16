@@ -146,17 +146,7 @@ def _run_job(args: Tuple[Path, Job]) -> None:
 
 
 def run_jobs(jobs: Iterable[Job], num_processes: int = 1) -> None:
-    # Additional information. Not necessary for the regular user.
-    # We need to alter the out_directory, according from which project
-    # this method is run. So that the "out" folder stays in the same
-    # directory, irrelevant if __main__.py is called directly, or
-    # from the twitter-extraction repository.
-    if os.path.abspath(".").__contains__("nasty-twitter-crawler/nasty"):
-        out_directory = Path('out')
-    elif os.path.abspath(".").__contains__("nasty-twitter-crawler"):
-        out_directory = Path('nasty/out')
-    else:
-        out_directory = Path('nasty-twitter-crawler/nasty/out')
+    out_directory = Path('out')
     Path.mkdir(out_directory, exist_ok=True, parents=True)
 
     with Pool(processes=num_processes) as pool:
