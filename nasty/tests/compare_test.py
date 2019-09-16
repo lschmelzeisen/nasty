@@ -52,7 +52,6 @@ class Test(unittest.TestCase):
         self.assertEqual(-1, result_dict["tweets_not_equal"])
 
 
-
 def _compare(html_tweets: List[Tweet], api_tweets: List[Tweet]) -> dict:
     """
     Compares the tweets out of two lists of Tweet Objects.
