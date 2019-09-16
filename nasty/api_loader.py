@@ -38,6 +38,8 @@ def load(html_tweets: List[Tweet]) -> List[Tweet]:
     :return: List[Tweet] : Returns a list of the crawled api tweets, which
                             futhermore can be compared to the .
     """
+    if len(html_tweets) == 0:
+        return []
 
     id_list = get_ids(html_tweets)
     tweets = []
