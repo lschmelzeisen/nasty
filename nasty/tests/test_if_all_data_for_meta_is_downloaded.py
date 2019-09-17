@@ -27,7 +27,7 @@ def make_paths_from_filenames(folder: Path, files: List[str]) -> \
 class TestIfAllDataForMetaIsDownloaded(TestCase):
 
     def test_if_all_marked_completed(self):
-        out_directory = Path().absolute().parent / "out"
+        out_directory = Path().absolute().parent.parent / "out"
         meta_filenames = [f for f in os.listdir(out_directory)
                           if f.endswith("meta.json")]
         meta_files = make_paths_from_filenames(out_directory, meta_filenames)
@@ -47,7 +47,7 @@ class TestIfAllDataForMetaIsDownloaded(TestCase):
             self.fail("Not all meta files are marked as completed.")
 
     def test_if_all_meta_have_data_files(self):
-        out_directory = Path().absolute().parent / "out"
+        out_directory = Path().absolute().parent.parent / "out"
         meta_filenames = [f for f in os.listdir(out_directory)
                           if f.endswith("meta.json")]
         is_failed = False
@@ -65,7 +65,7 @@ class TestIfAllDataForMetaIsDownloaded(TestCase):
             self.fail("Not all meta files have corresponding data files.")
 
     def test_for_empty_data_files(self):
-        out_directory = Path().absolute().parent / "out"
+        out_directory = Path().absolute().parent.parent / "out"
         meta_filenames = [f for f in os.listdir(out_directory)
                           if f.endswith("meta.json")]
         is_failed = False

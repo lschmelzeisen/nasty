@@ -13,7 +13,7 @@ from pathlib import Path
 
 class TestForEmptyFilesMarkedCompleted(TestCase):
     def test_out_dictionary_files(self):
-        out_directory = Path().absolute().parent / "out"
+        out_directory = Path().absolute().parent.parent / "out"
 
         meta_files, data_files = load_file_paths(out_directory)
         is_failed = False
