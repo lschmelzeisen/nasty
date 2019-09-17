@@ -14,6 +14,11 @@ import nasty
 from nasty.tweet import Hashtag, Tweet, TweetUrlMapping, UserMention
 
 
+# Custom exception for if our current user_agent fails
+class UserAgentException(Exception):
+    pass
+
+
 def perform_advanced_search(keyword: str, date: date, lang: str) -> List[Tweet]:
     tweets = []
 
@@ -117,6 +122,12 @@ def _extract_tweets_from_advanced_search_page(page: str) \
         next_page_url = more_button.find('a').get('href')
         next_cursor = next_page_url[next_page_url.find('next_cursor=')
                                     + len('next_cursor='):]
+
+        # If there is a more_button, we should not see "noresults"
+        # if we see "noresults" it indicates that our user-agent get's blocked
+        no_result = soup.find('div', class_='noresults')
+        if no_result:
+            raise UserAgentException
 
     return tweets, next_cursor
 
