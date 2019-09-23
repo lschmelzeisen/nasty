@@ -51,6 +51,16 @@ class Test(unittest.TestCase):
         print(result_dict)
         self.assertEqual(-1, result_dict["tweets_not_equal"])
 
+    def test_compare_html_unescape(self):
+        keyword = "trump"
+        day = date(year=2017, month=8, day=22)
+        language = "en"
+        tweet_list = perform_advanced_search(keyword, day, language)
+        api_tweets = download_api_tweets_from_html_tweets(tweet_list)
+        result_dict = _compare(tweet_list, api_tweets)
+        print(result_dict)
+        self.assertNotEqual(0, result_dict["tweets_not_equal"])
+
 
 def _compare(html_tweets: List[Tweet], api_tweets: List[Tweet]) -> dict:
     """
@@ -159,6 +169,8 @@ def _compare_text(html_text: str, api_text: str, html_id: str, api_id: int,
         # Checking, if the tweets are only unequal,
         # because of the user mentions.
         [html_text, api_text] = _delete_mentions(html_text, api_text)
+        api_text = api_text.encode('utf-8')
+        html_text = html_text.encode('utf-8')
         if html_text == api_text:
             return "tweets_equal_mentions"
         else:
