@@ -8,7 +8,7 @@ from typing import Dict, List
 import toml
 
 import nasty
-from nasty.jobs import build_jobs, write_jobs, read_jobs, run_jobs
+from nasty.jobs import build_jobs, read_jobs, run_jobs, write_jobs
 from nasty.util.logging import setup_logging
 from nasty.util.time import yyyy_mm_dd_date
 
@@ -32,7 +32,7 @@ def main(argv: List[str]):
     write_jobs(jobs, source_folder / 'jobs.jsonl')
 
     jobs = read_jobs(source_folder / 'jobs.jsonl')
-    run_jobs(jobs, num_processes=4)
+    run_jobs(jobs, num_processes=config['num_processes'])
 
 
 def load_args(argv: List[str]) -> ArgumentNamespace:
@@ -68,8 +68,7 @@ def load_args(argv: List[str]) -> ArgumentNamespace:
     argparser.add_argument('--log-level', metavar='<level>', type=str,
                            choices=['DEBUG', 'INFO', 'WARN', 'ERROR'],
                            default='INFO', dest='log_level',
-                           help='Set logging level (DEBUG, INFO, WARN, ERROR).'
-                           )
+                           help='Set logging level (DEBUG, INFO, WARN, ERROR).')
 
     args = argparser.parse_args(argv)
 
@@ -84,14 +83,14 @@ def load_config(path: Path) -> Dict:
         sys.exit()
 
     logger.debug('Loading config from "{}".'.format(path))
-    # with path.open(encoding='UTF-8') as fin:
-        # config = toml.load(fin)
+    with path.open(encoding='UTF-8') as fin:
+        config = toml.load(fin)
 
-    # logger.debug('Loaded config:')
-    # for line in toml.dumps(config).splitlines():
-    #     logger.debug('  ' + line)
+    logger.debug('Loaded config:')
+    for line in toml.dumps(config).splitlines():
+        logger.debug('  ' + line)
 
-    # return config
+    return config
 
 
 if __name__ == '__main__':

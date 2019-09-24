@@ -9,6 +9,9 @@ __pycache__/
 # Virtual environments
 venv/
 
+# Config file
+config.toml
+
 # Generated files
 out/
 jobs.jsonl
