@@ -181,8 +181,6 @@ def _compare_text(html_text: str, api_text: str, html_id: str, api_id: int,
         # Checking, if the tweets are only unequal,
         # because of the user mentions.
         [html_text, api_text] = _delete_mentions(html_text, api_text)
-        api_text = api_text.encode('utf-8')
-        html_text = html_text.encode('utf-8')
         if html_text == api_text:
             return "tweets_equal_mentions"
         else:
