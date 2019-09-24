@@ -16,14 +16,12 @@ from nasty.util.time import yyyy_mm_dd_date
 def main(argv: List[str]):
     source_folder = Path(__file__).parent.parent
 
-    args = load_args(argv)
-
-    setup_logging(args.log_level)
-    logger = getLogger(nasty.__name__)
-    logger.debug('Raw arguments: {}'.format(argv))
-    logger.debug('Parsed arguments: {}'.format(vars(args)))
-
     config = load_config(source_folder / 'config.toml')
+
+    setup_logging(config['log_level'])
+    log_config(config)
+
+    args = load_args(argv)
 
     jobs = build_jobs(keywords=args.keywords,
                       start_date=args.time[0],
@@ -36,6 +34,9 @@ def main(argv: List[str]):
 
 
 def load_args(argv: List[str]) -> ArgumentNamespace:
+    logger = getLogger(nasty.__name__)
+    logger.debug('Raw arguments: {}'.format(argv))
+
     argparser = ArgumentParser(prog='nasty',
                                description='NASTY - NASTY Advanced Search '
                                            'Tweet Yielder, a Twitter crawler.',
@@ -65,32 +66,29 @@ def load_args(argv: List[str]) -> ArgumentNamespace:
                            default='en', help='Twitter Language to crawl with'
                                               ' (default: "en").')
 
-    argparser.add_argument('--log-level', metavar='<level>', type=str,
-                           choices=['DEBUG', 'INFO', 'WARN', 'ERROR'],
-                           default='INFO', dest='log_level',
-                           help='Set logging level (DEBUG, INFO, WARN, ERROR).')
-
     args = argparser.parse_args(argv)
+    logger.debug('Parsed arguments: {}'.format(vars(args)))
 
     return args
 
 
 def load_config(path: Path) -> Dict:
-    logger = getLogger(nasty.__name__)
-
     if not path.exists():
-        logger.error('Could not find config file in "{}".'.format(path))
+        print('Could not find config file in "{}".'.format(path),
+              file=sys.stderr)
         sys.exit()
 
-    logger.debug('Loading config from "{}".'.format(path))
     with path.open(encoding='UTF-8') as fin:
         config = toml.load(fin)
 
+    return config
+
+
+def log_config(config: Dict):
+    logger = getLogger(nasty.__name__)
     logger.debug('Loaded config:')
     for line in toml.dumps(config).splitlines():
         logger.debug('  ' + line)
-
-    return config
 
 
 if __name__ == '__main__':
