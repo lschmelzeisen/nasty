@@ -1,20 +1,27 @@
 import unittest
 from datetime import date
-from nasty.advanced_search import perform_advanced_search
-
-from nasty.api_loader import download_api_tweets_from_html_tweets
 from typing import List
 
+from nasty.advanced_search import perform_advanced_search
+from nasty.api_loader import download_api_tweets_from_html_tweets, \
+    setup_tweepy_api
+from nasty.init import init_nasty
 from nasty.tweet import Tweet, UserMention
 
 
 class Test(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.config = init_nasty()
+        cls.tweepy_api = setup_tweepy_api(cls.config)
+
     def test_compare_ape(self):
         keyword = "ape"
         day = date(year=2017, month=11, day=23)
         language = "en"
         tweet_list = perform_advanced_search(keyword, day, language)
-        api_tweets = download_api_tweets_from_html_tweets(tweet_list)
+        api_tweets = download_api_tweets_from_html_tweets(self.tweepy_api,
+                                                          tweet_list)
         result_dict = _compare(tweet_list, api_tweets)
         print(result_dict)
         self.assertEqual(0, result_dict["tweets_not_equal"])
@@ -24,7 +31,8 @@ class Test(unittest.TestCase):
         day = date(year=2018, month=11, day=23)
         language = "en"
         tweet_list = perform_advanced_search(keyword, day, language)
-        api_tweets = download_api_tweets_from_html_tweets(tweet_list)
+        api_tweets = download_api_tweets_from_html_tweets(self.tweepy_api,
+                                                          tweet_list)
         result_dict = _compare(tweet_list, api_tweets)
         print(result_dict)
         self.assertEqual(0, result_dict["tweets_not_equal"])
@@ -34,7 +42,8 @@ class Test(unittest.TestCase):
         day = date(year=2020, month=1, day=1)
         language = "en"
         tweet_list = perform_advanced_search(keyword, day, language)
-        api_tweets = download_api_tweets_from_html_tweets(tweet_list)
+        api_tweets = download_api_tweets_from_html_tweets(self.tweepy_api,
+                                                          tweet_list)
         result_dict = _compare(tweet_list, api_tweets)
         print(result_dict)
         self.assertEqual(-1, result_dict["tweets_not_equal"])
@@ -46,17 +55,20 @@ class Test(unittest.TestCase):
         day = date(year=2018, month=11, day=23)
         language = "en"
         tweet_list = perform_advanced_search(keyword, day, language)
-        api_tweets = download_api_tweets_from_html_tweets(tweet_list)
+        api_tweets = download_api_tweets_from_html_tweets(self.tweepy_api,
+                                                          tweet_list)
         result_dict = _compare(tweet_list, api_tweets)
         print(result_dict)
         self.assertEqual(-1, result_dict["tweets_not_equal"])
 
+    @unittest.skip
     def test_compare_html_unescape(self):
         keyword = "trump"
         day = date(year=2017, month=8, day=22)
         language = "en"
         tweet_list = perform_advanced_search(keyword, day, language)
-        api_tweets = download_api_tweets_from_html_tweets(tweet_list)
+        api_tweets = download_api_tweets_from_html_tweets(self.tweepy_api,
+                                                          tweet_list)
         result_dict = _compare(tweet_list, api_tweets)
         print(result_dict)
         self.assertNotEqual(0, result_dict["tweets_not_equal"])
