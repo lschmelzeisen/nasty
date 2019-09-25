@@ -3,7 +3,7 @@ Class collection containing the main Tweet class.
 As well as a class for Hashtag, UserMention and TweetURLMapping
 """
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 
 class Hashtag:
@@ -99,8 +99,7 @@ class Tweet:
                  screen_name: str,
                  hashtags: List[Hashtag],
                  user_mentions: List[UserMention],
-                 urls: List[TweetUrlMapping],
-                 evaluation: Optional[List[str]] = None) -> None:
+                 urls: List[TweetUrlMapping]) -> None
         self.created_at = created_at
         self.id = id_
         self.full_text = full_text
@@ -109,7 +108,6 @@ class Tweet:
         self.urls = urls
         self.name = name
         self.screen_name = screen_name
-        self.evaluation = evaluation or []
 
     def __repr__(self):
         return type(self).__name__ + repr(self.to_json())
@@ -137,9 +135,6 @@ class Tweet:
             }
         }
 
-        if self.evaluation:
-            result['evaluation'] = self.evaluation
-
         return result
 
     @classmethod
@@ -155,8 +150,7 @@ class Tweet:
                                   for user_mention
                                   in obj['entities']['user_mentions']],
                    urls=[TweetUrlMapping.from_json(url)
-                         for url in obj['entities']['urls']],
-                   evaluation=obj.get('evaluation'))
+                         for url in obj['entities']['urls']])
 
     @classmethod
     def calc_created_at_time_from_id(cls, id_: str) -> datetime:
