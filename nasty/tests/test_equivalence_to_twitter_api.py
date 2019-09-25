@@ -3,7 +3,7 @@ from collections import defaultdict
 from datetime import date
 from enum import Enum, auto
 from logging import getLogger
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import tweepy
 
@@ -44,7 +44,7 @@ class TestEquivalenceToTwitterApi(unittest.TestCase):
         api_tweets = download_api_tweets(self.tweepy_api, html_tweets)
 
         self.assertNotEqual(0, len(html_tweets))
-        self.assertEqual(len(html_tweets), len(api_tweets))
+        self.assertEqual(len(api_tweets), len(html_tweets))
 
         tweets_by_equal_type = defaultdict(list)
         for html_tweet, api_tweet in zip(
@@ -59,7 +59,22 @@ class TestEquivalenceToTwitterApi(unittest.TestCase):
 
     def _compare_tweets(self, html_tweet: Tweet, api_tweet: tweepy.Status) \
             -> TweetEqualType:
-        self.assertEqual(html_tweet.id, api_tweet.id_str)
+        self.assertEqual(
+            api_tweet.created_at.strftime('%a %b %d %H:%M:%S +0000 %Y'),
+            html_tweet.created_at)
+        self.assertEqual(api_tweet.id_str, html_tweet.id)
+        self.assertEqual(api_tweet.user.name, html_tweet.name)
+        self.assertEqual(api_tweet.user.screen_name, html_tweet.screen_name)
+
+        # Can't assert equals of indices because we don't guarantee the text
+        # to exactly match
+        self.assertEqual(len(api_tweet.entities['hashtags']),
+                         len(html_tweet.hashtags))
+        for html_hashtag, api_hashtag in zip(html_tweet.hashtags,
+                                             api_tweet.entities['hashtags']):
+            self.assertEqual(api_hashtag['text'], html_hashtag.text)
+        self.assertDictEqual(self._build_api_url_dict(api_tweet),
+                             self._build_html_url_dict(html_tweet))
 
         if html_tweet.full_text == api_tweet.full_text:
             return self.TweetEqualType.EQUAL
@@ -70,7 +85,23 @@ class TestEquivalenceToTwitterApi(unittest.TestCase):
             return self.TweetEqualType.UNEQUAL
 
     @classmethod
-    def _remove_mentions(cls, text: str) -> str:
+    def _build_html_url_dict(cls, tweet: Tweet) -> Dict[str, Dict[str, Any]]:
+        return {url.url: {'display_url': url.display_url,
+                          'expanded_url': url.expanded_url,
+                          'url': url.url}
+                for url in tweet.urls}
+
+    @classmethod
+    def _build_api_url_dict(cls, tweet: tweepy.Status) \
+            -> Dict[str, Dict[str, Any]]:
+        return {url['url']: {'display_url': url['display_url'],
+                             'expanded_url': url['expanded_url'],
+                             'url': url['url']}
+                for url in (tweet.entities['urls']
+                            + tweet.entities.get('media', []))}
+
+    @staticmethod
+    def _remove_mentions(text: str) -> str:
         while text.startswith('@'):
             text = text[text.index(' ') + len(' '):]
         return text
