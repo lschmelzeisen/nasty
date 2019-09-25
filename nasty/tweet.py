@@ -114,6 +114,11 @@ class Tweet:
     def __repr__(self):
         return type(self).__name__ + repr(self.to_json())
 
+    @property
+    def permalink(self) -> str:
+        return 'https://twitter.com/{}/status/{}'.format(self.screen_name,
+                                                         self.id)
+
     def to_json(self) -> Dict:
         result = {
             'created_at': self.created_at,
