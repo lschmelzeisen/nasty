@@ -282,6 +282,10 @@ def _extract_user_mentions_from_tweet_table(tweet_table: Tag) \
                 user_mentions.append(UserMention(
                     reply.text[len('@'):], '', (0, 0)))
 
+    # Reverse mentions collected until here to match order in Twitter API when
+    # we prepend them to the full text.
+    user_mentions.reverse()
+
     user_mentions.extend(
         UserMention(u.text[len('@'):], u.get('data-mentioned-user-id'), (0, 0))
         for u in tweet_table.find_all('a', class_='twitter-atreply'))
