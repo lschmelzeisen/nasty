@@ -1,5 +1,5 @@
 import html
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from logging import getLogger
 from typing import List, Optional, Tuple
 from urllib.parse import quote_plus
@@ -158,7 +158,8 @@ def _extract_tweet_from_tweet_table(tweet_table: Tag) -> Tweet:
                  user_mentions, url_mappings)
 
 
-def _extract_tweet_meta_from_tweet_table(tweet_table: Tag) -> Tuple[str, str]:
+def _extract_tweet_meta_from_tweet_table(tweet_table: Tag) \
+        -> Tuple[str, datetime]:
     # HTML collected and tested at: 2019-07-09
     # <td class="timestamp">
     #   <a name="tweet_1142868564866719744"
@@ -179,8 +180,7 @@ def _extract_tweet_meta_from_tweet_table(tweet_table: Tag) -> Tuple[str, str]:
     # </div>
 
     id_str = tweet_table.find('div', class_='tweet-text').get('data-id')
-    created_at = Tweet.calc_created_at_time_from_id(id_str).strftime(
-        '%a %b %d %H:%M:%S +0000 %Y')
+    created_at = Tweet.calc_created_at_time_from_id(id_str)
 
     return id_str, created_at
 

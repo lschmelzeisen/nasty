@@ -59,9 +59,7 @@ class TestEquivalenceToTwitterApi(unittest.TestCase):
 
     def _compare_tweets(self, html_tweet: Tweet, api_tweet: tweepy.Status) \
             -> TweetEqualType:
-        self.assertEqual(
-            api_tweet.created_at.strftime('%a %b %d %H:%M:%S +0000 %Y'),
-            html_tweet.created_at)
+        self.assertEqual(api_tweet.created_at, html_tweet.created_at)
         self.assertEqual(api_tweet.id_str, html_tweet.id)
         self.assertEqual(api_tweet.user.name, html_tweet.name)
         self.assertEqual(api_tweet.user.screen_name, html_tweet.screen_name)

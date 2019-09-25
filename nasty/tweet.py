@@ -92,7 +92,7 @@ class Tweet:
     # TODO: Do we want to carry a source flag whether a Tweet is from the API or from the advanced search?
 
     def __init__(self,
-                 created_at: str,
+                 created_at: datetime,
                  id_: str,
                  full_text: str,
                  name: str,
@@ -121,7 +121,8 @@ class Tweet:
 
     def to_json(self) -> Dict:
         result = {
-            'created_at': self.created_at,
+            'created_at':
+                self.created_at.strftime('%a %b %d %H:%M:%S +0000 %Y'),
             'id_str': self.id,
             'full_text': self.full_text,
             'entities': {
@@ -159,5 +160,6 @@ class Tweet:
 
     @classmethod
     def calc_created_at_time_from_id(cls, id_: str) -> datetime:
+        # Set microsecond to zero to match Twitter API.
         return datetime.utcfromtimestamp(
-            ((int(id_) >> 22) + 1288834974657) / 1000)
+            ((int(id_) >> 22) + 1288834974657) / 1000).replace(microsecond=0)
