@@ -1,7 +1,9 @@
+from logging import getLogger
 from typing import Dict, List, Union
 
 import tweepy
 
+import nasty
 from nasty.init import init_nasty
 from nasty.tweet import Tweet
 from nasty.util.misc import chunked
@@ -27,11 +29,15 @@ def download_api_tweets(api: tweepy.API, tweets: List[Union[str, Tweet]]) \
     :return: List of downloaded Tweets.
     """
 
+    logger = getLogger(nasty.__name__)
+    logger.debug('Download {:d} tweets from Twitter API.'.format(len(tweets)))
+
     tweet_ids = [tweet.id if isinstance(tweet, Tweet) else tweet
                  for tweet in tweets]
 
     tweets = []
-    for tweet_id_batch in chunked(100, tweet_ids):
+    for i, tweet_id_batch in enumerate(chunked(100, tweet_ids)):
+        logger.debug('  Batch {:d} of IDs: {}'.format(i, tweet_id_batch))
         tweets.extend(api.statuses_lookup(tweet_id_batch,
                                           tweet_mode='extended'))
 
@@ -39,7 +45,9 @@ def download_api_tweets(api: tweepy.API, tweets: List[Union[str, Tweet]]) \
 
 
 if __name__ == '__main__':
-    tweet_ids = ['1129802150018551808']
+    tweet_ids = ['1129802150018551808',
+                 '1147178639298973696',
+                 '899787401769308160']
 
     config = init_nasty()
     api = setup_tweepy_api(config)
