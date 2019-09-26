@@ -99,7 +99,7 @@ class Tweet:
                  screen_name: str,
                  hashtags: List[Hashtag],
                  user_mentions: List[UserMention],
-                 urls: List[TweetUrlMapping]) -> None
+                 urls: List[TweetUrlMapping]) -> None:
         self.created_at = created_at
         self.id = id_
         self.full_text = full_text
