@@ -60,32 +60,30 @@ def _download_advanced_search_page(keyword: str,
 
     # Configure retry behaviour. See the following for some explanation:
     # https://stackoverflow.com/a/35504626/211404
-    session = requests.Session()
-    session.mount('https://', HTTPAdapter(max_retries=Retry(
-        total=5, connect=5, redirect=10, backoff_factor=0.1,
-        raise_on_redirect=True, raise_on_status=True,
-        status_forcelist=[404, 408, 409, 500, 501, 502, 503, 504])))
+    with requests.Session() as session:
+        session.mount('https://', HTTPAdapter(max_retries=Retry(
+            total=5, connect=5, redirect=10, backoff_factor=0.1,
+            raise_on_redirect=True, raise_on_status=True,
+            status_forcelist=[404, 408, 409, 500, 501, 502, 503, 504])))
 
-    # We mask ourselves behind an ancient User-Agent string here in order to
-    # avoid Twitter responding with its modern website version which requires
-    # running Javascript to load the actual content. The older version we get
-    # with the following contains all content in HTML and is thus easier
-    # crawled. However, this breaks from time to time and the user-Agent string
-    # might need to be updated.
-    # user_agent = 'Mozilla/4.0 (compatible; MSIE 5.00; Windows 98)'
-    # user_agent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)'
-    user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 6.0; it-IT; ' \
-                 'rv:1.8.1.7) Gecko/20070914 Firefox/2.0.0.7'
+        # We mask ourselves behind an ancient User-Agent string here in order to
+        # avoid Twitter responding with its modern website version which
+        # requires running Javascript to load the actual content. The older
+        # version we get with the following contains all content in HTML and is
+        # thus easier crawled. However, this breaks from time to time and the
+        # user-agent string might need to be updated.
+        # user_agent = 'Mozilla/4.0 (compatible; MSIE 5.00; Windows 98)'
+        # user_agent = 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)'
+        user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 6.0; it-IT; ' \
+                     'rv:1.8.1.7) Gecko/20070914 Firefox/2.0.0.7'
 
-    # The following line throws an exception in case of connection problems, or
-    # timeouts.
-    request = session.get(url, headers={'User-Agent': user_agent}, timeout=5)
-    if request.status_code != 200:
-        raise ValueError('Unexpected status code: {}.'
-                         .format(request.status_code))
-
-    # To eliminate the "ResourceWarning: unclosed <ssl.SSLSocket..." Warning
-    session.close()
+        # The following line throws an exception in case of connection problems,
+        # or timeouts.
+        request = session.get(
+            url, headers={'User-Agent': user_agent}, timeout=5)
+        if request.status_code != 200:
+            raise ValueError('Unexpected status code: {}.'
+                             .format(request.status_code))
 
     return request.text
 
