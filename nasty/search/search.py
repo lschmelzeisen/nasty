@@ -150,7 +150,8 @@ def _new_twitter_session(session: requests.Session, query: Query) \
     session.headers['User-Agent'] = (
         'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N)'
         ' AppleWebKit/537.36 (KHTML, like Gecko)'
-        ' Chrome/68.0.3440.84 Mobile Safari/537.36')
+        ' Chrome/68.0.3440.84 Mobile Safari/537.36'
+        ' NASTYbot')
 
     # The following header shouldn't matter for the actual returned Tweets.
     # Still, since api.twitter.com also returns some localized strings for the
