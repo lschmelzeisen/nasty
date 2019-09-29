@@ -15,7 +15,9 @@ from nasty.search.query import Query
 from nasty.search.tweet import Tweet
 
 
-def search(query: Query, max_tweets: Optional[int] = 1000) -> Iterable[Tweet]:
+def search(query: Query,
+           max_tweets: Optional[int] = 1000,
+           page_size: int = 20) -> Iterable[Tweet]:
     """Searches Tweets matching a query.
 
     The Tweets contained in the result and their sorting is determined by
@@ -39,11 +41,30 @@ def search(query: Query, max_tweets: Optional[int] = 1000) -> Iterable[Tweet]:
         Set to None in order to receive as many Tweets as possible. Note that
         this can return quite a lot of tweets, especially if using Filter.LATEST
         and no date range.
+    :param page_size: The page size in which Tweets should be queride.
+
+        The normal web interface always queries 20 Tweets per page. Twitter
+        interprets this parameter more as a guideline and can either return more
+        or less then the requested amount. This does not indicate that no more
+        matching Tweets exist after this page.
+
+        Note that by setting anything unequal to 20 here, we make ourselves
+        easily distinguishable from normal web browser. Additionally, advanced
+        queries like using AND or OR seem to no longer work as intended.
+
+        This parameter can be used to speed up the search performance, by
+        reducing the HTTP overhead as less requests have to be performed per
+        returned Tweet. If you want to do this, we identified 100 to be a good
+        value because increasing it further does seem not return more Tweets per
+        request.
     :return: Iterable of tweets that match the query.
     """
 
     logger = getLogger(nasty.__name__)
     logger.debug('Searching tweets matching {}.'.format(query))
+
+    if max_tweets is not None and max_tweets <= 0:
+        return []
 
     with requests.session() as session:
         # Configure on which status codes we should perform automated retries.
@@ -71,7 +92,8 @@ def search(query: Query, max_tweets: Optional[int] = 1000) -> Iterable[Tweet]:
             # establish a new session. Only stop when this fails multiple times
             # in a row.
             try:
-                page = _fetch_search_page(session, query, cursor=cursor)
+                page = _fetch_search_page(
+                    session, query, page_size=page_size, cursor=cursor)
             except UnexpectedStatusCodeException as e:
                 if e.status_code == HTTPStatus.TOO_MANY_REQUESTS:  # HTTP 429
                     consecutive_rate_limits += 1
@@ -167,6 +189,7 @@ def _new_twitter_session(session: requests.Session, query: Query) \
         'src': 'typed_query',
         'f': query.filter.url_param,
     })
+    _log_reponse(response)
     if response.status_code != 200:
         raise UnexpectedStatusCodeException(response.url,
                                             HTTPStatus(response.status_code))
@@ -182,6 +205,7 @@ def _new_twitter_session(session: requests.Session, query: Query) \
     # not seem to constant for all users, but we still check in case this
     # changes in the future.
     response = session.get(main_js_url)
+    _log_reponse(response)
     if response.status_code != 200:
         raise UnexpectedStatusCodeException(response.url,
                                             HTTPStatus(response.status_code))
@@ -202,25 +226,13 @@ def _new_twitter_session(session: requests.Session, query: Query) \
 
 def _fetch_search_page(session: requests.Session,
                        query: Query,
-                       count: int = 100,
+                       page_size: int = 100,
                        cursor: Optional[str] = None) -> Dict:
     """Fetches the next page of search results.
 
     :param session: A session established with Twitter.
     :param query: The query to search for.
-    :param count: The number of tweets the returned page should contain.
-
-        The normal web interface always queries 20 Tweets per page. Twitter
-        interprets this parameter more as a guideline and can either return more
-        or less then the requested amount. This does not indicate that no more
-        matching Tweets exist after this page.
-
-        After experimentation, we identified 100 to be a good value because it
-        speeds up the process (more Tweets returned per request) and increasing
-        this value beyond 100 does not return more Tweets per request.
-
-        Note that by setting anything unequal to 20 here, we make ourselves
-        easily distinguishable from normal web browser.
+    :param page_size: The number of tweets the returned page should contain.
     :param cursor: ID signaling at which point in the search results we want
         the results to be. The cursor of the next page is always contained in
         the current result.
@@ -258,7 +270,7 @@ def _fetch_search_page(session: requests.Session,
             'include_ext_media_availability': 'true',
             'send_error_codes': 'true',
             'q': query.url_param,
-            'count': count,
+            'count': page_size,
             'result_filter': query.filter.result_filter,
             'tweet_search_mode': query.filter.tweet_search_mode,
             'query_source': 'typed_query',
@@ -267,6 +279,7 @@ def _fetch_search_page(session: requests.Session,
             'spelling_corrections': '1',
             'ext': 'mediaStats,highlightedLabel,cameraMoment',
         })
+    _log_reponse(response)
     if response.status_code != 200:
         raise UnexpectedStatusCodeException(response.url,
                                             HTTPStatus(response.status_code))
@@ -276,6 +289,13 @@ def _fetch_search_page(session: requests.Session,
         _num_tweets_in_page(page)))
 
     return page
+
+
+def _log_reponse(response: requests.Response):
+    logger = getLogger(nasty.__name__)
+    status = HTTPStatus(response.status_code)
+    logger.debug('    Received {} {} for {}'.format(
+        status.value, status.name, response.url))
 
 
 def _num_tweets_in_page(page: Dict) -> int:

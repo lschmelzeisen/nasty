@@ -1,10 +1,15 @@
 import unittest
 from datetime import date
 
+from nasty.init import init_nasty
 from nasty.search.query import Query
 
 
 class TestQueryJsonConversion(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        init_nasty()
+
     def test_trump(self):
         query = Query('trump')
         self.assertEqual(query, Query.from_json(Query.to_json(query)))
@@ -19,12 +24,20 @@ class TestQueryJsonConversion(unittest.TestCase):
 
 
 class TestQueryFilterJsonConversion(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        init_nasty()
+
     def test_query_filter(self):
         for filter in Query.Filter:
             self.assertEqual(filter, Query.Filter.from_json(filter.to_json()))
 
 
 class TestUrlParamConversion(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        init_nasty()
+
     def test_trump(self):
         query = Query('trump')
         self.assertEqual('trump lang:en', query.url_param)

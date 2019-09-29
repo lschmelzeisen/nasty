@@ -1,6 +1,7 @@
 import unittest
 from datetime import datetime, timezone
 from nasty.search.tweet import Tweet
+from nasty.init import init_nasty
 
 tweet_json = {
     # Tweet accessed via Search API on 2019-09-27
@@ -170,6 +171,10 @@ tweet_json = {
 
 
 class TestTweet(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        init_nasty()
+
     def test_1142944425502543875(self):
         tweet = Tweet(tweet_json['1142944425502543875'])
         self.assertEqual(datetime(year=2019, month=6, day=23,

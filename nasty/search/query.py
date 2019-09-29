@@ -55,6 +55,10 @@ class Query:
             advanced operations here, like exact phrase match, negative match,
             AND/OR, and to/from specific users. For more details, see:
             https://help.twitter.com/en/using-twitter/twitter-advanced-search
+
+            There is no guarantee that the query string will be contained in the
+            Tweet text. It could also be part of the name of the authoring user,
+            or even the title of a linked external website.
         :param since: Only search Tweets written after this date (inclusive).
         :param until: Only search Tweets written before this date (exclusive).
         :param filter: Method to sort/filter Tweets.
