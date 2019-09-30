@@ -10,7 +10,6 @@ import requests.cookies
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
-import nasty
 from nasty.errors import UnexpectedStatusCodeException
 from nasty.init import init_nasty
 from nasty.tweet import Tweet
@@ -25,6 +24,8 @@ class Query:
         LATEST = enum.auto()
         PHOTOS = enum.auto()
         VIDEOS = enum.auto()
+
+        DEFAULT_FILTER = TOP
 
         @property
         def url_param(self) -> Optional[str]:
@@ -58,7 +59,7 @@ class Query:
                  query: str,
                  since: Optional[date] = None,
                  until: Optional[date] = None,
-                 filter: Filter = Filter.TOP,
+                 filter: Filter = Filter.DEFAULT_FILTER,
                  lang: str = 'en'):
         """Construct a new query.
 
@@ -107,23 +108,31 @@ class Query:
     def __eq__(self, other: Any) -> bool:
         return (type(self) == type(other)) and (self.__dict__ == other.__dict__)
 
-    def to_json(self) -> Dict:
-        return {
-            'query': self.query,
-            'since': self.since.isoformat() if self.since else None,
-            'until': self.until.isoformat() if self.until else None,
-            'filter': self.filter.to_json(),
-            'lang': self.lang,
-        }
+    def to_json(self) -> Dict[str, Any]:
+        obj = {}
+        obj['query'] = self.query
+
+        if self.since:
+            obj['since'] = self.since.isoformat()
+        if self.until:
+            obj['until'] = self.until.isoformat()
+
+        if self.filter != self.Filter.DEFAULT_FILTER:
+            obj['filter'] = self.filter.to_json()
+
+        obj['lang'] = self.lang
+
+        return obj
 
     @classmethod
-    def from_json(cls, obj: Dict) -> 'Query':
+    def from_json(cls, obj: Dict[str, Any]) -> 'Query':
         return cls(query=obj['query'],
                    since=(yyyy_mm_dd_date(obj['since'])
-                          if obj['since'] else None),
+                          if 'since' in obj else None),
                    until=(yyyy_mm_dd_date(obj['until'])
-                          if obj['until'] else None),
-                   filter=cls.Filter.from_json(obj['filter']),
+                          if 'until' in obj else None),
+                   filter=(cls.Filter.from_json(obj['filter'])
+                           if 'filter' in obj else cls.Filter.DEFAULT_FILTER),
                    lang=obj['lang'])
 
 
@@ -172,7 +181,7 @@ def search(query: Query,
     :return: Iterable of tweets that match the query.
     """
 
-    logger = getLogger(nasty.__name__)
+    logger = getLogger(__name__)
     logger.debug('Searching tweets matching {}.'.format(query))
 
     if max_tweets is not None and max_tweets <= 0:
@@ -273,7 +282,7 @@ def _new_twitter_session(session: requests.Session, query: Query) \
     :param query: Query for which to establish the session for.
     """
 
-    logger = getLogger(nasty.__name__)
+    logger = getLogger(__name__)
     logger.debug('  Establishing new Twitter session.')
 
     session.headers.clear()
@@ -353,7 +362,7 @@ def _fetch_search_page(session: requests.Session,
         JSON format as returned by the Twitter developer API.
     """
 
-    logger = getLogger(nasty.__name__)
+    logger = getLogger(__name__)
     logger.debug('  Fetching search page with cursor "{}".'.format(cursor))
 
     response = session.get(
@@ -404,7 +413,7 @@ def _fetch_search_page(session: requests.Session,
 
 
 def _log_reponse(response: requests.Response):
-    logger = getLogger(nasty.__name__)
+    logger = getLogger(__name__)
     status = HTTPStatus(response.status_code)
     logger.debug('    Received {} {} for {}'.format(
         status.value, status.name, response.url))
@@ -465,7 +474,7 @@ def _next_cursor_from_page(page: Dict) -> str:
 
 if __name__ == '__main__':
     init_nasty()
-    logger = getLogger(nasty.__name__)
+    logger = getLogger(__name__)
 
     query = Query('trump', since=date(2019, 6, 23), until=date(2019, 6, 24))
     for tweet in search(query, max_tweets=1000):

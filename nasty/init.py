@@ -1,15 +1,14 @@
 import sys
 from logging import getLogger
 from pathlib import Path
-from typing import Dict
+from typing import Any, Dict
 
 import toml
 
-import nasty
 from nasty.util.logging import setup_logging
 
 
-def init_nasty() -> Dict:
+def init_nasty() -> Dict[str, Any]:
     config = _load_config(get_source_folder() / 'config.toml')
 
     setup_logging(config['log_level'])
@@ -22,7 +21,7 @@ def get_source_folder() -> Path:
     return Path(__file__).parent.parent
 
 
-def _load_config(path: Path) -> Dict:
+def _load_config(path: Path) -> Dict[str, Any]:
     if not path.exists():
         print('Could not find config file in "{}". Make sure you copy the '
               'example config file to this location and set your personal '
@@ -35,14 +34,14 @@ def _load_config(path: Path) -> Dict:
     return config
 
 
-def _log_config(config: Dict):
+def _log_config(config: Dict[str, Any]):
     def hide_secrets(value, hidden=False):
         if isinstance(value, dict):
             return {k: hide_secrets(v, hidden=(hidden or ('secret' in k)))
                     for k, v in value.items()}
         return '<hidden>' if hidden else value
 
-    logger = getLogger(nasty.__name__)
+    logger = getLogger(__name__)
     logger.debug('Loaded config:')
     for line in toml.dumps(hide_secrets(config)).splitlines():
         logger.debug('  ' + line)

@@ -41,14 +41,14 @@ class Tweet:
             return (type(self) == type(other)) \
                    and (self.__dict__ == other.__dict__)
 
-        def to_json(self) -> Dict:
+        def to_json(self) -> Dict[str, Any]:
             return self.json
 
         @classmethod
-        def from_json(cls, obj: Dict) -> 'Tweet.User':
+        def from_json(cls, obj: Dict[str, Any]) -> 'Tweet.User':
             return cls(obj)
 
-    def __init__(self, json: Dict):
+    def __init__(self, json: Dict[str, Any]):
         self.json = json
 
     @property
@@ -84,9 +84,9 @@ class Tweet:
     def __eq__(self, other: Any) -> bool:
         return (type(self) == type(other)) and (self.__dict__ == other.__dict__)
 
-    def to_json(self) -> Dict:
+    def to_json(self) -> Dict[str, Any]:
         return self.json
 
     @classmethod
-    def from_json(cls, obj: Dict) -> 'Tweet':
+    def from_json(cls, obj: Dict[str, Any]) -> 'Tweet':
         return cls(obj)
