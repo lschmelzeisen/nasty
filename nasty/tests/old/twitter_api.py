@@ -5,7 +5,7 @@ import tweepy
 
 import nasty
 from nasty.init import init_nasty
-from nasty.tweet import Tweet
+from nasty.old.tweet import Tweet
 from nasty.util.misc import chunked
 
 

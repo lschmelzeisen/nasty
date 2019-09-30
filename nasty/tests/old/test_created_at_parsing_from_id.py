@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime
 from unittest import TestCase
 
-from nasty.tweet import Tweet
+from nasty.old.tweet import Tweet
 
 
 class TestCreatedAtParsingFromId(TestCase):

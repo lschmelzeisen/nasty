@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime, timezone
-from nasty.search.tweet import Tweet
+from nasty.tweet import Tweet
 from nasty.init import init_nasty
 
 tweet_json = {

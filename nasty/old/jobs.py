@@ -8,8 +8,8 @@ from typing import Dict, Iterable, List, Optional, Tuple
 from uuid import uuid4
 
 import nasty
-from nasty.advanced_search import perform_advanced_search
-from nasty.util.consts import DATE_TIME_FORMAT
+from nasty.old.advanced_search import perform_advanced_search
+from nasty.util.consts import NASTY_DATE_TIME_FORMAT
 from nasty.util.json import JsonSerializedException
 from nasty.util.time import daterange, yyyy_mm_dd_date
 
@@ -83,7 +83,7 @@ class JobMeta:
     def to_json(self) -> Dict:
         return {
             'job': self.job.to_json(),
-            'completed-at': (self.completed_at.strftime(DATE_TIME_FORMAT)
+            'completed-at': (self.completed_at.strftime(NASTY_DATE_TIME_FORMAT)
                              if self.completed_at else None),
             'exceptions': [e.to_json() for e in self.exceptions],
         }
@@ -92,7 +92,7 @@ class JobMeta:
     def from_json(cls, obj: Dict) -> 'JobMeta':
         return cls(job=Job.from_json(obj['job']),
                    completed_at=(datetime.strptime(obj['completed_at'],
-                                                   DATE_TIME_FORMAT)
+                                                   NASTY_DATE_TIME_FORMAT)
                                  if obj['completed-at'] else None),
                    exceptions=[JsonSerializedException.from_json(e)
                                for e in obj['exceptions']])
@@ -116,7 +116,7 @@ def _run_job(args: Tuple[Path, Job]) -> None:
 
     if meta.completed_at:
         logger.debug('  Job marked as already completed at "{}".'
-                     .format(meta.completed_at.strftime(DATE_TIME_FORMAT)))
+                     .format(meta.completed_at.strftime(NASTY_DATE_TIME_FORMAT)))
         return
 
     if meta.exceptions:

@@ -8,11 +8,11 @@ from typing import Any, Dict, List, Tuple
 import tweepy
 
 import nasty
-from nasty.advanced_search import perform_advanced_search
+from nasty.old.advanced_search import perform_advanced_search
 from nasty.init import init_nasty
-from nasty.tests.twitter_api import download_api_tweets, \
+from nasty.tests.old.twitter_api import download_api_tweets, \
     setup_tweepy_api
-from nasty.tweet import Tweet
+from nasty.old.tweet import Tweet
 
 
 class TestEquivalenceToTwitterApi(unittest.TestCase):

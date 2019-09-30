@@ -2,9 +2,55 @@ import unittest
 from datetime import date, datetime, timedelta, timezone
 
 from nasty.init import init_nasty
-from nasty.search.query import Query
-from nasty.search.search import search
-from nasty.search.tweet import Tweet
+from nasty.search import Query, search
+from nasty.tweet import Tweet
+
+
+class TestQueryJsonConversion(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        init_nasty()
+
+    def test_trump(self):
+        query = Query('trump')
+        self.assertEqual(query, Query.from_json(Query.to_json(query)))
+
+    def test_trump_since_until(self):
+        query = Query('trump', since=date(2019, 1, 1), until=date(2019, 1, 2))
+        self.assertEqual(query, Query.from_json(Query.to_json(query)))
+
+    def test_trump_filter_lang(self):
+        query = Query('trump', filter=Query.Filter.LATEST, lang='de')
+        self.assertEqual(query, Query.from_json(Query.to_json(query)))
+
+
+class TestQueryFilterJsonConversion(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        init_nasty()
+
+    def test_query_filter(self):
+        for filter in Query.Filter:
+            self.assertEqual(filter, Query.Filter.from_json(filter.to_json()))
+
+
+class TestQueryUrlParamConversion(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        init_nasty()
+
+    def test_trump(self):
+        query = Query('trump')
+        self.assertEqual('trump lang:en', query.url_param)
+
+    def test_trump_since_until(self):
+        query = Query('trump', since=date(2019, 1, 1), until=date(2019, 1, 2))
+        self.assertEqual('trump since:2019-01-01 until:2019-01-02 lang:en',
+                         query.url_param)
+
+    def test_trump_filter_lang(self):
+        query = Query('trump', filter=Query.Filter.LATEST, lang='de')
+        self.assertEqual('trump lang:de', query.url_param)
 
 
 # Due to the nature of these tests being dependent on Twitter's sorting rules,
@@ -12,7 +58,7 @@ from nasty.search.tweet import Tweet
 # Usually, rerunning the test will show it to work.
 
 
-class TestMaxTweets(unittest.TestCase):
+class TestSearchMaxTweets(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         init_nasty()
@@ -42,7 +88,7 @@ class TestMaxTweets(unittest.TestCase):
         self.assertEqual(max_tweets, len({tweet.id for tweet in tweets}))
 
 
-class TestQueryString(unittest.TestCase):
+class TestSearchQueryString(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         init_nasty()
@@ -143,7 +189,7 @@ class TestQueryString(unittest.TestCase):
         return haystack.lower().count(needle.lower())
 
 
-class TestQueryUser(unittest.TestCase):
+class TestSearchQueryUser(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         init_nasty()
@@ -182,7 +228,7 @@ class TestQueryUser(unittest.TestCase):
                 0, tweet.text.lower().count('@'.format(user).lower()))
 
 
-class TestDateRange(unittest.TestCase):
+class TestSearchDateRange(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         init_nasty()
@@ -227,7 +273,7 @@ class TestDateRange(unittest.TestCase):
         self.assertEqual(0, sum(1 for _ in search(query)))
 
 
-class TestFilter(unittest.TestCase):
+class TestSearchFilter(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         init_nasty()
@@ -277,7 +323,7 @@ class TestFilter(unittest.TestCase):
                 pass
 
 
-class TestLang(unittest.TestCase):
+class TestSearchLang(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         init_nasty()

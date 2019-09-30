@@ -6,7 +6,7 @@ from typing import List
 
 import nasty
 from nasty.init import get_source_folder, init_nasty
-from nasty.jobs import build_jobs, read_jobs, run_jobs, write_jobs
+from nasty.old.jobs import build_jobs, read_jobs, run_jobs, write_jobs
 from nasty.util.time import yyyy_mm_dd_date
 
 

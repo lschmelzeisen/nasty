@@ -11,7 +11,7 @@ from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
 import nasty
-from nasty.tweet import Hashtag, Tweet, TweetUrlMapping, UserMention
+from nasty.old.tweet import Hashtag, Tweet, TweetUrlMapping, UserMention
 
 
 # Custom exception for if our current user_agent fails

@@ -2,7 +2,7 @@ import traceback
 from datetime import datetime
 from typing import Dict
 
-from nasty.util.consts import DATE_TIME_FORMAT
+from nasty.util.consts import NASTY_DATE_TIME_FORMAT
 
 
 class JsonSerializedException:
@@ -16,14 +16,14 @@ class JsonSerializedException:
 
     def to_json(self) -> Dict:
         return {
-            'time': self.time.strftime(DATE_TIME_FORMAT),
+            'time': self.time.strftime(NASTY_DATE_TIME_FORMAT),
             'message': self.message,
             'trace': self.trace,
         }
 
     @classmethod
     def from_json(cls, obj: Dict) -> 'JsonSerializedException':
-        return cls(time=datetime.strptime(obj['time'], DATE_TIME_FORMAT),
+        return cls(time=datetime.strptime(obj['time'], NASTY_DATE_TIME_FORMAT),
                    message=obj['message'],
                    trace=obj['trace'])
 
