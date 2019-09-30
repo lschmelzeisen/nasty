@@ -144,8 +144,8 @@ def _run_job(args: Tuple[Path, Job]) -> None:
         json.dump(meta.to_json(), fout, indent=2)
 
 
-def run_jobs(jobs: Iterable[Job], num_processes: int = 1) -> None:
-    out_directory = Path('out')
+def run_jobs(jobs: Iterable[Job], num_processes: int = 1,
+             out_directory: Path = Path('out')) -> None:
     Path.mkdir(out_directory, exist_ok=True, parents=True)
 
     with Pool(processes=num_processes) as pool:
