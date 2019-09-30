@@ -12,7 +12,7 @@ from unittest import TestCase
 from typing import List
 import os
 import json
-from tests.test_for_empty_files_marked_completed import gz_is_empty
+from nasty.tests.old.test_for_empty_files_marked_completed import gz_is_empty
 
 
 def make_paths_from_filenames(folder: Path, files: List[str]) -> \
