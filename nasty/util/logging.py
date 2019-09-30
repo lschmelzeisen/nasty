@@ -7,11 +7,11 @@ import oauthlib
 import requests_oauthlib
 
 
-def setup_logging(level: str):
+def setup_logging(level: str) -> None:
     numeric_level = getattr(logging, level)
 
     logging.basicConfig(
-        format='{asctime} {levelname}({name}): {message}',
+        format='{asctime} {levelname:1.1} [ {name:12} ] {message}',
         style='{',
         level=numeric_level)
 
