@@ -3,6 +3,10 @@ from typing import Any, Dict
 
 from nasty.util.consts import TWITTER_CREATED_AT_FORMAT
 
+import tweepy
+from nasty.old.tweet import Tweet
+from nasty.init import init_nasty
+
 
 class Tweet:
     """Data class to wrap Tweet JSON objects."""
@@ -90,3 +94,14 @@ class Tweet:
     @classmethod
     def from_json(cls, obj: Dict) -> 'Tweet':
         return cls(obj)
+
+    def from_tweepy(self) -> 'Tweet':
+        config = init_nasty()
+
+        auth = tweepy.OAuthHandler(config['twitter_api']['consumer_key'],
+                                   config['twitter_api']['consumer_key_secret'])
+        auth.set_access_token(config['twitter_api']['access_token'],
+                              config['twitter_api']['access_token_secret'])
+
+        api = tweepy.API(auth)
+        return api.statuses_lookup([self.id], tweet_mode='extended')
