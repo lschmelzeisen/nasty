@@ -1,9 +1,9 @@
+import json
 import unittest
 from datetime import date, datetime, timedelta, timezone
 
 from nasty.init import init_nasty
 from nasty.search import Query, search
-from nasty.tweet import Tweet
 
 
 class TestQueryJsonConversion(unittest.TestCase):
@@ -89,104 +89,89 @@ class TestSearchMaxTweets(unittest.TestCase):
 
 
 class TestSearchQueryString(unittest.TestCase):
+    # In all of the test here we check whether the search keyword occurs not
+    # only in the Tweet's text but also in accompanying fields like user name,
+    # because Twitter also sometimes matches on those.
+
     @classmethod
     def setUpClass(cls):
         init_nasty()
 
-    def test_single_trump(self):
-        self._run_test_single('trump')
+    def test_single(self):
+        def run_test(keyword: str) -> None:
+            query = Query(keyword)
+            tweets = list(search(query, max_tweets=50))
+            self.assertEqual(50, len(tweets))
+            for tweet in tweets:
+                all_tweet_text = json.dumps(tweet.to_json()).lower()
+                self.assertIn(keyword.lower(), all_tweet_text)
 
-    def test_single_hillary(self):
-        self._run_test_single('hillary')
+        run_test('trump')
+        run_test('hillary')
+        run_test('obama')
 
-    def test_single_obama(self):
-        self._run_test_single('obama')
+    def test_and(self):
+        def run_test(keyword1: str, keyword2: str) -> None:
+            query = Query('{} and {}'.format(keyword1, keyword2))
+            tweets = list(search(query, max_tweets=50))
+            self.assertEqual(50, len(tweets))
+            for tweet in tweets:
+                all_tweet_text = json.dumps(tweet.to_json()).lower()
+                self.assertIn(keyword1.lower(), all_tweet_text)
+                self.assertIn(keyword2.lower(), all_tweet_text)
 
-    def _run_test_single(self, keyword: str):
-        query = Query(keyword)
-        tweets = list(search(query, max_tweets=50))
-        self.assertEqual(50, len(tweets))
-        for tweet in tweets:
-            self.assertNotEqual(0, self._count_in_tweet(keyword, tweet))
+        run_test('trump', 'hillary')
+        run_test('trump', 'obama')
+        run_test('obama', 'hillary')
 
-    def test_and_trump_hillary(self):
-        self._run_test_and('trump', 'hillary')
+    def test_or(self):
+        def run_test(keyword1: str, keyword2: str) -> None:
+            query = Query('{} or {}'.format(keyword1, keyword2))
+            tweets = list(search(query, max_tweets=50))
+            self.assertEqual(50, len(tweets))
+            for tweet in tweets:
+                all_tweet_text = json.dumps(tweet.to_json()).lower()
+                assert_keyword1 = keyword1.lower() in all_tweet_text
+                assert_keyword2 = keyword2.lower() in all_tweet_text
+                self.assertTrue(assert_keyword1 or assert_keyword2)
 
-    def test_and_trump_obama(self):
-        self._run_test_and('trump', 'obama')
+        run_test('trump', 'hillary')
+        run_test('trump', 'obama')
+        run_test('obama', 'hillary')
 
-    def test_and_obama_hillary(self):
-        self._run_test_and('obama', 'hillary')
+    def test_not(self):
+        def run_test(keyword1: str, keyword2: str):
+            query = Query('{} -{}'.format(keyword1, keyword2))
+            tweets = list(search(query, max_tweets=50))
+            self.assertEqual(50, len(tweets))
+            for tweet in tweets:
+                all_tweet_text = json.dumps(tweet.to_json()).lower()
+                self.assertIn(keyword1.lower(), all_tweet_text)
+                # Sadly, keyword2 can sometimes still occur in the Text even
+                # though we specifically ask Twitter not to. In those cases
+                # I do not want to count this case a failure and skip it then.
+                try:
+                    self.assertNotIn(keyword2.lower(), tweet.text.lower())
+                except AssertionError as e:
+                    self.skipTest(str(e))
 
-    def _run_test_and(self, keyword1: str, keyword2: str):
-        query = Query('{} and {}'.format(keyword1, keyword2))
-        tweets = list(search(query, max_tweets=50))
-        self.assertEqual(50, len(tweets))
-        for tweet in tweets:
-            self.assertNotEqual(0, self._count_in_tweet(keyword1, tweet))
-            self.assertNotEqual(0, self._count_in_tweet(keyword2, tweet))
+        run_test('trump', 'hillary')
+        run_test('trump', 'obama')
+        run_test('obama', 'hillary')
 
-    def test_or_trump_hillary(self):
-        self._run_test_or('trump', 'hillary')
+    def test_phrase(self):
+        def run_test(keyword1, keyword2):
+            query = Query('"{} {}"'.format(keyword1, keyword2))
+            tweets = list(search(query, max_tweets=50))
+            self.assertEqual(50, len(tweets))
+            for tweet in tweets:
+                all_tweet_text = json.dumps(tweet.to_json()).lower()
+                self.assertIn('{} {}'.format(keyword1, keyword2).lower(),
+                              all_tweet_text)
 
-    def test_or_trump_obama(self):
-        self._run_test_or('trump', 'obama')
-
-    def test_or_obama_hillary(self):
-        self._run_test_or('obama', 'hillary')
-
-    def _run_test_or(self, keyword1: str, keyword2: str):
-        query = Query('{} or {}'.format(keyword1, keyword2))
-        tweets = list(search(query, max_tweets=50))
-        self.assertEqual(50, len(tweets))
-        for tweet in tweets:
-            self.assertNotEqual(0, (self._count_in_tweet(keyword1, tweet)
-                                    + self._count_in_tweet(keyword2, tweet)))
-
-    def test_not_trump_hillary(self):
-        self._run_test_not('trump', 'hillary')
-
-    def test_not_trump_obama(self):
-        self._run_test_not('trump', 'obama')
-
-    def test_not_obama_hillary(self):
-        self._run_test_not('obama', 'hillary')
-
-    def _run_test_not(self, keyword1: str, keyword2: str):
-        query = Query('{} -{}'.format(keyword1, keyword2))
-        tweets = list(search(query, max_tweets=50))
-        self.assertEqual(50, len(tweets))
-        for tweet in tweets:
-            self.assertNotEqual(0, self._count_in_tweet(keyword1, tweet))
-            self.assertEqual(0, tweet.text.lower().count(keyword2.lower()))
-
-    def test_phrase_trump(self):
-        self._run_test_phrase('donald', 'trump')
-
-    def test_phrase_hillary(self):
-        self._run_test_phrase('hillary', 'clinton')
-
-    def test_phrase_obama(self):
-        self._run_test_phrase('Barack', 'Obama')
-
-    def _run_test_phrase(self, keyword1, keyword2):
-        query = Query('"{} {}"'.format(keyword1, keyword2))
-        tweets = list(search(query, max_tweets=50))
-        self.assertEqual(50, len(tweets))
-        for tweet in tweets:
-            self.assertNotEqual(0, self._count_in_tweet(
-                '{} {}'.format(keyword1, keyword2), tweet))
-
-    @classmethod
-    def _count_in_tweet(cls, needle: str, tweet: Tweet) -> int:
-        haystack = [tweet.text, tweet.user.name, tweet.user.screen_name]
-        haystack.extend(url['expanded_url']
-                        for url in tweet.json['entities']['urls'])
-        if 'card' in tweet.json:
-            haystack.append(
-                tweet.json['card']['binding_values']['title']['string_value'])
-        haystack = ' '.join(haystack)
-        return haystack.lower().count(needle.lower())
+        run_test('donald', 'trump')
+        run_test('hillary', 'clinton')
+        run_test('Barack', 'Obama')
 
 
 class TestSearchQueryUser(unittest.TestCase):
@@ -194,38 +179,30 @@ class TestSearchQueryUser(unittest.TestCase):
     def setUpClass(cls):
         init_nasty()
 
-    def test_from_trump(self):
-        self._run_test_from('realDonaldTrump')
+    def test_from(self):
+        def run_test(user: str):
+            query = Query('from:@{}'.format(user))
+            tweets = list(search(query, max_tweets=50))
+            self.assertEqual(50, len(tweets))
+            for tweet in tweets:
+                self.assertEqual(user.lower(), tweet.user.screen_name.lower())
 
-    def test_from_hillary(self):
-        self._run_test_from('HillaryClinton')
+        run_test('realDonaldTrump')
+        run_test('HillaryClinton')
+        run_test('BarackObama')
 
-    def test_from_obama(self):
-        self._run_test_from('BarackObama')
+    def test_to(self):
+        def run_test(user: str):
+            query = Query('to:@{}'.format(user))
+            tweets = list(search(query, max_tweets=50))
+            self.assertEqual(50, len(tweets))
+            for tweet in tweets:
+                self.assertNotEqual(
+                    0, tweet.text.lower().count('@'.format(user).lower()))
 
-    def _run_test_from(self, user: str):
-        query = Query('from:@{}'.format(user))
-        tweets = list(search(query, max_tweets=50))
-        self.assertEqual(50, len(tweets))
-        for tweet in tweets:
-            self.assertEqual(user.lower(), tweet.user.screen_name.lower())
-
-    def test_to_trump(self):
-        self._run_test_to('realDonaldTrump')
-
-    def test_to_hillary(self):
-        self._run_test_to('HillaryClinton')
-
-    def test_to_obama(self):
-        self._run_test_to('BarackObama')
-
-    def _run_test_to(self, user: str):
-        query = Query('to:@{}'.format(user))
-        tweets = list(search(query, max_tweets=50))
-        self.assertEqual(50, len(tweets))
-        for tweet in tweets:
-            self.assertNotEqual(
-                0, tweet.text.lower().count('@'.format(user).lower()))
+        run_test('realDonaldTrump')
+        run_test('HillaryClinton')
+        run_test('BarackObama')
 
 
 class TestSearchDateRange(unittest.TestCase):
@@ -233,23 +210,15 @@ class TestSearchDateRange(unittest.TestCase):
     def setUpClass(cls):
         init_nasty()
 
-    def test_2019(self):
+    def test_date_range_1_year(self):
+        self._run_test(date(2010, 1, 1), date(2010, 12, 31))
+        self._run_test(date(2015, 1, 1), date(2015, 12, 31))
         self._run_test(date(2019, 1, 1), date(2019, 12, 31))
 
-    def test_2019_01_01(self):
-        self._run_test(date(2019, 1, 1), date(2019, 1, 2))
-
-    def test_2015(self):
-        self._run_test(date(2015, 1, 1), date(2015, 12, 31))
-
-    def test_2015_01_01(self):
-        self._run_test(date(2015, 1, 1), date(2015, 1, 2))
-
-    def test_2010(self):
-        self._run_test(date(2010, 1, 1), date(2010, 12, 31))
-
-    def test_2010_01_01(self):
+    def test_date_range_1_day(self):
         self._run_test(date(2010, 1, 1), date(2010, 1, 2))
+        self._run_test(date(2015, 2, 10), date(2015, 2, 11))
+        self._run_test(date(2019, 3, 21), date(2019, 3, 22))
 
     def test_today(self):
         # Assumes that each day there are at least 50 Tweets about "trump".
@@ -339,6 +308,11 @@ class TestSearchLang(unittest.TestCase):
         tweets = list(search(query, max_tweets=50))
         self.assertEqual(50, len(tweets))
         # No robust way to verify language.
+
+    def test_invalid_lang(self):
+        query = Query('trump', lang='INVALID')
+        tweets = list(search(query, max_tweets=50))
+        self.assertEqual(0, len(tweets))
 
 
 if __name__ == '__main__':
