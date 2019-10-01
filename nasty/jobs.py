@@ -80,6 +80,9 @@ class Jobs:
     def __init__(self, jobs: List[Job]):
         self._jobs = jobs
 
+    def __eq__(self, other: Any) -> bool:
+        return (type(self) == type(other)) and (self.__dict__ == other.__dict__)
+
     @classmethod
     def new(cls) -> 'Jobs':
         return cls([])

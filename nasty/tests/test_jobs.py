@@ -1,7 +1,7 @@
 import json
 import lzma
 import unittest
-from datetime import datetime
+from datetime import date, datetime
 from http import HTTPStatus
 from logging import getLogger
 from pathlib import Path
@@ -15,7 +15,7 @@ from nasty.search import DEFAULT_PAGE_SIZE, Query
 from nasty.tweet import Tweet
 from nasty.util. \
     json import JsonSerializedException
-from nasty.util.path import TemporaryDirectoryPath
+from nasty.util.path import TemporaryDirectoryPath, TemporaryFilePath
 
 
 class TestJob(unittest.TestCase):
@@ -54,8 +54,51 @@ class TestJob(unittest.TestCase):
 
 
 class TestJobsSaveLoad(unittest.TestCase):
-    # TODO: implement
-    pass
+    @classmethod
+    def setUpClass(cls):
+        init_nasty()
+
+    def test_single_job(self):
+        def run_test(*job_args, **job_kwargs) -> None:
+            jobs = Jobs.new()
+            jobs.add_job(*job_args, **job_kwargs)
+            with TemporaryFilePath(prefix='nasty-test-',
+                                   suffix='.jsonl') as temp_file:
+                jobs.save(temp_file)
+
+                with temp_file.open('r', encoding='UTF-8') as fin:
+                    lines = fin.readlines()
+                self.assertEqual(1, len(lines))
+                self.assertNotEqual(0, len(lines[0]))
+
+                self.assertEqual(jobs, Jobs.load(temp_file))
+
+        run_test(Query('trump'), max_tweets=50, page_size=20)
+        run_test(Query('hillary', filter=Query.Filter.PHOTOS, lang='de'),
+                 max_tweets=500, page_size=1)
+        run_test(Query('obama', since=date(2009, 1, 20),
+                       until=date(2017, 1, 20)), max_tweets=5, page_size=1000)
+
+    def test_many_jobs(self):
+        def run_test(num_jobs) -> None:
+            jobs = Jobs.new()
+            for i in range(1, num_jobs + 1):
+                jobs.add_job(Query(str(i)), max_tweets=i, page_size=i)
+            with TemporaryFilePath(prefix='nasty-test-',
+                                   suffix='.jsonl') as temp_file:
+                jobs.save(temp_file)
+
+                with temp_file.open('r', encoding='UTF-8') as fin:
+                    lines = fin.readlines()
+                self.assertEqual(i, len(lines))
+                for line in lines:
+                    self.assertNotEqual(0, len(line))
+
+                self.assertEqual(jobs, Jobs.load(temp_file))
+
+        run_test(10)
+        run_test(5005)
+        run_test(10000)
 
 
 class TestJobsRun(unittest.TestCase):
@@ -83,7 +126,7 @@ class TestJobsRun(unittest.TestCase):
         jobs.add_job(
             Query(unknown_word), max_tweets=50, page_size=DEFAULT_PAGE_SIZE)
 
-        with TemporaryDirectoryPath(prefix='nasty-test') as temp_dir:
+        with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             self.assertTrue(jobs.run(temp_dir))
             self._assert_out_dir_structure(temp_dir, jobs)
             with lzma.open(temp_dir / jobs._jobs[0].data_file_name,

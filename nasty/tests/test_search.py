@@ -147,7 +147,7 @@ class TestSearchQueryString(unittest.TestCase):
         run_test('obama', 'hillary')
 
     def test_not(self):
-        def run_test(keyword1: str, keyword2: str):
+        def run_test(keyword1: str, keyword2: str) -> None:
             query = Query('{} -{}'.format(keyword1, keyword2))
             tweets = list(search(query, max_tweets=50))
             self.assertEqual(50, len(tweets))
@@ -167,7 +167,7 @@ class TestSearchQueryString(unittest.TestCase):
         run_test('obama', 'hillary')
 
     def test_phrase(self):
-        def run_test(keyword1, keyword2):
+        def run_test(keyword1, keyword2) -> None:
             query = Query('"{} {}"'.format(keyword1, keyword2))
             tweets = list(search(query, max_tweets=50))
             self.assertEqual(50, len(tweets))
@@ -187,7 +187,7 @@ class TestSearchQueryUser(unittest.TestCase):
         init_nasty()
 
     def test_from(self):
-        def run_test(user: str):
+        def run_test(user: str) -> None:
             query = Query('from:@{}'.format(user))
             tweets = list(search(query, max_tweets=50))
             self.assertEqual(50, len(tweets))
@@ -199,7 +199,7 @@ class TestSearchQueryUser(unittest.TestCase):
         run_test('BarackObama')
 
     def test_to(self):
-        def run_test(user: str):
+        def run_test(user: str) -> None:
             query = Query('to:@{}'.format(user))
             tweets = list(search(query, max_tweets=50))
             self.assertEqual(50, len(tweets))
