@@ -1,4 +1,5 @@
 import json
+from uuid import uuid4
 import unittest
 from datetime import date, datetime, timedelta, timezone
 
@@ -97,7 +98,7 @@ class TestSearchQueryString(unittest.TestCase):
     def setUpClass(cls):
         init_nasty()
 
-    def test_single(self):
+    def test_word(self):
         def run_test(keyword: str) -> None:
             query = Query(keyword)
             tweets = list(search(query, max_tweets=50))
@@ -109,6 +110,12 @@ class TestSearchQueryString(unittest.TestCase):
         run_test('trump')
         run_test('hillary')
         run_test('obama')
+
+    def test_unknown_word(self):
+        # Random string that currently does not match any Tweet.
+        unknown_word = 'c9dde8b5451149e683d4f07e4c4348ef'
+        tweets = list(search(Query(unknown_word), max_tweets=50))
+        self.assertEqual(0, len(tweets))
 
     def test_and(self):
         def run_test(keyword1: str, keyword2: str) -> None:

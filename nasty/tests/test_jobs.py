@@ -76,6 +76,21 @@ class TestJobsRun(unittest.TestCase):
             self.assertTrue(jobs.run(temp_dir))
             self._assert_out_dir_structure(temp_dir, jobs)
 
+    def test_success_empty(self):
+        # Random string that currently does not match any Tweet.
+        unknown_word = 'c9dde8b5451149e683d4f07e4c4348ef'
+        jobs = Jobs.new()
+        jobs.add_job(
+            Query(unknown_word), max_tweets=50, page_size=DEFAULT_PAGE_SIZE)
+
+        with TemporaryDirectoryPath(prefix='nasty-test') as temp_dir:
+            self.assertTrue(jobs.run(temp_dir))
+            self._assert_out_dir_structure(temp_dir, jobs)
+            with lzma.open(temp_dir / jobs._jobs[0].data_file_name,
+                           'rb') as fin:
+                data = fin.read()
+            self.assertEqual(0, len(data))
+
     def test_previous_match(self):
         jobs = Jobs.new()
         jobs.add_job(Query('trump'), max_tweets=50, page_size=DEFAULT_PAGE_SIZE)
@@ -181,7 +196,10 @@ class TestJobsRun(unittest.TestCase):
             self.assertEqual(job.exception.type,
                              'UnexpectedStatusCodeException')
 
-    def _assert_out_dir_structure(self, out_dir: Path, jobs: Jobs) -> None:
+    def _assert_out_dir_structure(self,
+                                  out_dir: Path,
+                                  jobs: Jobs,
+                                  allow_empty: bool = False) -> None:
         logger = getLogger(__name__)
 
         self.assertTrue(out_dir.exists())
@@ -210,6 +228,10 @@ class TestJobsRun(unittest.TestCase):
                 for line in fin:
                     self.assertIn(job.query.query, line.lower())
                     tweets.append(Tweet.from_json(json.loads(line)))
+
+            if not allow_empty:
+                continue
+
             self.assertLess(0, len(tweets))
             self.assertGreaterEqual(job.max_tweets, len(tweets))
             if len(tweets) != job.max_tweets:
