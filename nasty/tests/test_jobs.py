@@ -11,7 +11,7 @@ import responses
 
 from nasty.init import init_nasty
 from nasty.jobs import Job, Jobs
-from nasty.search import Query
+from nasty.search import DEFAULT_PAGE_SIZE, Query
 from nasty.tweet import Tweet
 from nasty.util. \
     json import JsonSerializedException
@@ -24,7 +24,7 @@ class TestJob(unittest.TestCase):
         init_nasty()
 
     def test_job_trump(self):
-        job = Job(uuid4().hex, Query('trump'), 1000, 20)
+        job = Job(uuid4().hex, Query('trump'), 1000, DEFAULT_PAGE_SIZE)
         self.assertEqual(job, Job.from_json(job.to_json()))
         self.assertTrue(job.match(job))
 
@@ -65,9 +65,12 @@ class TestJobsRun(unittest.TestCase):
 
     def test_success(self):
         jobs = Jobs.new()
-        jobs.add_job(Query('trump'), max_tweets=50, page_size=20)
-        jobs.add_job(Query('hillary'), max_tweets=50, page_size=20)
-        jobs.add_job(Query('obama'), max_tweets=50, page_size=20)
+        jobs.add_job(
+            Query('trump'), max_tweets=50, page_size=DEFAULT_PAGE_SIZE)
+        jobs.add_job(
+            Query('hillary'), max_tweets=50, page_size=DEFAULT_PAGE_SIZE)
+        jobs.add_job(
+            Query('obama'), max_tweets=50, page_size=DEFAULT_PAGE_SIZE)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             self.assertTrue(jobs.run(temp_dir))
@@ -75,7 +78,7 @@ class TestJobsRun(unittest.TestCase):
 
     def test_previous_match(self):
         jobs = Jobs.new()
-        jobs.add_job(Query('trump'), max_tweets=50, page_size=20)
+        jobs.add_job(Query('trump'), max_tweets=50, page_size=DEFAULT_PAGE_SIZE)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             # Create stray (but matching) meta file.
@@ -93,7 +96,7 @@ class TestJobsRun(unittest.TestCase):
 
     def test_previous_no_match(self):
         jobs = Jobs.new()
-        jobs.add_job(Query('trump'), max_tweets=50, page_size=20)
+        jobs.add_job(Query('trump'), max_tweets=50, page_size=DEFAULT_PAGE_SIZE)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             # Run successful crawl with 'trump' and verify.
@@ -117,7 +120,7 @@ class TestJobsRun(unittest.TestCase):
 
     def test_previous_completed(self):
         jobs = Jobs.new()
-        jobs.add_job(Query('trump'), max_tweets=50, page_size=20)
+        jobs.add_job(Query('trump'), max_tweets=50, page_size=DEFAULT_PAGE_SIZE)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             meta_file = temp_dir / jobs._jobs[0].meta_file_name
@@ -143,7 +146,7 @@ class TestJobsRun(unittest.TestCase):
 
     def test_previous_stray_data(self):
         jobs = Jobs.new()
-        jobs.add_job(Query('trump'), max_tweets=50, page_size=20)
+        jobs.add_job(Query('trump'), max_tweets=50, page_size=DEFAULT_PAGE_SIZE)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             # Create stray data file (with invalid data, but is irrelevant).
@@ -167,7 +170,7 @@ class TestJobsRun(unittest.TestCase):
                       status=HTTPStatus.INTERNAL_SERVER_ERROR.value)
 
         jobs = Jobs.new()
-        jobs.add_job(Query('trump'), max_tweets=50, page_size=20)
+        jobs.add_job(Query('trump'), max_tweets=50, page_size=DEFAULT_PAGE_SIZE)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             # Run and verify that appropriate exception was logged.

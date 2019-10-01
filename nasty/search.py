@@ -136,9 +136,12 @@ class Query:
                    lang=obj['lang'])
 
 
+DEFAULT_PAGE_SIZE = 20
+
+
 def search(query: Query,
            max_tweets: Optional[int] = 1000,
-           page_size: int = 20) -> Iterable[Tweet]:
+           page_size: int = DEFAULT_PAGE_SIZE) -> Iterable[Tweet]:
     """Searches Tweets matching a query.
 
     The Tweets contained in the result and their sorting is determined by
@@ -347,7 +350,7 @@ def _new_twitter_session(session: requests.Session, query: Query) \
 
 def _fetch_search_page(session: requests.Session,
                        query: Query,
-                       page_size: int = 100,
+                       page_size: int = DEFAULT_PAGE_SIZE,
                        cursor: Optional[str] = None) -> Dict:
     """Fetches the next page of search results.
 
