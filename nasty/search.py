@@ -423,6 +423,10 @@ def _log_reponse(response: requests.Response):
 
 
 def _num_tweets_in_page(page: Dict) -> int:
+    """Determines how many Tweets were contained in a page.
+
+    This is just an upper bound of actual search hits, because the search hits
+    might contain quoted Tweets which would also add to this."""
     return len(page['globalObjects']['tweets'])
 
 
