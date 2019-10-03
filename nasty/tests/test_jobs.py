@@ -112,6 +112,19 @@ class TestJobsRun(unittest.TestCase):
             self._assert_out_dir_structure(temp_dir, jobs)
 
     @RequestsCache()
+    def test_success_parallel(self):
+        jobs = Jobs.new()
+        for i in range(16):
+            jobs.add_job(Query('trump',
+                               since=date(2019, 1, i + 1),
+                               until=date(2019, 1, i + 2)),
+                         max_tweets=50, page_size=DEFAULT_PAGE_SIZE)
+
+        with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
+            self.assertTrue(jobs.run(temp_dir, num_processes=4))
+            self._assert_out_dir_structure(temp_dir, jobs)
+
+    @RequestsCache()
     def test_success_empty(self):
         # Random string that currently does not match any Tweet.
         unknown_word = 'c9dde8b5451149e683d4f07e4c4348ef'
