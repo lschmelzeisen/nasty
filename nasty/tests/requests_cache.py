@@ -19,15 +19,14 @@ class RequestsCache:
             if request.hooks != default_hooks():
                 raise NotImplementedError('Usage of hooks not supported.')
 
-            # Ignoring headers and cookies here since these can change between
-            # calls because of Twitter session cookies, but we except the
-            # results to be the same.
-            self._request_repr = frozenset({
-                ('_body_position', request._body_position),
-                ('body', request.body),
+            self._request_repr = (
                 ('method', request.method),
                 ('url', request.url),
-            })
+                ('headers', frozenset(request.headers.items())),
+                ('_cookies', frozenset(request._cookies.items())),
+                ('body', request.body),
+                ('_body_position', request._body_position),
+            )
 
         def __hash__(self):
             return hash(self._request_repr)
@@ -62,6 +61,7 @@ class RequestsCache:
                 if response is not None:
                     logger.debug('Found cache response.')
                     if not self._regenerate:
+                        session.cookies.update(response.cookies)
                         return response
 
                     logger.debug('Regenerating cached response.')
