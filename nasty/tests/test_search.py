@@ -1,17 +1,14 @@
 import json
-from uuid import uuid4
 import unittest
 from datetime import date, datetime, timedelta, timezone
 
 from nasty.init import init_nasty
 from nasty.search import Query, search
 
+init_nasty()
+
 
 class TestQueryJsonConversion(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        init_nasty()
-
     def test_trump(self):
         query = Query('trump')
         self.assertEqual(query, Query.from_json(Query.to_json(query)))
@@ -26,20 +23,12 @@ class TestQueryJsonConversion(unittest.TestCase):
 
 
 class TestQueryFilterJsonConversion(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        init_nasty()
-
     def test_query_filter(self):
         for filter in Query.Filter:
             self.assertEqual(filter, Query.Filter.from_json(filter.to_json()))
 
 
 class TestQueryUrlParamConversion(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        init_nasty()
-
     def test_trump(self):
         query = Query('trump')
         self.assertEqual('trump lang:en', query.url_param)
@@ -60,10 +49,6 @@ class TestQueryUrlParamConversion(unittest.TestCase):
 
 
 class TestSearchMaxTweets(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        init_nasty()
-
     def test_0(self):
         self._run_test(0)
 
@@ -93,10 +78,6 @@ class TestSearchQueryString(unittest.TestCase):
     # In all of the test here we check whether the search keyword occurs not
     # only in the Tweet's text but also in accompanying fields like user name,
     # because Twitter also sometimes matches on those.
-
-    @classmethod
-    def setUpClass(cls):
-        init_nasty()
 
     def test_word(self):
         def run_test(keyword: str) -> None:
@@ -182,10 +163,6 @@ class TestSearchQueryString(unittest.TestCase):
 
 
 class TestSearchQueryUser(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        init_nasty()
-
     def test_from(self):
         def run_test(user: str) -> None:
             query = Query('from:@{}'.format(user))
@@ -213,10 +190,6 @@ class TestSearchQueryUser(unittest.TestCase):
 
 
 class TestSearchDateRange(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        init_nasty()
-
     def test_date_range_1_year(self):
         self._run_test(date(2010, 1, 1), date(2010, 12, 31))
         self._run_test(date(2015, 1, 1), date(2015, 12, 31))
@@ -250,10 +223,6 @@ class TestSearchDateRange(unittest.TestCase):
 
 
 class TestSearchFilter(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        init_nasty()
-
     def test_top(self):
         query = Query('trump', filter=Query.Filter.TOP)
         tweets = list(search(query, max_tweets=50))
@@ -300,10 +269,6 @@ class TestSearchFilter(unittest.TestCase):
 
 
 class TestSearchLang(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        init_nasty()
-
     def test_en(self):
         query = Query('trump', lang='en')
         tweets = list(search(query, max_tweets=50))

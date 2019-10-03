@@ -17,12 +17,10 @@ from nasty.util. \
     json import JsonSerializedException
 from nasty.util.path import TemporaryDirectoryPath, TemporaryFilePath
 
+init_nasty()
+
 
 class TestJob(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        init_nasty()
-
     def test_job_trump(self):
         job = Job(uuid4().hex, Query('trump'), 1000, DEFAULT_PAGE_SIZE)
         self.assertEqual(job, Job.from_json(job.to_json()))
@@ -54,10 +52,6 @@ class TestJob(unittest.TestCase):
 
 
 class TestJobsSaveLoad(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        init_nasty()
-
     def test_single_job(self):
         def run_test(*job_args, **job_kwargs) -> None:
             jobs = Jobs.new()
@@ -102,10 +96,6 @@ class TestJobsSaveLoad(unittest.TestCase):
 
 
 class TestJobsRun(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        init_nasty()
-
     def test_success(self):
         jobs = Jobs.new()
         jobs.add_job(
