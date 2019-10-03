@@ -13,5 +13,6 @@ venv/
 config.toml
 
 # Generated files
+nasty/tests/resources/requests_cache.pickle
 out/
 jobs.jsonl

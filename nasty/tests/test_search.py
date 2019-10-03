@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from nasty.init import init_nasty
 from nasty.search import Query, search
+from nasty.tests.requests_cache import RequestsCache
 
 init_nasty()
 
@@ -49,15 +50,19 @@ class TestQueryUrlParamConversion(unittest.TestCase):
 
 
 class TestSearchMaxTweets(unittest.TestCase):
+    @RequestsCache()
     def test_0(self):
         self._run_test(0)
 
+    @RequestsCache()
     def test_10(self):
         self._run_test(10)
 
+    @RequestsCache()
     def test_100(self):
         self._run_test(100)
 
+    @RequestsCache()
     def test_1000(self):
         self._run_test(1000)
 
@@ -79,6 +84,7 @@ class TestSearchQueryString(unittest.TestCase):
     # only in the Tweet's text but also in accompanying fields like user name,
     # because Twitter also sometimes matches on those.
 
+    @RequestsCache()
     def test_word(self):
         def run_test(keyword: str) -> None:
             query = Query(keyword)
@@ -92,12 +98,14 @@ class TestSearchQueryString(unittest.TestCase):
         run_test('hillary')
         run_test('obama')
 
+    @RequestsCache()
     def test_unknown_word(self):
         # Random string that currently does not match any Tweet.
         unknown_word = 'c9dde8b5451149e683d4f07e4c4348ef'
         tweets = list(search(Query(unknown_word), max_tweets=50))
         self.assertEqual(0, len(tweets))
 
+    @RequestsCache()
     def test_and(self):
         def run_test(keyword1: str, keyword2: str) -> None:
             query = Query('{} and {}'.format(keyword1, keyword2))
@@ -112,6 +120,7 @@ class TestSearchQueryString(unittest.TestCase):
         run_test('trump', 'obama')
         run_test('obama', 'hillary')
 
+    @RequestsCache()
     def test_or(self):
         def run_test(keyword1: str, keyword2: str) -> None:
             query = Query('{} or {}'.format(keyword1, keyword2))
@@ -127,6 +136,7 @@ class TestSearchQueryString(unittest.TestCase):
         run_test('trump', 'obama')
         run_test('obama', 'hillary')
 
+    @RequestsCache()
     def test_not(self):
         def run_test(keyword1: str, keyword2: str) -> None:
             query = Query('{} -{}'.format(keyword1, keyword2))
@@ -147,6 +157,7 @@ class TestSearchQueryString(unittest.TestCase):
         run_test('trump', 'obama')
         run_test('obama', 'hillary')
 
+    @RequestsCache()
     def test_phrase(self):
         def run_test(keyword1, keyword2) -> None:
             query = Query('"{} {}"'.format(keyword1, keyword2))
@@ -163,6 +174,7 @@ class TestSearchQueryString(unittest.TestCase):
 
 
 class TestSearchQueryUser(unittest.TestCase):
+    @RequestsCache()
     def test_from(self):
         def run_test(user: str) -> None:
             query = Query('from:@{}'.format(user))
@@ -175,6 +187,7 @@ class TestSearchQueryUser(unittest.TestCase):
         run_test('HillaryClinton')
         run_test('BarackObama')
 
+    @RequestsCache()
     def test_to(self):
         def run_test(user: str) -> None:
             query = Query('to:@{}'.format(user))
@@ -190,16 +203,19 @@ class TestSearchQueryUser(unittest.TestCase):
 
 
 class TestSearchDateRange(unittest.TestCase):
+    @RequestsCache()
     def test_date_range_1_year(self):
         self._run_test(date(2010, 1, 1), date(2010, 12, 31))
         self._run_test(date(2015, 1, 1), date(2015, 12, 31))
         self._run_test(date(2019, 1, 1), date(2019, 12, 31))
 
+    @RequestsCache()
     def test_date_range_1_day(self):
         self._run_test(date(2010, 1, 1), date(2010, 1, 2))
         self._run_test(date(2015, 2, 10), date(2015, 2, 11))
         self._run_test(date(2019, 3, 21), date(2019, 3, 22))
 
+    @RequestsCache()
     def test_today(self):
         # Assumes that each day there are at least 50 Tweets about "trump".
         self._run_test(date.today() - timedelta(days=1),
@@ -213,16 +229,19 @@ class TestSearchDateRange(unittest.TestCase):
             self.assertLessEqual(since, tweet.created_at.date())
             self.assertGreater(until, tweet.created_at.date())
 
+    @RequestsCache()
     def test_within_day(self):
         query = Query('trump', since=date(2019, 1, 1), until=date(2019, 1, 1))
         self.assertEqual(0, sum(1 for _ in search(query)))
 
+    @RequestsCache()
     def test_future(self):
         query = Query('trump', since=(date.today() + timedelta(days=7)))
         self.assertEqual(0, sum(1 for _ in search(query)))
 
 
 class TestSearchFilter(unittest.TestCase):
+    @RequestsCache()
     def test_top(self):
         query = Query('trump', filter=Query.Filter.TOP)
         tweets = list(search(query, max_tweets=50))
@@ -230,6 +249,7 @@ class TestSearchFilter(unittest.TestCase):
         # Since it is unknown how Twitter determines "top" tweets there is no
         # way to check for that.
 
+    @RequestsCache()
     def test_latest(self):
         """Check if the 50 latest Tweets about "trump" are from the last 24h."""
         # Assumes that each day there are at least 50 Tweets about "trump".
@@ -240,6 +260,7 @@ class TestSearchFilter(unittest.TestCase):
         for tweet in tweets:
             self.assertLess(yesterday, tweet.created_at)
 
+    @RequestsCache()
     def test_photos(self):
         query = Query('trump', filter=Query.Filter.PHOTOS)
         tweets = list(search(query, max_tweets=50))
@@ -250,6 +271,7 @@ class TestSearchFilter(unittest.TestCase):
             for medium in tweet.json['extended_entities']['media']:
                 self.assertIn(medium['type'], ['photo', 'animated_gif'])
 
+    @RequestsCache()
     def test_videos(self):
         query = Query('trump', filter=Query.Filter.VIDEOS)
         tweets = list(search(query, max_tweets=50))
@@ -269,18 +291,21 @@ class TestSearchFilter(unittest.TestCase):
 
 
 class TestSearchLang(unittest.TestCase):
+    @RequestsCache()
     def test_en(self):
         query = Query('trump', lang='en')
         tweets = list(search(query, max_tweets=50))
         self.assertEqual(50, len(tweets))
         # No robust way to verify language.
 
+    @RequestsCache()
     def test_de(self):
         query = Query('trump', lang='de')
         tweets = list(search(query, max_tweets=50))
         self.assertEqual(50, len(tweets))
         # No robust way to verify language.
 
+    @RequestsCache()
     def test_invalid_lang(self):
         query = Query('trump', lang='INVALID')
         tweets = list(search(query, max_tweets=50))

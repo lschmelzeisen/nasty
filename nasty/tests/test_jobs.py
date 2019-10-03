@@ -16,6 +16,7 @@ from nasty.tweet import Tweet
 from nasty.util. \
     json import JsonSerializedException
 from nasty.util.path import TemporaryDirectoryPath, TemporaryFilePath
+from nasty.tests.requests_cache import RequestsCache
 
 init_nasty()
 
@@ -96,6 +97,7 @@ class TestJobsDumpLoad(unittest.TestCase):
 
 
 class TestJobsRun(unittest.TestCase):
+    @RequestsCache()
     def test_success(self):
         jobs = Jobs.new()
         jobs.add_job(
@@ -109,6 +111,7 @@ class TestJobsRun(unittest.TestCase):
             self.assertTrue(jobs.run(temp_dir))
             self._assert_out_dir_structure(temp_dir, jobs)
 
+    @RequestsCache()
     def test_success_empty(self):
         # Random string that currently does not match any Tweet.
         unknown_word = 'c9dde8b5451149e683d4f07e4c4348ef'
@@ -124,6 +127,7 @@ class TestJobsRun(unittest.TestCase):
                 data = fin.read()
             self.assertEqual(0, len(data))
 
+    @RequestsCache()
     def test_previous_match(self):
         jobs = Jobs.new()
         jobs.add_job(Query('trump'), max_tweets=50, page_size=DEFAULT_PAGE_SIZE)
@@ -142,6 +146,7 @@ class TestJobsRun(unittest.TestCase):
             meta_stat2 = meta_file.stat()
             self.assertLess(meta_stat1.st_mtime_ns, meta_stat2.st_mtime_ns)
 
+    @RequestsCache()
     def test_previous_no_match(self):
         jobs = Jobs.new()
         jobs.add_job(Query('trump'), max_tweets=50, page_size=DEFAULT_PAGE_SIZE)
@@ -166,6 +171,7 @@ class TestJobsRun(unittest.TestCase):
             self.assertTrue(jobs.run(temp_dir))
             self._assert_out_dir_structure(temp_dir, jobs)
 
+    @RequestsCache()
     def test_previous_completed(self):
         jobs = Jobs.new()
         jobs.add_job(Query('trump'), max_tweets=50, page_size=DEFAULT_PAGE_SIZE)
@@ -192,6 +198,7 @@ class TestJobsRun(unittest.TestCase):
             self.assertEqual(data_stat1.st_atime_ns, data_stat2.st_atime_ns)
             self.assertEqual(data_stat1.st_mtime_ns, data_stat2.st_mtime_ns)
 
+    @RequestsCache()
     def test_previous_stray_data(self):
         jobs = Jobs.new()
         jobs.add_job(Query('trump'), max_tweets=50, page_size=DEFAULT_PAGE_SIZE)
@@ -229,6 +236,7 @@ class TestJobsRun(unittest.TestCase):
             self.assertEqual(job.exception.type,
                              'UnexpectedStatusCodeException')
 
+    @RequestsCache()
     def _assert_out_dir_structure(self,
                                   out_dir: Path,
                                   jobs: Jobs,
