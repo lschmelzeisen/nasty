@@ -179,7 +179,8 @@ class TestSearchQueryUser(unittest.TestCase):
         def run_test(user: str) -> None:
             query = Query('from:@{}'.format(user))
             tweets = list(search(query, max_tweets=50))
-            self.assertEqual(50, len(tweets))
+            self.assertLess(0, len(tweets))
+            self.assertGreaterEqual(50, len(tweets))
             for tweet in tweets:
                 self.assertEqual(user.lower(), tweet.user.screen_name.lower())
 
