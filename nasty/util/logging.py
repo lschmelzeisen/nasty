@@ -11,7 +11,7 @@ def setup_logging(level: str) -> None:
     numeric_level = getattr(logging, level)
 
     logging.basicConfig(
-        format='{asctime} {levelname:1.1} [ {name:12} ] {message}',
+        format='{asctime} {levelname:1.1} [ {name:14} ] {message}',
         style='{',
         level=numeric_level)
 

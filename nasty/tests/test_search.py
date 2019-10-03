@@ -3,7 +3,7 @@ import unittest
 from datetime import date, datetime, timedelta, timezone
 
 from nasty.init import init_nasty
-from nasty.search import Query, search
+from nasty.search import Search
 from nasty.tests.requests_cache import RequestsCache
 
 init_nasty()
@@ -11,36 +11,44 @@ init_nasty()
 
 class TestQueryJsonConversion(unittest.TestCase):
     def test_trump(self):
-        query = Query('trump')
-        self.assertEqual(query, Query.from_json(Query.to_json(query)))
+        query = Search.Query('trump')
+        self.assertEqual(query,
+                         Search.Query.from_json(Search.Query.to_json(query)))
 
     def test_trump_since_until(self):
-        query = Query('trump', since=date(2019, 1, 1), until=date(2019, 1, 2))
-        self.assertEqual(query, Query.from_json(Query.to_json(query)))
+        query = Search.Query('trump',
+                             since=date(2019, 1, 1), until=date(2019, 1, 2))
+        self.assertEqual(query,
+                         Search.Query.from_json(Search.Query.to_json(query)))
 
     def test_trump_filter_lang(self):
-        query = Query('trump', filter=Query.Filter.LATEST, lang='de')
-        self.assertEqual(query, Query.from_json(Query.to_json(query)))
+        query = Search.Query('trump',
+                             filter=Search.Query.Filter.LATEST, lang='de')
+        self.assertEqual(query,
+                         Search.Query.from_json(Search.Query.to_json(query)))
 
 
 class TestQueryFilterJsonConversion(unittest.TestCase):
     def test_query_filter(self):
-        for filter in Query.Filter:
-            self.assertEqual(filter, Query.Filter.from_json(filter.to_json()))
+        for filter in Search.Query.Filter:
+            self.assertEqual(filter,
+                             Search.Query.Filter.from_json(filter.to_json()))
 
 
 class TestQueryUrlParamConversion(unittest.TestCase):
     def test_trump(self):
-        query = Query('trump')
+        query = Search.Query('trump')
         self.assertEqual('trump lang:en', query.url_param)
 
     def test_trump_since_until(self):
-        query = Query('trump', since=date(2019, 1, 1), until=date(2019, 1, 2))
+        query = Search.Query('trump',
+                             since=date(2019, 1, 1), until=date(2019, 1, 2))
         self.assertEqual('trump since:2019-01-01 until:2019-01-02 lang:en',
                          query.url_param)
 
     def test_trump_filter_lang(self):
-        query = Query('trump', filter=Query.Filter.LATEST, lang='de')
+        query = Search.Query('trump',
+                             filter=Search.Query.Filter.LATEST, lang='de')
         self.assertEqual('trump lang:de', query.url_param)
 
 
@@ -67,11 +75,12 @@ class TestSearchMaxTweets(unittest.TestCase):
         self._run_test(1000)
 
     def _run_test(self, max_tweets: int):
-        query = Query('trump', since=date(2019, 1, 1), until=date(2019, 1, 2))
+        query = Search.Query('trump',
+                             since=date(2019, 1, 1), until=date(2019, 1, 2))
 
         # page_size=100 to speed up these larger requests and since we don't
         # particularly care about accuracy to query here.
-        tweets = list(search(query, max_tweets=max_tweets, page_size=100))
+        tweets = list(Search(query, max_tweets=max_tweets, batch_size=100))
 
         self.assertEqual(max_tweets, len(tweets))
 
@@ -87,8 +96,8 @@ class TestSearchQueryString(unittest.TestCase):
     @RequestsCache()
     def test_word(self):
         def run_test(keyword: str) -> None:
-            query = Query(keyword)
-            tweets = list(search(query, max_tweets=50))
+            query = Search.Query(keyword)
+            tweets = list(Search(query, max_tweets=50))
             self.assertEqual(50, len(tweets))
             for tweet in tweets:
                 all_tweet_text = json.dumps(tweet.to_json()).lower()
@@ -102,14 +111,14 @@ class TestSearchQueryString(unittest.TestCase):
     def test_unknown_word(self):
         # Random string that currently does not match any Tweet.
         unknown_word = 'c9dde8b5451149e683d4f07e4c4348ef'
-        tweets = list(search(Query(unknown_word), max_tweets=50))
+        tweets = list(Search(Search.Query(unknown_word), max_tweets=50))
         self.assertEqual(0, len(tweets))
 
     @RequestsCache()
     def test_and(self):
         def run_test(keyword1: str, keyword2: str) -> None:
-            query = Query('{} and {}'.format(keyword1, keyword2))
-            tweets = list(search(query, max_tweets=50))
+            query = Search.Query('{} and {}'.format(keyword1, keyword2))
+            tweets = list(Search(query, max_tweets=50))
             self.assertEqual(50, len(tweets))
             for tweet in tweets:
                 all_tweet_text = json.dumps(tweet.to_json()).lower()
@@ -123,8 +132,8 @@ class TestSearchQueryString(unittest.TestCase):
     @RequestsCache()
     def test_or(self):
         def run_test(keyword1: str, keyword2: str) -> None:
-            query = Query('{} or {}'.format(keyword1, keyword2))
-            tweets = list(search(query, max_tweets=50))
+            query = Search.Query('{} or {}'.format(keyword1, keyword2))
+            tweets = list(Search(query, max_tweets=50))
             self.assertEqual(50, len(tweets))
             for tweet in tweets:
                 all_tweet_text = json.dumps(tweet.to_json()).lower()
@@ -139,8 +148,8 @@ class TestSearchQueryString(unittest.TestCase):
     @RequestsCache()
     def test_not(self):
         def run_test(keyword1: str, keyword2: str) -> None:
-            query = Query('{} -{}'.format(keyword1, keyword2))
-            tweets = list(search(query, max_tweets=50))
+            query = Search.Query('{} -{}'.format(keyword1, keyword2))
+            tweets = list(Search(query, max_tweets=50))
             self.assertEqual(50, len(tweets))
             for tweet in tweets:
                 all_tweet_text = json.dumps(tweet.to_json()).lower()
@@ -160,8 +169,8 @@ class TestSearchQueryString(unittest.TestCase):
     @RequestsCache()
     def test_phrase(self):
         def run_test(keyword1, keyword2) -> None:
-            query = Query('"{} {}"'.format(keyword1, keyword2))
-            tweets = list(search(query, max_tweets=50))
+            query = Search.Query('"{} {}"'.format(keyword1, keyword2))
+            tweets = list(Search(query, max_tweets=50))
             self.assertEqual(50, len(tweets))
             for tweet in tweets:
                 all_tweet_text = json.dumps(tweet.to_json()).lower()
@@ -177,8 +186,8 @@ class TestSearchQueryUser(unittest.TestCase):
     @RequestsCache()
     def test_from(self):
         def run_test(user: str) -> None:
-            query = Query('from:@{}'.format(user))
-            tweets = list(search(query, max_tweets=50))
+            query = Search.Query('from:@{}'.format(user))
+            tweets = list(Search(query, max_tweets=50))
             self.assertLess(0, len(tweets))
             self.assertGreaterEqual(50, len(tweets))
             for tweet in tweets:
@@ -191,8 +200,8 @@ class TestSearchQueryUser(unittest.TestCase):
     @RequestsCache()
     def test_to(self):
         def run_test(user: str) -> None:
-            query = Query('to:@{}'.format(user))
-            tweets = list(search(query, max_tweets=50))
+            query = Search.Query('to:@{}'.format(user))
+            tweets = list(Search(query, max_tweets=50))
             self.assertEqual(50, len(tweets))
             for tweet in tweets:
                 self.assertNotEqual(
@@ -223,8 +232,8 @@ class TestSearchDateRange(unittest.TestCase):
                        date.today() + timedelta(days=1))
 
     def _run_test(self, since: date, until: date):
-        query = Query('trump', since=since, until=until)
-        tweets = list(search(query, max_tweets=50))
+        query = Search.Query('trump', since=since, until=until)
+        tweets = list(Search(query, max_tweets=50))
         self.assertEqual(50, len(tweets))
         for tweet in tweets:
             self.assertLessEqual(since, tweet.created_at.date())
@@ -232,20 +241,21 @@ class TestSearchDateRange(unittest.TestCase):
 
     @RequestsCache()
     def test_within_day(self):
-        query = Query('trump', since=date(2019, 1, 1), until=date(2019, 1, 1))
-        self.assertEqual(0, sum(1 for _ in search(query)))
+        query = Search.Query('trump',
+                             since=date(2019, 1, 1), until=date(2019, 1, 1))
+        self.assertEqual(0, sum(1 for _ in Search(query)))
 
     @RequestsCache()
     def test_future(self):
-        query = Query('trump', since=(date.today() + timedelta(days=7)))
-        self.assertEqual(0, sum(1 for _ in search(query)))
+        query = Search.Query('trump', since=(date.today() + timedelta(days=7)))
+        self.assertEqual(0, sum(1 for _ in Search(query)))
 
 
 class TestSearchFilter(unittest.TestCase):
     @RequestsCache()
     def test_top(self):
-        query = Query('trump', filter=Query.Filter.TOP)
-        tweets = list(search(query, max_tweets=50))
+        query = Search.Query('trump', filter=Search.Query.Filter.TOP)
+        tweets = list(Search(query, max_tweets=50))
         self.assertEqual(50, len(tweets))
         # Since it is unknown how Twitter determines "top" tweets there is no
         # way to check for that.
@@ -255,16 +265,16 @@ class TestSearchFilter(unittest.TestCase):
         """Check if the 50 latest Tweets about "trump" are from the last 24h."""
         # Assumes that each day there are at least 50 Tweets about "trump".
         yesterday = datetime.now(timezone.utc) - timedelta(days=1)
-        query = Query('trump', filter=Query.Filter.LATEST)
-        tweets = list(search(query, max_tweets=50))
+        query = Search.Query('trump', filter=Search.Query.Filter.LATEST)
+        tweets = list(Search(query, max_tweets=50))
         self.assertEqual(50, len(tweets))
         for tweet in tweets:
             self.assertLess(yesterday, tweet.created_at)
 
     @RequestsCache()
     def test_photos(self):
-        query = Query('trump', filter=Query.Filter.PHOTOS)
-        tweets = list(search(query, max_tweets=50))
+        query = Search.Query('trump', filter=Search.Query.Filter.PHOTOS)
+        tweets = list(Search(query, max_tweets=50))
         self.assertEqual(50, len(tweets))
         for tweet in tweets:
             self.assertNotEqual(
@@ -274,8 +284,8 @@ class TestSearchFilter(unittest.TestCase):
 
     @RequestsCache()
     def test_videos(self):
-        query = Query('trump', filter=Query.Filter.VIDEOS)
-        tweets = list(search(query, max_tweets=50))
+        query = Search.Query('trump', filter=Search.Query.Filter.VIDEOS)
+        tweets = list(Search(query, max_tweets=50))
         self.assertEqual(50, len(tweets))
         for tweet in tweets:
             if 'extended_entities' in tweet.json:
@@ -294,22 +304,22 @@ class TestSearchFilter(unittest.TestCase):
 class TestSearchLang(unittest.TestCase):
     @RequestsCache()
     def test_en(self):
-        query = Query('trump', lang='en')
-        tweets = list(search(query, max_tweets=50))
+        query = Search.Query('trump', lang='en')
+        tweets = list(Search(query, max_tweets=50))
         self.assertEqual(50, len(tweets))
         # No robust way to verify language.
 
     @RequestsCache()
     def test_de(self):
-        query = Query('trump', lang='de')
-        tweets = list(search(query, max_tweets=50))
+        query = Search.Query('trump', lang='de')
+        tweets = list(Search(query, max_tweets=50))
         self.assertEqual(50, len(tweets))
         # No robust way to verify language.
 
     @RequestsCache()
     def test_invalid_lang(self):
-        query = Query('trump', lang='INVALID')
-        tweets = list(search(query, max_tweets=50))
+        query = Search.Query('trump', lang='INVALID')
+        tweets = list(Search(query, max_tweets=50))
         self.assertEqual(0, len(tweets))
 
 

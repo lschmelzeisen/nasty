@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from nasty.search import Query, search
+from nasty.search import Search
 from nasty.util.consts import NASTY_DATE_TIME_FORMAT
 from nasty.util.json import JsonSerializedException
 
@@ -15,7 +15,7 @@ from nasty.util.json import JsonSerializedException
 class Job:
     def __init__(self,
                  id: str,
-                 query: Query,
+                 query: Search.Query,
                  max_tweets: int,
                  page_size: int,
                  completed_at: Optional[datetime] = None,
@@ -65,7 +65,7 @@ class Job:
     @classmethod
     def from_json(cls, obj: Dict[str, Any]) -> 'Job':
         return cls(id=obj['id'],
-                   query=Query.from_json(obj['query']),
+                   query=Search.Query.from_json(obj['query']),
                    max_tweets=obj['max_tweets'],
                    page_size=obj['page_size'],
                    completed_at=(datetime.strptime(obj['completed-at'],
@@ -108,7 +108,10 @@ class Jobs:
 
         return jobs
 
-    def add_job(self, query: Query, max_tweets: int, page_size: int) -> None:
+    def add_job(self,
+                query: Search.Query,
+                max_tweets: int,
+                page_size: int) -> None:
         self._jobs.append(Job(uuid4().hex, query, max_tweets, page_size))
 
     def run(self, out_dir: Path, num_processes: int = 1) -> bool:
@@ -170,7 +173,7 @@ class Jobs:
 
         result = True
         try:
-            tweets = list(search(job.query, job.max_tweets, job.page_size))
+            tweets = list(Search(job.query, job.max_tweets, job.page_size))
             with lzma.open(data_file, 'wt', encoding='UTF-8') as fout:
                 for tweet in tweets:
                     fout.write('{:s}\n'.format(json.dumps(tweet.to_json())))
