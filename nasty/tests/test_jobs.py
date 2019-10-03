@@ -51,14 +51,14 @@ class TestJob(unittest.TestCase):
         self.assertFalse(job.match(Job(uuid4().hex, Query('trump'), 1000, 2)))
 
 
-class TestJobsSaveLoad(unittest.TestCase):
+class TestJobsDumpLoad(unittest.TestCase):
     def test_single_job(self):
         def run_test(*job_args, **job_kwargs) -> None:
             jobs = Jobs.new()
             jobs.add_job(*job_args, **job_kwargs)
             with TemporaryFilePath(prefix='nasty-test-',
                                    suffix='.jsonl') as temp_file:
-                jobs.save(temp_file)
+                jobs.dump(temp_file)
 
                 with temp_file.open('r', encoding='UTF-8') as fin:
                     lines = fin.readlines()
@@ -80,7 +80,7 @@ class TestJobsSaveLoad(unittest.TestCase):
                 jobs.add_job(Query(str(i)), max_tweets=i, page_size=i)
             with TemporaryFilePath(prefix='nasty-test-',
                                    suffix='.jsonl') as temp_file:
-                jobs.save(temp_file)
+                jobs.dump(temp_file)
 
                 with temp_file.open('r', encoding='UTF-8') as fin:
                     lines = fin.readlines()

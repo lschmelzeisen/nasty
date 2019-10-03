@@ -87,7 +87,7 @@ class Jobs:
     def new(cls) -> 'Jobs':
         return cls([])
 
-    def save(self, file: Path) -> None:
+    def dump(self, file: Path) -> None:
         logger = getLogger(__name__)
         logger.debug('Saving jobs to file "{}".'.format(file))
 
