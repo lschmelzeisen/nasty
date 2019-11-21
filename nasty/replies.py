@@ -5,11 +5,18 @@ from nasty.conversation import Conversation
 
 
 class Replies(Conversation):
+    """Retrieve all direct replies to a Tweet."""
+
     def __init__(self,
                  tweet_id: str,
                  max_tweets: Optional[int] = 100,
                  batch_size: Optional[int] = None):
-        # TODO: document found number of replies correlating with batch_size.
+        """"Constructs a new replies view.
+
+        See the base class for documentation of the tweet_id, max_tweets, and
+        batch_size parameters.
+        """
+
         super().__init__(
             tweet_id=tweet_id, max_tweets=max_tweets, batch_size=batch_size)
         self.num_tombstones = None

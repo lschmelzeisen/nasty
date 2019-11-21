@@ -145,31 +145,12 @@ class Search(Timeline):
                  query: 'Query',
                  max_tweets: Optional[int] = 100,
                  batch_size: Optional[int] = None):
-        """"Constructs a new Search.
+        """"Constructs a new search view.
+
+        See the base class for documentation of the max_tweets and batch_size
+        parameters.
 
         :param query: The query to search for.
-        :param max_tweets: Stop the search after this many tweets have been
-            found. Set to None in order to receive as many Tweets as possible.
-            Note that this can return quite a lot of tweets, especially if using
-            Filter.LATEST and no date range.
-        :param batch_size: The batch size in which Tweets should be queried.
-
-            The normal web interface always queries 20 Tweets per batch. Twitter
-            interprets this parameter more as a guideline and can either return
-            more or less then the requested amount. This does not indicate that
-            no more matching Tweets exist after this batch.
-
-            Note that by setting anything unequal to 20 here, we make ourselves
-            easily distinguishable from normal web browser. Additionally,
-            advanced queries like using AND or OR seem to no longer work as
-            intended.
-
-            This parameter can be used to speed up the search performance, by
-            reducing the HTTP overhead as less requests have to be performed per
-            returned Tweet. If you want to do this, we identified 100 to be a
-            good value because increasing it further does seem not return more
-            Tweets per request.
-        :return: Iterable of tweets that match the query.
         """
 
         super().__init__(max_tweets=max_tweets, batch_size=batch_size)

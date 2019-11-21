@@ -5,10 +5,21 @@ from nasty.timeline import Timeline
 
 
 class Conversation(Timeline):
+    """Retrieves Tweets from the Twitter conversation view."""
+
     def __init__(self,
                  tweet_id: str,
                  max_tweets: Optional[int] = 100,
                  batch_size: Optional[int] = None):
+        """"Constructs a new conversation view.
+
+        See the base class for documentation of the max_tweets and batch_size
+        parameters.
+
+        :param tweet_id: The Tweet-ID for which we wan't to view the
+            conversation.
+        """
+
         super().__init__(max_tweets=max_tweets, batch_size=batch_size)
         self.tweet_id = tweet_id
 

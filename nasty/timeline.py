@@ -14,7 +14,7 @@ from nasty.tweet import Tweet
 
 
 class Timeline(ABC):
-    """Crawls all Tweets belonging to a specific Twitter timeline view.
+    """Retrieves Tweets belonging to a specific Twitter timeline view.
 
     Implemented via Twitter's mobile web interface. For this we emulate what a
     normal browser would do:
@@ -31,6 +31,32 @@ class Timeline(ABC):
     def __init__(self,
                  max_tweets: Optional[int] = 100,
                  batch_size: Optional[int] = None):
+        """Construct a new timeline view.
+
+        :param max_tweets: Stop retrieving Tweets after this many tweets have
+            been found. Set to None in order to receive as many Tweets as
+            possible. Note that this can return quite a lot of tweets,
+            especially if using Search, Filter.LATEST and no date range.
+        :param batch_size: The batch size in which Tweets should be retrieved.
+
+            The normal web interface always queries 20 Tweets per batch. Twitter
+            interprets this parameter more as a guideline and can either return
+            more or less then the requested amount. This does not indicate that
+            no more matching Tweets exist after this batch.
+
+            Note that by setting anything unequal to 20 here, we make ourselves
+            easily distinguishable from normal web browser. Additionally,
+            advanced queries like using AND or OR seem to no longer work as
+            intended. For Thread and Reply, increasing the batch_size is likely
+            to also increase the number of results (no idea why Twitter is doing
+            this).
+
+            This parameter can be used to speed up the retrieval performance, by
+            reducing the HTTP overhead as less requests have to be performed per
+            returned Tweet. If you want to do this, we identified 100 to be a
+            good value because increasing it further does seem not return more
+            Tweets per request.
+        """
         self.max_tweets = max_tweets
 
         # We use the following construct instead of a default parameter, because

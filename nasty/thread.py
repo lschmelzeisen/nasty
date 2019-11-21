@@ -5,10 +5,26 @@ from nasty.conversation import Conversation
 
 
 class Thread(Conversation):
+    """Retrieve the remaining thread of a Tweet.
+
+    A thread of a Tweet is a reply to the Tweet, a reply to the reply, and so
+    on. As at each hierarchy level, multiple sibling replies can exist, this
+    API depends on Twitter's own display rules. Usually, if a person is replying
+    to themselves, this will always form the thread.
+
+    See: https://help.twitter.com/en/using-twitter/create-a-thread
+    """
+
     def __init__(self,
                  tweet_id: str,
                  max_tweets: Optional[int] = 100,
                  batch_size: Optional[int] = None):
+        """"Constructs a new thread view.
+
+        See the base class for documentation of the tweet_id, max_tweets, and
+        batch_size parameters.
+        """
+
         super().__init__(
             tweet_id=tweet_id, max_tweets=max_tweets, batch_size=batch_size)
         self.num_tombstones = None
@@ -60,7 +76,7 @@ class Thread(Conversation):
         #             ... ]}}]}}
         for entry in self._parse_batch_instructions(batch):
             if entry['entryId'].startswith('tweet-'):
-                # Tweets in the threat look like this:
+                # Tweets in the thread look like this:
                 # { "entryId": "tweet-1155488356165398528",
                 #   "item": {
                 #     "content": {
