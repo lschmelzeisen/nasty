@@ -1,5 +1,5 @@
 from itertools import zip_longest
-from typing import Iterable, List, TypeVar
+from typing import Any, Union, Iterable, List, TypeVar, Mapping, Sequence
 
 T = TypeVar('T')
 
@@ -16,3 +16,17 @@ def chunked(chunk_size: int,
             yield list(chunk)
         else:
             yield [item for item in chunk if item is not None]
+
+
+def dict_deep_get(value: Union[Mapping, Sequence], *args) -> Any:
+    for arg in args:
+        if value is None:
+            return None
+        if isinstance(value, Mapping):
+            value = value.get(arg, None)
+        elif isinstance(value, Sequence):
+            value = value[arg] if -len(value) <= arg < len(value) else None
+        else:
+            raise TypeError('(Nested) value must be either a Mapping or a'
+                            'Sequence, was a {}.'.format(type(value)))
+    return value
