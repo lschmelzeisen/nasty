@@ -1,11 +1,10 @@
 from datetime import datetime
 from typing import Any, Dict
 
-from nasty.util.consts import TWITTER_CREATED_AT_FORMAT
-
 import tweepy
-from nasty.old.tweet import Tweet
+
 from nasty.init import init_nasty
+from nasty.util.consts import TWITTER_CREATED_AT_FORMAT
 
 
 class Tweet:
