@@ -7,7 +7,7 @@ class Conversation(Timeline):
     def __init__(self,
                  tweet_id: str,
                  max_tweets: Optional[int] = 100,
-                 batch_size: int = Timeline.DEFAULT_BATCH_SIZE):
+                 batch_size: Optional[int] = None):
         super().__init__(max_tweets=max_tweets, batch_size=batch_size)
         self.tweet_id = tweet_id
 

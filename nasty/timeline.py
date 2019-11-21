@@ -29,13 +29,20 @@ class Timeline:
     more information).
     """
 
-    DEFAULT_BATCH_SIZE = 20
-
     def __init__(self,
-                 max_tweets: Optional[int] = None,
-                 batch_size: int = DEFAULT_BATCH_SIZE):
+                 max_tweets: Optional[int] = 100,
+                 batch_size: Optional[int] = None):
         self.max_tweets = max_tweets
-        self.batch_size = batch_size
+
+        # We use the following construct instead of a default parameter, because
+        # here we use the only value that Twitter web interface uses. As we can
+        # expect that this might change over time, we don't want to repeat the
+        # same default value in all child classes.
+        if not batch_size:
+            self.batch_size = 20
+        else:
+            self.batch_size = batch_size
+
         self.num_batches_fetched = None
 
     def _timeline_url(self) -> Dict:

@@ -17,13 +17,13 @@ class Job:
                  id: str,
                  query: Search.Query,
                  max_tweets: int,
-                 page_size: int,
+                 batch_size: Optional[int] = None,
                  completed_at: Optional[datetime] = None,
                  exception: Optional[JsonSerializedException] = None):
         self.id = id
         self.query = query
         self.max_tweets = max_tweets
-        self.page_size = page_size
+        self.batch_size = batch_size
         self.completed_at = completed_at
         self.exception = exception
 
@@ -44,14 +44,14 @@ class Job:
     def match(self, other: 'Job') -> bool:
         return (self.query == other.query
                 and self.max_tweets == other.max_tweets
-                and self.page_size == other.page_size)
+                and self.batch_size == other.batch_size)
 
     def to_json(self) -> Dict[str, Any]:
         obj = {}
         obj['id'] = self.id
         obj['query'] = self.query.to_json()
         obj['max_tweets'] = self.max_tweets
-        obj['page_size'] = self.page_size
+        obj['batch_size'] = self.batch_size
 
         if self.completed_at:
             obj['completed-at'] = \
@@ -67,7 +67,7 @@ class Job:
         return cls(id=obj['id'],
                    query=Search.Query.from_json(obj['query']),
                    max_tweets=obj['max_tweets'],
-                   page_size=obj['page_size'],
+                   batch_size=obj['batch_size'],
                    completed_at=(datetime.strptime(obj['completed-at'],
                                                    NASTY_DATE_TIME_FORMAT)
                                  if 'completed-at' in obj else None),
@@ -111,8 +111,8 @@ class Jobs:
     def add_job(self,
                 query: Search.Query,
                 max_tweets: int,
-                page_size: int) -> None:
-        self._jobs.append(Job(uuid4().hex, query, max_tweets, page_size))
+                batch_size: Optional[int] = None) -> None:
+        self._jobs.append(Job(uuid4().hex, query, max_tweets, batch_size))
 
     def run(self, out_dir: Path, num_processes: int = 1) -> bool:
         logger = getLogger(__name__)
@@ -173,7 +173,7 @@ class Jobs:
 
         result = True
         try:
-            tweets = list(Search(job.query, job.max_tweets, job.page_size))
+            tweets = list(Search(job.query, job.max_tweets, job.batch_size))
             with lzma.open(data_file, 'wt', encoding='UTF-8') as fout:
                 for tweet in tweets:
                     fout.write('{:s}\n'.format(json.dumps(tweet.to_json())))

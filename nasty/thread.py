@@ -2,14 +2,13 @@ from logging import getLogger
 from typing import Dict, Iterable, Optional
 
 from nasty.conversation import Conversation
-from nasty.timeline import Timeline
 
 
 class Thread(Conversation):
     def __init__(self,
                  tweet_id: str,
                  max_tweets: Optional[int] = 100,
-                 batch_size: int = Timeline.DEFAULT_BATCH_SIZE):
+                 batch_size: Optional[int] = None):
         super().__init__(
             tweet_id=tweet_id, max_tweets=max_tweets, batch_size=batch_size)
         self.num_tombstones = None

@@ -144,7 +144,7 @@ class Search(Timeline):
     def __init__(self,
                  query: 'Query',
                  max_tweets: Optional[int] = 100,
-                 batch_size: int = Timeline.DEFAULT_BATCH_SIZE):
+                 batch_size: Optional[int] = None):
         """"Constructs a new Search.
 
         :param query: The query to search for.

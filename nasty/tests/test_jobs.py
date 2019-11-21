@@ -13,7 +13,6 @@ from nasty.init import init_nasty
 from nasty.jobs import Job, Jobs
 from nasty.search import Search
 from nasty.tests.requests_cache import RequestsCache
-from nasty.timeline import Timeline
 from nasty.tweet import Tweet
 from nasty.util. \
     json import JsonSerializedException
@@ -24,8 +23,7 @@ init_nasty()
 
 class TestJob(unittest.TestCase):
     def test_job_trump(self):
-        job = Job(uuid4().hex, Search.Query('trump'), 1000,
-                  Timeline.DEFAULT_BATCH_SIZE)
+        job = Job(uuid4().hex, Search.Query('trump'), 1000)
         self.assertEqual(job, Job.from_json(job.to_json()))
         self.assertTrue(job.match(job))
 
@@ -77,19 +75,19 @@ class TestJobsDumpLoad(unittest.TestCase):
 
                 self.assertEqual(jobs, Jobs.load(temp_file))
 
-        run_test(Search.Query('trump'), max_tweets=50, page_size=20)
+        run_test(Search.Query('trump'), max_tweets=50)
         run_test(Search.Query('hillary',
                               filter=Search.Query.Filter.PHOTOS, lang='de'),
-                 max_tweets=500, page_size=1)
+                 max_tweets=500, batch_size=1)
         run_test(Search.Query('obama',
                               since=date(2009, 1, 20), until=date(2017, 1, 20)),
-                 max_tweets=5, page_size=1000)
+                 max_tweets=5, batch_size=1000)
 
     def test_many_jobs(self):
         def run_test(num_jobs) -> None:
             jobs = Jobs.new()
             for i in range(1, num_jobs + 1):
-                jobs.add_job(Search.Query(str(i)), max_tweets=i, page_size=i)
+                jobs.add_job(Search.Query(str(i)), max_tweets=i, batch_size=i)
             with TemporaryFilePath(prefix='nasty-test-',
                                    suffix='.jsonl') as temp_file:
                 jobs.dump(temp_file)
@@ -111,12 +109,9 @@ class TestJobsRun(unittest.TestCase):
     @RequestsCache()
     def test_success(self):
         jobs = Jobs.new()
-        jobs.add_job(Search.Query('trump'),
-                     max_tweets=50, page_size=Timeline.DEFAULT_BATCH_SIZE)
-        jobs.add_job(Search.Query('hillary'),
-                     max_tweets=50, page_size=Timeline.DEFAULT_BATCH_SIZE)
-        jobs.add_job(Search.Query('obama'),
-                     max_tweets=50, page_size=Timeline.DEFAULT_BATCH_SIZE)
+        jobs.add_job(Search.Query('trump'), max_tweets=50)
+        jobs.add_job(Search.Query('hillary'), max_tweets=50)
+        jobs.add_job(Search.Query('obama'), max_tweets=50)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             self.assertTrue(jobs.run(temp_dir))
@@ -129,7 +124,7 @@ class TestJobsRun(unittest.TestCase):
             jobs.add_job(Search.Query('trump',
                                       since=date(2019, 1, i + 1),
                                       until=date(2019, 1, i + 2)),
-                         max_tweets=50, page_size=Timeline.DEFAULT_BATCH_SIZE)
+                         max_tweets=50)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             self.assertTrue(jobs.run(temp_dir, num_processes=4))
@@ -140,8 +135,7 @@ class TestJobsRun(unittest.TestCase):
         # Random string that currently does not match any Tweet.
         unknown_word = 'c9dde8b5451149e683d4f07e4c4348ef'
         jobs = Jobs.new()
-        jobs.add_job(Search.Query(unknown_word),
-                     max_tweets=50, page_size=Timeline.DEFAULT_BATCH_SIZE)
+        jobs.add_job(Search.Query(unknown_word), max_tweets=50)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             self.assertTrue(jobs.run(temp_dir))
@@ -154,8 +148,7 @@ class TestJobsRun(unittest.TestCase):
     @RequestsCache()
     def test_previous_match(self):
         jobs = Jobs.new()
-        jobs.add_job(Search.Query('trump'),
-                     max_tweets=50, page_size=Timeline.DEFAULT_BATCH_SIZE)
+        jobs.add_job(Search.Query('trump'), max_tweets=50)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             # Create stray (but matching) meta file.
@@ -174,8 +167,7 @@ class TestJobsRun(unittest.TestCase):
     @RequestsCache()
     def test_previous_no_match(self):
         jobs = Jobs.new()
-        jobs.add_job(Search.Query('trump'),
-                     max_tweets=50, page_size=Timeline.DEFAULT_BATCH_SIZE)
+        jobs.add_job(Search.Query('trump'), max_tweets=50)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             # Run successful crawl with 'trump' and verify.
@@ -200,8 +192,7 @@ class TestJobsRun(unittest.TestCase):
     @RequestsCache()
     def test_previous_completed(self):
         jobs = Jobs.new()
-        jobs.add_job(Search.Query('trump'),
-                     max_tweets=50, page_size=Timeline.DEFAULT_BATCH_SIZE)
+        jobs.add_job(Search.Query('trump'), max_tweets=50)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             meta_file = temp_dir / jobs._jobs[0].meta_file_name
@@ -228,8 +219,7 @@ class TestJobsRun(unittest.TestCase):
     @RequestsCache()
     def test_previous_stray_data(self):
         jobs = Jobs.new()
-        jobs.add_job(Search.Query('trump'),
-                     max_tweets=50, page_size=Timeline.DEFAULT_BATCH_SIZE)
+        jobs.add_job(Search.Query('trump'), max_tweets=50)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             # Create stray data file (with invalid data, but is irrelevant).
@@ -253,8 +243,7 @@ class TestJobsRun(unittest.TestCase):
                       status=HTTPStatus.INTERNAL_SERVER_ERROR.value)
 
         jobs = Jobs.new()
-        jobs.add_job(Search.Query('trump'),
-                     max_tweets=50, page_size=Timeline.DEFAULT_BATCH_SIZE)
+        jobs.add_job(Search.Query('trump'), max_tweets=50)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             # Run and verify that appropriate exception was logged.
