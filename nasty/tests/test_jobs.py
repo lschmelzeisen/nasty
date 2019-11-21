@@ -14,8 +14,8 @@ from nasty.jobs import Job, Jobs
 from nasty.search import Search
 from nasty.tests.requests_cache import RequestsCache
 from nasty.tweet import Tweet
-from nasty.util. \
-    json import JsonSerializedException
+from nasty.util.json import JsonSerializedException
+from nasty.util.disrespect_robotstxt import disrespect_robotstxt
 from nasty.util.path import TemporaryDirectoryPath, TemporaryFilePath
 
 init_nasty()
@@ -107,6 +107,7 @@ class TestJobsDumpLoad(unittest.TestCase):
 
 class TestJobsRun(unittest.TestCase):
     @RequestsCache()
+    @disrespect_robotstxt
     def test_success(self):
         jobs = Jobs.new()
         jobs.add_job(Search.Query('trump'), max_tweets=50)
@@ -118,6 +119,7 @@ class TestJobsRun(unittest.TestCase):
             self._assert_out_dir_structure(temp_dir, jobs)
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_success_parallel(self):
         jobs = Jobs.new()
         for i in range(16):
@@ -131,6 +133,7 @@ class TestJobsRun(unittest.TestCase):
             self._assert_out_dir_structure(temp_dir, jobs)
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_success_empty(self):
         # Random string that currently does not match any Tweet.
         unknown_word = 'c9dde8b5451149e683d4f07e4c4348ef'
@@ -146,6 +149,7 @@ class TestJobsRun(unittest.TestCase):
             self.assertEqual(0, len(data))
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_previous_match(self):
         jobs = Jobs.new()
         jobs.add_job(Search.Query('trump'), max_tweets=50)
@@ -165,6 +169,7 @@ class TestJobsRun(unittest.TestCase):
             self.assertLess(meta_stat1.st_mtime_ns, meta_stat2.st_mtime_ns)
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_previous_no_match(self):
         jobs = Jobs.new()
         jobs.add_job(Search.Query('trump'), max_tweets=50)
@@ -190,6 +195,7 @@ class TestJobsRun(unittest.TestCase):
             self._assert_out_dir_structure(temp_dir, jobs)
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_previous_completed(self):
         jobs = Jobs.new()
         jobs.add_job(Search.Query('trump'), max_tweets=50)
@@ -217,6 +223,7 @@ class TestJobsRun(unittest.TestCase):
             self.assertEqual(data_stat1.st_mtime_ns, data_stat2.st_mtime_ns)
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_previous_stray_data(self):
         jobs = Jobs.new()
         jobs.add_job(Search.Query('trump'), max_tweets=50)
@@ -236,8 +243,11 @@ class TestJobsRun(unittest.TestCase):
             self.assertLess(data_stat1.st_mtime_ns, data_stat2.st_mtime_ns)
 
     @responses.activate
+    @disrespect_robotstxt
     def test_exception_internal_server_error(self):
         # Simulate 500 Internal Server Error on first request to Twitter.
+        responses.add(responses.GET, 'https://mobile.twitter.com/robots.txt',
+                      body='Crawl-delay: 1')
         responses.add(responses.GET, 'https://mobile.twitter.com/search',
                       match_querystring=False,
                       status=HTTPStatus.INTERNAL_SERVER_ERROR.value)
@@ -251,10 +261,10 @@ class TestJobsRun(unittest.TestCase):
             with (temp_dir / jobs._jobs[0].meta_file_name).open(
                     'r', encoding='UTF-8') as fin:
                 job = Job.from_json(json.load(fin))
+            print(job.exception)
             self.assertEqual(job.exception.type,
                              'UnexpectedStatusCodeException')
 
-    @RequestsCache()
     def _assert_out_dir_structure(self,
                                   out_dir: Path,
                                   jobs: Jobs,

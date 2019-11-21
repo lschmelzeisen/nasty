@@ -4,12 +4,14 @@ from typing import Optional
 from nasty.init import init_nasty
 from nasty.tests.requests_cache import RequestsCache
 from nasty.thread import Thread
+from nasty.util.disrespect_robotstxt import disrespect_robotstxt
 
 init_nasty()
 
 
 class TestNoThread(unittest.TestCase):
     @RequestsCache()
+    @disrespect_robotstxt
     def test_1110485791279595525(self):
         tweets = list(Thread('1110485791279595525'))
         self.assertEqual(0, len(tweets))
@@ -17,6 +19,7 @@ class TestNoThread(unittest.TestCase):
 
 class TestExactThread(unittest.TestCase):
     @RequestsCache()
+    @disrespect_robotstxt
     def test_1115689254271819777(self):
         tweets = list(tweet.id for tweet in Thread('1115689254271819777'))
         self.assertEqual(tweets,
@@ -27,14 +30,17 @@ class TestExactThread(unittest.TestCase):
 
 class TestThreadMaxTweets(unittest.TestCase):
     @RequestsCache()
+    @disrespect_robotstxt
     def test_0(self):
         self._run_test(0)
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_10(self):
         self._run_test(10)
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_100(self):
         self._run_test(100)
 
@@ -53,10 +59,12 @@ class TestThreadUnlimited(unittest.TestCase):
     # other reliable way to carry these numbers.
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_1155486497451184128(self):
         self._run_test('1155486497451184128', 35, None)
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_1180505950613958658(self):
         self._run_test('1180505950613958658', 8, None)
 

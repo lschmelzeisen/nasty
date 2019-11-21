@@ -2,6 +2,7 @@ import re
 from abc import ABC, abstractmethod
 from http import HTTPStatus
 from logging import getLogger
+from time import sleep
 from typing import Dict, Iterable, Optional
 
 import requests
@@ -11,6 +12,9 @@ from urllib3 import Retry
 
 from nasty.errors import UnexpectedStatusCodeException
 from nasty.tweet import Tweet
+from nasty.util.disrespect_robotstxt import is_ignoring_robotstxt
+
+crawl_delay: Optional[float] = None
 
 
 class Timeline(ABC):
@@ -206,6 +210,7 @@ class Timeline(ABC):
 
         # Query HTML stub page. Also automatically adds any returned cookies by
         # Twitter via response headers to the session.
+        self._sleep_crawl_delay(session)
         response = session.get(**self._timeline_url())
         self._verify_and_log_response(response)
 
@@ -219,6 +224,7 @@ class Timeline(ABC):
         # Queries the JS-script that carries the bearer token. Currently, this
         # does not seem to constant for all users, but we still check in case
         # this changes in the future.
+        self._sleep_crawl_delay(session)
         response = session.get(main_js_url)
         self._verify_and_log_response(response)
 
@@ -252,6 +258,7 @@ class Timeline(ABC):
         logger = getLogger(__name__)
         logger.debug('  Fetching batch with cursor "{}".'.format(cursor))
 
+        self._sleep_crawl_delay(session)
         response = session.get(**self._batch_url(cursor))
         self._verify_and_log_response(response)
 
@@ -266,7 +273,31 @@ class Timeline(ABC):
         return batch
 
     @classmethod
-    def _verify_and_log_response(cls, response: requests.Response):
+    def _sleep_crawl_delay(cls, session: requests.Session) -> None:
+        logger = getLogger(__name__)
+
+        if is_ignoring_robotstxt():
+            return
+
+        global crawl_delay
+        if crawl_delay is None:
+            response = session.get('https://mobile.twitter.com/robots.txt')
+            cls._verify_and_log_response(response)
+
+            for line in response.text.splitlines():
+                if line.lower().startswith('crawl-delay:'):
+                    crawl_delay = float(line[len('crawl-delay:'):])
+                    break
+            else:
+                raise RuntimeError('Could not determine crawl-delay.')
+
+            logger.debug(
+                '    Determined crawl-delay of {:.2f}s.'.format(crawl_delay))
+
+        sleep(crawl_delay)
+
+    @classmethod
+    def _verify_and_log_response(cls, response: requests.Response) -> None:
         logger = getLogger(__name__)
 
         status = HTTPStatus(response.status_code)

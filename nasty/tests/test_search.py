@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta, timezone
 from nasty.init import init_nasty
 from nasty.search import Search
 from nasty.tests.requests_cache import RequestsCache
+from nasty.util.disrespect_robotstxt import disrespect_robotstxt
 
 init_nasty()
 
@@ -60,18 +61,22 @@ class TestQueryUrlParamConversion(unittest.TestCase):
 
 class TestSearchMaxTweets(unittest.TestCase):
     @RequestsCache()
+    @disrespect_robotstxt
     def test_0(self):
         self._run_test(0)
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_10(self):
         self._run_test(10)
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_100(self):
         self._run_test(100)
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_1000(self):
         self._run_test(1000)
 
@@ -95,6 +100,7 @@ class TestSearchQueryString(unittest.TestCase):
     # because Twitter also sometimes matches on those.
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_word(self):
         def run_test(keyword: str) -> None:
             query = Search.Query(keyword)
@@ -109,6 +115,7 @@ class TestSearchQueryString(unittest.TestCase):
         run_test('obama')
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_unknown_word(self):
         # Random string that currently does not match any Tweet.
         unknown_word = 'c9dde8b5451149e683d4f07e4c4348ef'
@@ -116,6 +123,7 @@ class TestSearchQueryString(unittest.TestCase):
         self.assertEqual(0, len(tweets))
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_and(self):
         def run_test(keyword1: str, keyword2: str) -> None:
             query = Search.Query('{} and {}'.format(keyword1, keyword2))
@@ -131,6 +139,7 @@ class TestSearchQueryString(unittest.TestCase):
         run_test('obama', 'hillary')
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_or(self):
         def run_test(keyword1: str, keyword2: str) -> None:
             query = Search.Query('{} or {}'.format(keyword1, keyword2))
@@ -147,6 +156,7 @@ class TestSearchQueryString(unittest.TestCase):
         run_test('obama', 'hillary')
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_not(self):
         def run_test(keyword1: str, keyword2: str) -> None:
             query = Search.Query('{} -{}'.format(keyword1, keyword2))
@@ -168,6 +178,7 @@ class TestSearchQueryString(unittest.TestCase):
         run_test('obama', 'hillary')
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_phrase(self):
         def run_test(keyword1, keyword2) -> None:
             query = Search.Query('"{} {}"'.format(keyword1, keyword2))
@@ -192,6 +203,7 @@ class TestSearchQueryString(unittest.TestCase):
 
 class TestSearchQueryUser(unittest.TestCase):
     @RequestsCache()
+    @disrespect_robotstxt
     def test_from(self):
         def run_test(user: str) -> None:
             query = Search.Query('from:@{}'.format(user))
@@ -206,6 +218,7 @@ class TestSearchQueryUser(unittest.TestCase):
         run_test('BarackObama')
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_to(self):
         def run_test(user: str) -> None:
             query = Search.Query('to:@{}'.format(user))
@@ -228,18 +241,21 @@ class TestSearchQueryUser(unittest.TestCase):
 
 class TestSearchDateRange(unittest.TestCase):
     @RequestsCache()
+    @disrespect_robotstxt
     def test_date_range_1_year(self):
         self._run_test(date(2010, 1, 1), date(2010, 12, 31))
         self._run_test(date(2015, 1, 1), date(2015, 12, 31))
         self._run_test(date(2019, 1, 1), date(2019, 12, 31))
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_date_range_1_day(self):
         self._run_test(date(2010, 1, 1), date(2010, 1, 2))
         self._run_test(date(2015, 2, 10), date(2015, 2, 11))
         self._run_test(date(2019, 3, 21), date(2019, 3, 22))
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_today(self):
         # Assumes that each day there are at least 40 Tweets about "trump".
         self._run_test(date.today() - timedelta(days=1),
@@ -254,12 +270,14 @@ class TestSearchDateRange(unittest.TestCase):
             self.assertGreater(until, tweet.created_at.date())
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_within_day(self):
         query = Search.Query('trump',
                              since=date(2019, 1, 1), until=date(2019, 1, 1))
         self.assertEqual(0, sum(1 for _ in Search(query)))
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_future(self):
         query = Search.Query('trump', since=(date.today() + timedelta(days=7)))
         self.assertEqual(0, sum(1 for _ in Search(query)))
@@ -267,6 +285,7 @@ class TestSearchDateRange(unittest.TestCase):
 
 class TestSearchFilter(unittest.TestCase):
     @RequestsCache()
+    @disrespect_robotstxt
     def test_top(self):
         query = Search.Query('trump', filter=Search.Query.Filter.TOP)
         tweets = list(Search(query, max_tweets=50))
@@ -275,6 +294,7 @@ class TestSearchFilter(unittest.TestCase):
         # way to check for that.
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_latest(self):
         """Check if the 50 latest Tweets about "trump" are from the last 24h."""
         # Assumes that each day there are at least 50 Tweets about "trump".
@@ -286,6 +306,7 @@ class TestSearchFilter(unittest.TestCase):
             self.assertLess(yesterday, tweet.created_at)
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_photos(self):
         query = Search.Query('trump', filter=Search.Query.Filter.PHOTOS)
         tweets = list(Search(query, max_tweets=50))
@@ -297,6 +318,7 @@ class TestSearchFilter(unittest.TestCase):
                 self.assertIn(medium['type'], ['photo', 'animated_gif'])
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_videos(self):
         query = Search.Query('trump', filter=Search.Query.Filter.VIDEOS)
         tweets = list(Search(query, max_tweets=50))
@@ -317,6 +339,7 @@ class TestSearchFilter(unittest.TestCase):
 
 class TestSearchLang(unittest.TestCase):
     @RequestsCache()
+    @disrespect_robotstxt
     def test_en(self):
         query = Search.Query('trump', lang='en')
         tweets = list(Search(query, max_tweets=50))
@@ -324,6 +347,7 @@ class TestSearchLang(unittest.TestCase):
         # No robust way to verify language.
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_de(self):
         query = Search.Query('trump', lang='de')
         tweets = list(Search(query, max_tweets=50))
@@ -331,6 +355,7 @@ class TestSearchLang(unittest.TestCase):
         # No robust way to verify language.
 
     @RequestsCache()
+    @disrespect_robotstxt
     def test_invalid_lang(self):
         query = Search.Query('trump', lang='INVALID')
         tweets = list(Search(query, max_tweets=50))
