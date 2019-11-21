@@ -10,60 +10,52 @@ from uuid import uuid4
 import responses
 
 from nasty.init import init_nasty
-from nasty.jobs import Job, Jobs
+from nasty.jobs import Jobs, _Job, _RepliesWork, _SearchWork, _ThreadWork
 from nasty.search import Search
 from nasty.tests.requests_cache import RequestsCache
 from nasty.tweet import Tweet
-from nasty.util.json import JsonSerializedException
 from nasty.util.disrespect_robotstxt import disrespect_robotstxt
+from nasty.util.json import JsonSerializedException
 from nasty.util.path import TemporaryDirectoryPath, TemporaryFilePath
 
 init_nasty()
 
 
-class TestJob(unittest.TestCase):
-    def test_job_trump(self):
-        job = Job(uuid4().hex, Search.Query('trump'), 1000)
-        self.assertEqual(job, Job.from_json(job.to_json()))
-        self.assertTrue(job.match(job))
+class TestJobDumpLoad(unittest.TestCase):
+    def test_search_job_trump(self):
+        job = _Job(uuid4().hex, _SearchWork(Search.Query('trump'), 1000, None))
+        self.assertEqual(job, _Job.from_json(job.to_json()))
 
-    def test_job_trump_completed_at(self):
-        job = Job(uuid4().hex, Search.Query('trump'), 10000, 100,
-                  completed_at=datetime.now())
-        self.assertEqual(job, Job.from_json(job.to_json()))
-        self.assertTrue(
-            job.match(Job(uuid4().hex, Search.Query('trump'), 10000, 100)))
+    def test_search_job_trump_completed_at(self):
+        job = _Job(uuid4().hex, _SearchWork(Search.Query('trump'), 10000, 100),
+                   completed_at=datetime.now())
+        self.assertEqual(job, _Job.from_json(job.to_json()))
 
-    def test_job_trump_exceptions(self):
+    def test_search_job_trump_exceptions(self):
         # Collect exception with trace.
         try:
             raise ValueError('Test Error.')
         except ValueError as e:
             exception = JsonSerializedException.from_exception(e)
 
-        job = Job(uuid4().hex, Search.Query('trump'), 10, 1,
-                  exception=exception)
-        self.assertEqual(job, Job.from_json(job.to_json()))
-        self.assertTrue(
-            job.match(Job(uuid4().hex, Search.Query('trump'), 10, 1)))
+        job = _Job(uuid4().hex, _SearchWork(Search.Query('trump'), 10, 1),
+                   exception=exception)
+        self.assertEqual(job, _Job.from_json(job.to_json()))
 
-    def test_not_match(self):
-        job = Job(uuid4().hex, Search.Query('trump'), 1000, 20)
-        self.assertTrue(job.match(
-            Job(uuid4().hex, Search.Query('trump'), 1000, 20)))
-        self.assertFalse(job.match(
-            Job(uuid4().hex, Search.Query('obama'), 1000, 20)))
-        self.assertFalse(job.match(
-            Job(uuid4().hex, Search.Query('trump'), 100, 20)))
-        self.assertFalse(job.match(
-            Job(uuid4().hex, Search.Query('trump'), 1000, 2)))
+    def test_replies_job(self):
+        job = _Job(uuid4().hex, _RepliesWork('332308211321425920', None, None))
+        self.assertEqual(job, _Job.from_json(job.to_json()))
+
+    def test_thread_job(self):
+        job = _Job(uuid4().hex, _ThreadWork('332308211321425920', 123, 456))
+        self.assertEqual(job, _Job.from_json(job.to_json()))
 
 
 class TestJobsDumpLoad(unittest.TestCase):
-    def test_single_job(self):
+    def test_single_search_job(self):
         def run_test(*job_args, **job_kwargs) -> None:
             jobs = Jobs.new()
-            jobs.add_job(*job_args, **job_kwargs)
+            jobs.add_search_job(*job_args, **job_kwargs)
             with TemporaryFilePath(prefix='nasty-test-',
                                    suffix='.jsonl') as temp_file:
                 jobs.dump(temp_file)
@@ -83,18 +75,19 @@ class TestJobsDumpLoad(unittest.TestCase):
                               since=date(2009, 1, 20), until=date(2017, 1, 20)),
                  max_tweets=5, batch_size=1000)
 
-    def test_many_jobs(self):
+    def test_many_search_jobs(self):
         def run_test(num_jobs) -> None:
             jobs = Jobs.new()
             for i in range(1, num_jobs + 1):
-                jobs.add_job(Search.Query(str(i)), max_tweets=i, batch_size=i)
+                jobs.add_search_job(
+                    Search.Query(str(i)), max_tweets=i, batch_size=i)
             with TemporaryFilePath(prefix='nasty-test-',
                                    suffix='.jsonl') as temp_file:
                 jobs.dump(temp_file)
 
                 with temp_file.open('r', encoding='UTF-8') as fin:
                     lines = fin.readlines()
-                self.assertEqual(i, len(lines))
+                self.assertEqual(num_jobs, len(lines))
                 for line in lines:
                     self.assertNotEqual(0, len(line))
 
@@ -105,14 +98,14 @@ class TestJobsDumpLoad(unittest.TestCase):
         run_test(10000)
 
 
-class TestJobsRun(unittest.TestCase):
+class TestSearchJobsRun(unittest.TestCase):
     @RequestsCache()
     @disrespect_robotstxt
     def test_success(self):
         jobs = Jobs.new()
-        jobs.add_job(Search.Query('trump'), max_tweets=50)
-        jobs.add_job(Search.Query('hillary'), max_tweets=50)
-        jobs.add_job(Search.Query('obama'), max_tweets=50)
+        jobs.add_search_job(Search.Query('trump'), max_tweets=50)
+        jobs.add_search_job(Search.Query('hillary'), max_tweets=50)
+        jobs.add_search_job(Search.Query('obama'), max_tweets=50)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             self.assertTrue(jobs.run(temp_dir))
@@ -123,10 +116,10 @@ class TestJobsRun(unittest.TestCase):
     def test_success_parallel(self):
         jobs = Jobs.new()
         for i in range(16):
-            jobs.add_job(Search.Query('trump',
-                                      since=date(2019, 1, i + 1),
-                                      until=date(2019, 1, i + 2)),
-                         max_tweets=50)
+            jobs.add_search_job(Search.Query('trump',
+                                             since=date(2019, 1, i + 1),
+                                             until=date(2019, 1, i + 2)),
+                                max_tweets=50)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             self.assertTrue(jobs.run(temp_dir, num_processes=4))
@@ -138,7 +131,7 @@ class TestJobsRun(unittest.TestCase):
         # Random string that currently does not match any Tweet.
         unknown_word = 'c9dde8b5451149e683d4f07e4c4348ef'
         jobs = Jobs.new()
-        jobs.add_job(Search.Query(unknown_word), max_tweets=50)
+        jobs.add_search_job(Search.Query(unknown_word), max_tweets=50)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             self.assertTrue(jobs.run(temp_dir))
@@ -152,7 +145,7 @@ class TestJobsRun(unittest.TestCase):
     @disrespect_robotstxt
     def test_previous_match(self):
         jobs = Jobs.new()
-        jobs.add_job(Search.Query('trump'), max_tweets=50)
+        jobs.add_search_job(Search.Query('trump'), max_tweets=50)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             # Create stray (but matching) meta file.
@@ -172,7 +165,7 @@ class TestJobsRun(unittest.TestCase):
     @disrespect_robotstxt
     def test_previous_no_match(self):
         jobs = Jobs.new()
-        jobs.add_job(Search.Query('trump'), max_tweets=50)
+        jobs.add_search_job(Search.Query('trump'), max_tweets=50)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             # Run successful crawl with 'trump' and verify.
@@ -182,8 +175,8 @@ class TestJobsRun(unittest.TestCase):
             # Change job to instead query for 'obama'.
             meta_file = temp_dir / jobs._jobs[0].meta_file_name
             with meta_file.open('r', encoding='UTF-8') as fin:
-                job = Job.from_json(json.load(fin))
-            job.query.query = 'obama'
+                job = _Job.from_json(json.load(fin))
+            job.work.query.query = 'obama'
             jobs._jobs[0] = job
 
             # Verify that this fails because of job description mismatch.
@@ -198,7 +191,7 @@ class TestJobsRun(unittest.TestCase):
     @disrespect_robotstxt
     def test_previous_completed(self):
         jobs = Jobs.new()
-        jobs.add_job(Search.Query('trump'), max_tweets=50)
+        jobs.add_search_job(Search.Query('trump'), max_tweets=50)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             meta_file = temp_dir / jobs._jobs[0].meta_file_name
@@ -226,7 +219,7 @@ class TestJobsRun(unittest.TestCase):
     @disrespect_robotstxt
     def test_previous_stray_data(self):
         jobs = Jobs.new()
-        jobs.add_job(Search.Query('trump'), max_tweets=50)
+        jobs.add_search_job(Search.Query('trump'), max_tweets=50)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             # Create stray data file (with invalid data, but is irrelevant).
@@ -253,15 +246,14 @@ class TestJobsRun(unittest.TestCase):
                       status=HTTPStatus.INTERNAL_SERVER_ERROR.value)
 
         jobs = Jobs.new()
-        jobs.add_job(Search.Query('trump'), max_tweets=50)
+        jobs.add_search_job(Search.Query('trump'), max_tweets=50)
 
         with TemporaryDirectoryPath(prefix='nasty-test-') as temp_dir:
             # Run and verify that appropriate exception was logged.
             self.assertFalse(jobs.run(temp_dir))
             with (temp_dir / jobs._jobs[0].meta_file_name).open(
                     'r', encoding='UTF-8') as fin:
-                job = Job.from_json(json.load(fin))
-            print(job.exception)
+                job = _Job.from_json(json.load(fin))
             self.assertEqual(job.exception.type,
                              'UnexpectedStatusCodeException')
 
@@ -282,9 +274,9 @@ class TestJobsRun(unittest.TestCase):
             files.remove(meta_file)
 
             with meta_file.open('r', encoding='UTF-8') as fin:
-                completed_job = Job.from_json(json.load(fin))
+                completed_job = _Job.from_json(json.load(fin))
 
-            self.assertTrue(job.match(completed_job))
+            self.assertTrue(job.work == completed_job.work)
             self.assertGreater(datetime.now(), completed_job.completed_at)
             self.assertIsNone(completed_job.exception)
 
@@ -295,7 +287,7 @@ class TestJobsRun(unittest.TestCase):
             with lzma.open(data_file, 'rt', encoding='UTF-8') as fin:
                 tweets = []
                 for line in fin:
-                    self.assertIn(job.query.query, line.lower())
+                    self.assertIn(job.work.query.query, line.lower())
                     tweets.append(Tweet.from_json(json.loads(line)))
 
             if not allow_empty:
