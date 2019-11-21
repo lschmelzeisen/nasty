@@ -59,7 +59,7 @@ class TestRepliesUnlimited(unittest.TestCase):
 
     @RequestsCache()
     def test_1180505950613958658(self):
-        self._run_test('1180505950613958658', 209, 5)
+        self._run_test('1180505950613958658', 209, 4)
 
     @RequestsCache()
     def test_550399835682390016(self):

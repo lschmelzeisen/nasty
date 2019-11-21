@@ -1,4 +1,5 @@
 import json
+import re
 import unittest
 from datetime import date, datetime, timedelta, timezone
 
@@ -174,8 +175,15 @@ class TestSearchQueryString(unittest.TestCase):
             self.assertEqual(50, len(tweets))
             for tweet in tweets:
                 all_tweet_text = json.dumps(tweet.to_json()).lower()
-                self.assertIn('{} {}'.format(keyword1, keyword2).lower(),
-                              all_tweet_text)
+                phrase = '{} {}'.format(keyword1, keyword2).lower()
+                try:
+                    self.assertIn(phrase, all_tweet_text)
+                except AssertionError as e:
+                    # Remove non alphanumeric
+                    # See https://stackoverflow.com/a/1277047/211404
+                    all_tweet_text = re.sub('[\W_]+', '', all_tweet_text)
+                    phrase = re.sub('[\W_]+', '', phrase)
+                    self.assertIn(phrase, all_tweet_text)
 
         run_test('donald', 'trump')
         run_test('hillary', 'clinton')
@@ -204,8 +212,14 @@ class TestSearchQueryUser(unittest.TestCase):
             tweets = list(Search(query, max_tweets=50))
             self.assertEqual(50, len(tweets))
             for tweet in tweets:
-                self.assertNotEqual(
-                    0, tweet.text.lower().count('@'.format(user).lower()))
+                try:
+                    self.assertNotEqual(
+                        0, tweet.text.lower().count('@'.format(user).lower()))
+                except AssertionError as e:
+                    # Sometimes when a user creates a thread his individual
+                    # Tweets will not reply to the user, for example:
+                    # https://twitter.com/_/status/1197499643086753793
+                    self.assertEqual(user, tweet.user.screen_name)
 
         run_test('realDonaldTrump')
         run_test('HillaryClinton')
