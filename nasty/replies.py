@@ -51,8 +51,8 @@ class Replies(Conversation):
         # multiple "conversationThread-..." entries following and a
         # "cursor-bottom-..." entry at the end, which contains the contain the
         # cursor needed to fetch the next batch. Seldom it will be a
-        # "cursor-showMoreThreads-..." reply. If no more replies exist the
-        # cursor entry will also not exist.
+        # "cursor-showMoreThreads-..." or a 'cursor-showMoreThreadsPrompt-..."
+        # reply. If no more replies exist the cursor entry will also not exist.
         instructions = batch['timeline']['instructions']
 
         for entry in instructions[0]['addEntries']['entries']:
@@ -129,6 +129,8 @@ class Replies(Conversation):
                 pass
             elif entry['entryId'].startswith('cursor-showMoreThreads-'):
                 pass
+            elif entry['entryId'].startswith('cursor-showMoreThreadsPrompt-'):
+                pass
             else:
                 raise RuntimeError('Unknown entry type in entry-ID: {}'
                                    .format(entry['entryId']))
@@ -160,7 +162,22 @@ class Replies(Conversation):
         #           "actionText": "Show more replies" }}}}}
         # This is very likely related to Twitter's UI of Show more replies, but
         # I don't know what the difference to regular replies is.
-        elif cursor_entry['entryId'].startswith('cursor-showMoreThreads-'):
+        #
+        # In even rarer cases, it looks like this:
+        # { "entryId": "cursor-showMoreThreadsPrompt-8127279332145704315",
+        #   "sortIndex": "8127279332145704315",
+        #   "content": {
+        #     "operation": {
+        #       "cursor": {
+        #         "value": "LBn2QICAqL24y8K2HoTArbHpyZO2HoCApqXKh5...",
+        #         "cursorType": "ShowMoreThreadsPrompt",
+        #         "displayTreatment": {
+        #           "actionText": "Show",
+        #           "labelText": "Show additional replies, including those "
+        #                        "that may contain offensive content" }}}}}
+        elif (cursor_entry['entryId'].startswith('cursor-showMoreThreads-')
+              or cursor_entry['entryId'].startswith(
+                    'cursor-showMoreThreadsPrompt-')):
             return cursor_entry['content']['operation']['cursor']['value']
 
         return None
