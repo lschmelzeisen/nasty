@@ -53,7 +53,7 @@ class TestQueryUrlParamConversion(unittest.TestCase):
 
 
 # Due to the nature of these tests being dependent on Twitter's sorting rules,
-# some of them will break in rare circumstances (especially test_not_*()).
+# some of them will break in rare circumstances (especially test_not()).
 # Usually, rerunning the test will show it to work.
 
 
@@ -78,14 +78,14 @@ class TestSearchMaxTweets(unittest.TestCase):
         query = Search.Query('trump',
                              since=date(2019, 1, 1), until=date(2019, 1, 2))
 
-        # page_size=100 to speed up these larger requests and since we don't
+        # batch_size=100 to speed up these larger requests and since we don't
         # particularly care about accuracy to query here.
         tweets = list(Search(query, max_tweets=max_tweets, batch_size=100))
 
         self.assertEqual(max_tweets, len(tweets))
 
         # Assert that there are no duplicates.
-        self.assertEqual(max_tweets, len({tweet.id for tweet in tweets}))
+        self.assertEqual(len(tweets), len({tweet.id for tweet in tweets}))
 
 
 class TestSearchQueryString(unittest.TestCase):
@@ -227,14 +227,14 @@ class TestSearchDateRange(unittest.TestCase):
 
     @RequestsCache()
     def test_today(self):
-        # Assumes that each day there are at least 50 Tweets about "trump".
+        # Assumes that each day there are at least 40 Tweets about "trump".
         self._run_test(date.today() - timedelta(days=1),
                        date.today() + timedelta(days=1))
 
     def _run_test(self, since: date, until: date):
         query = Search.Query('trump', since=since, until=until)
-        tweets = list(Search(query, max_tweets=50))
-        self.assertEqual(50, len(tweets))
+        tweets = list(Search(query, max_tweets=40))
+        self.assertEqual(40, len(tweets))
         for tweet in tweets:
             self.assertLessEqual(since, tweet.created_at.date())
             self.assertGreater(until, tweet.created_at.date())
