@@ -1,4 +1,5 @@
 import re
+from abc import ABC, abstractmethod
 from http import HTTPStatus
 from logging import getLogger
 from typing import Dict, Iterable, Optional
@@ -12,9 +13,7 @@ from nasty.errors import UnexpectedStatusCodeException
 from nasty.tweet import Tweet
 
 
-# TODO: abstract base class
-
-class Timeline:
+class Timeline(ABC):
     """Crawls all Tweets belonging to a specific Twitter timeline view.
 
     Implemented via Twitter's mobile web interface. For this we emulate what a
@@ -45,9 +44,11 @@ class Timeline:
 
         self.num_batches_fetched = None
 
+    @abstractmethod
     def _timeline_url(self) -> Dict:
         raise NotImplementedError()
 
+    @abstractmethod
     def _batch_url(self, cursor: Optional[str] = None) -> Dict:
         raise NotImplementedError()
 
@@ -288,8 +289,10 @@ class Timeline:
 
             yield tweet
 
+    @abstractmethod
     def _tweet_ids_in_batch(self, batch: Dict) -> Iterable[str]:
         raise NotImplementedError()
 
+    @abstractmethod
     def _next_cursor_from_batch(self, batch: Dict) -> Optional[str]:
         raise NotImplementedError()

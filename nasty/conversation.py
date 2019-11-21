@@ -1,4 +1,5 @@
 from typing import Dict, Iterable, Optional
+from abc import abstractmethod
 
 from nasty.timeline import Timeline
 
@@ -48,8 +49,13 @@ class Conversation(Timeline):
             }
         }
 
+    # Copy definitions of base class, so that PyCharm doesn't give the warning
+    # that we have forgotten to implement abstract methods.
+
+    @abstractmethod
     def _tweet_ids_in_batch(self, batch: Dict) -> Iterable[str]:
         raise NotImplementedError()
 
+    @abstractmethod
     def _next_cursor_from_batch(self, batch: Dict) -> Optional[str]:
         raise NotImplementedError()
