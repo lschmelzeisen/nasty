@@ -1,5 +1,5 @@
 from itertools import zip_longest
-from typing import Any, Union, Iterable, List, TypeVar, Mapping, Sequence
+from typing import Any, Iterable, List, Mapping, Sequence, TypeVar, Union
 
 T = TypeVar('T')
 

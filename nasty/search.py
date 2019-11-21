@@ -2,7 +2,7 @@ import enum
 from datetime import date
 from enum import Enum
 from logging import getLogger
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterable, Optional
 
 from nasty.init import init_nasty
 from nasty.timeline import Timeline
@@ -228,12 +228,103 @@ class Search(Timeline):
             },
         }
 
+    def _tweet_ids_in_batch(self, batch: Dict) -> Iterable[str]:
+        # Search results are contained in instructions. The first batch of a
+        # search will look like this:
+        # { ...
+        #   "timeline": {
+        #     "id": "search-6602913952152093875",
+        #     "instructions": [
+        #       { "addEntries": {
+        #           "entries": [
+        #             { "entryId": "sq-I-t-1155486497451184128", ... },
+        #             { "entryId": "sq-I-t-1194473608061607936", ... },
+        #             { "entryId": "sq-M-1-d7721393", ... },
+        #             { "entryId": "sq-E-1981039365", ... },
+        #             ...
+        #             { "entryId": "sq-cursor-top", ... },
+        #             { "entryId": "sq-cursor-bottom", ... }]}}],
+        #     ... }}
+        #
+        # We need to separate the following entity types:
+        # - "sq-I-t-..." are the Tweets matching the search query.
+        # - "sq-M-..." contain supplementary information like user profiles that
+        #   are somehow related to the matching Tweets (usually occurs once).
+        # - "sq-E-..." seem to contain suggested live events (occur rarely).
+        # - "sq-cursor-..." entries contain the cursors to fetch the next batch.
+        #
+        # All following batches will look similar except that the
+        # "sq-cursor-..." entries are now differently placed:
+        # { ...
+        #   "timeline": {
+        #     "id": "search-6602913956034868792",
+        #     "instructions": [
+        #       { "addEntries": {
+        #           "entries": [
+        #             { "entryId": "sq-I-t-1157704001112219650", ... },
+        #             { "entryId": "sq-I-t-1156734175040266240", ... },
+        #             { ... }]}},
+        #       { "replaceEntry": {
+        #           "entryIdToReplace": "sq-cursor-top",
+        #           "entry": {
+        #             "entryId": "sq-cursor-top", ... }}},
+        #       { "replaceEntry": {
+        #           "entryIdToReplace": "sq-cursor-bottom",
+        #           "entry": {
+        #             "entryId": "sq-cursor-bottom", ... }}}],
+        #     ... }}
+        instructions = batch['timeline']['instructions']
+
+        for entry in instructions[0]['addEntries']['entries']:
+            if entry['entryId'].startswith('sq-I-t-'):
+                # Matching Tweet entries look like this:
+                # { "entryId": "sq-I-t-1155486497451184128",
+                #   "sortIndex": "999970",
+                #   "content": {
+                #     "item": {
+                #       "content": {
+                #         "tweet": {
+                #           "id": "1155486497451184128",
+                #           "displayType": "Tweet",
+                #           "highlights": { ... }}}
+                #       ... }}}
+                yield entry['content']['item']['content']['tweet']['id']
+            elif entry['entryId'].startswith('sq-M-'):
+                pass
+            elif entry['entryId'].startswith('sq-E-'):
+                pass
+            elif entry['entryId'].startswith('sq-cursor-'):
+                pass
+            else:
+                raise RuntimeError('Unknown entry type in entry-ID: {}'
+                                   .format(entry['entryId']))
+
+    def _next_cursor_from_batch(self, batch: Dict) -> Optional[str]:
+        # As documented in _tweet_ids_in_batch(), the cursor objects can occur
+        # either as part of "addEntries" or replaceEntry". We are only
+        # interested in sq-cursor-bottom and I'm not sure what sq-cursor-top is
+        # for. The actual cursor entry will look like this:
+        # { "entryId": "sq-cursor-bottom",
+        #   "sortIndex": "0",
+        #   "content": {
+        #     "operation": {
+        #       "cursor": {
+        #         "value": "scroll:thGAVUV...",
+        #         "cursorType": "Bottom" }}}}
+        instructions = batch['timeline']['instructions']
+        cursor_entry = instructions[0]['addEntries']['entries'][-1]
+        if cursor_entry['entryId'] != 'sq-cursor-bottom':
+            cursor_entry = instructions[-1]['replaceEntry']['entry']
+        if cursor_entry['entryId'] != 'sq-cursor-bottom':
+            raise RuntimeError('Could not locate cursor entry.')
+        return cursor_entry['content']['operation']['cursor']['value']
+
 
 if __name__ == '__main__':
     init_nasty()
     logger = getLogger(__name__)
 
-    query = Search.Query('trump',
-                         since=date(2019, 6, 23), until=date(2019, 6, 24))
+    query = Search.Query(
+        'trump', since=date(2019, 6, 23), until=date(2019, 6, 24))
     for tweet in Search(query, max_tweets=1000):
         logger.info(tweet)

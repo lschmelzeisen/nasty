@@ -1,10 +1,10 @@
 import logging
 from logging import getLogger
 
-import tweepy
-import urllib3
 import oauthlib
 import requests_oauthlib
+import tweepy
+import urllib3
 
 
 def setup_logging(level: str) -> None:

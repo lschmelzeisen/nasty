@@ -36,6 +36,7 @@ class Timeline:
                  batch_size: int = DEFAULT_BATCH_SIZE):
         self.max_tweets = max_tweets
         self.batch_size = batch_size
+        self.num_batches_fetched = None
 
     def _timeline_url(self) -> Dict:
         raise NotImplementedError()
@@ -66,7 +67,7 @@ class Timeline:
             self._establish_twitter_session(session)
 
             consecutive_rate_limits = 0
-            consecutive_empty_results = 0
+            consecutive_empty_batch = 0
             num_yielded_tweets = 0
             cursor = None
             while not (self.max_tweets
@@ -86,6 +87,16 @@ class Timeline:
                     raise
                 consecutive_rate_limits = 0
 
+                batch_had_tweets = False
+                for tweet in self._tweets_in_batch(batch):
+                    yield Tweet(tweet)
+
+                    batch_had_tweets = True
+                    num_yielded_tweets += 1
+                    if (self.max_tweets
+                            and num_yielded_tweets == self.max_tweets):
+                        break
+
                 # Stop the iteration once the returned batch no longer contains
                 # any Tweets. Ideally, we would like to omit this last request
                 # but there seems to be no way to detect this prior to having
@@ -93,22 +104,16 @@ class Timeline:
                 # stop sending results early, which we also can not detect.
                 # Because of this, we only stop loading once we receive empty
                 # batches multiple times in a row.
-                if not self._num_tweets_in_batch(batch):
-                    consecutive_empty_results += 1
-                    if consecutive_empty_results == 3:
-                        break
-                    continue
-                consecutive_empty_results = 0
-
-                for tweet in self._tweets_in_batch(batch):
-                    yield Tweet(tweet)
-
-                    num_yielded_tweets += 1
-                    if (self.max_tweets
-                            and num_yielded_tweets == self.max_tweets):
-                        break
+                if not batch_had_tweets:
+                    consecutive_empty_batch += 1
+                    if consecutive_empty_batch != 3:
+                        continue
+                    break
+                consecutive_empty_batch = 0
 
                 cursor = self._next_cursor_from_batch(batch)
+                if cursor is None:
+                    break
 
     def _establish_twitter_session(self, session: requests.Session) -> None:
         """Establishes a session with Twitter, so that they answer our requests.
@@ -183,7 +188,7 @@ class Timeline:
         response = session.get(main_js_url)
         self._verify_and_log_response(response)
 
-        bearer_token = re.findall('s="Web-12",u="([^"]+)"', response.text)[0]
+        bearer_token = re.findall('.="Web-12",.="([^"]+)"', response.text)[0]
 
         # Emulate cookie setting that would be performed via Javascript.
         session.cookies.set_cookie(requests.cookies.create_cookie(
@@ -211,47 +216,59 @@ class Timeline:
         """
 
         logger = getLogger(__name__)
-        logger.debug('  Fetching search batch with cursor "{}".'.format(cursor))
+        logger.debug('  Fetching batch with cursor "{}".'.format(cursor))
 
         response = session.get(**self._batch_url(cursor))
         self._verify_and_log_response(response)
 
+        if self.num_batches_fetched is None:
+            self.num_batches_fetched = 0
+        self.num_batches_fetched += 1
+
         batch = response.json()
-        logger.debug('    Contained {} Tweets.'.format(
-            self._num_tweets_in_batch(batch)))
+        logger.debug('    Contained ~{} Tweets.'.format(
+            self._approx_num_tweets_in_batch(batch)))
 
         return batch
 
     @classmethod
     def _verify_and_log_response(cls, response: requests.Response):
         logger = getLogger(__name__)
+
         status = HTTPStatus(response.status_code)
         logger.debug('    Received {} {} for {}'.format(
             status.value, status.name, response.url))
 
-        if response.status_code != 200:
+        if response.status_code != HTTPStatus.OK.value:
             raise UnexpectedStatusCodeException(
                 response.url, HTTPStatus(response.status_code))
 
     @classmethod
-    def _num_tweets_in_batch(cls, batch: Dict) -> int:
+    def _approx_num_tweets_in_batch(cls, batch: Dict) -> int:
         """Determines how many Tweets were contained in a batch.
 
         This is just an upper bound of actual timeline length, because Tweets
         might contain quoted Tweets which would also add to this."""
         return len(batch['globalObjects']['tweets'])
 
-    @classmethod
-    def _tweets_in_batch(cls, batch: Dict) -> Iterable[Dict]:
+    def _tweets_in_batch(self, batch: Dict) -> Iterable[Dict]:
+        logger = getLogger(__name__)
+
         # Grab ID to Tweet and ID to user mappings.
         tweets = batch['globalObjects']['tweets']
         users = batch['globalObjects']['users']
 
         # Iterate over the sorted order of tweet IDs.
-        for tweet_id in cls._tweet_ids_from_entries(
-                cls._entries_in_batch(batch)):
-            # Look up tweet.
-            tweet = tweets[tweet_id]
+        for tweet_id in self._tweet_ids_in_batch(batch):
+            tweet = tweets.get(tweet_id, None)
+            if tweet is None:
+                # For conversation it can sometimes happen that a Tweet-ID is
+                # returned without accompanying meta information. I have no
+                # idea why this happens or how to fix it.
+                logger.warning(
+                    'Found Tweet-ID {} in timeline, but did not receive '
+                    'Tweet meta information.'.format(tweet_id))
+                continue
 
             # Lookup user object and set for tweet.
             tweet['user'] = users[tweet['user_id_str']]
@@ -259,34 +276,13 @@ class Timeline:
             # Delete remaining user fields in order to be similar to the Twitter
             # developer API and because the information is stored in the user
             # object anyways.
-            tweet.pop('user_id')
+            tweet.pop('user_id', None)  # present on Search, not on Conversation
             tweet.pop('user_id_str')
 
             yield tweet
 
-    @classmethod
-    def _entries_in_batch(cls, batch: Dict) -> Iterable[Dict]:
-        # Entries are add/replace operations to the timeline (the list of
-        # objects visible to the user).
-        for instruction in batch['timeline']['instructions']:
-            if 'addEntries' in instruction:
-                for entry in instruction['addEntries']['entries']:
-                    yield entry
-            elif 'replaceEntry' in instruction:
-                yield instruction['replaceEntry']['entry']
+    def _tweet_ids_in_batch(self, batch: Dict) -> Iterable[str]:
+        raise NotImplementedError()
 
-    @classmethod
-    def _tweet_ids_from_entries(cls, entries: Iterable[Dict]) -> Iterable[str]:
-        for entry in sorted(
-                entries, reverse=True, key=lambda entry: entry['sortIndex']):
-            # The following determines whether the entry is a Tweet. Alternative
-            # would include ads and persons relevant to the search query.
-            if 'item' in entry['content']:
-                yield entry['content']['item']['content']['tweet']['id']
-
-    @classmethod
-    def _next_cursor_from_batch(cls, batch: Dict) -> str:
-        for entry in cls._entries_in_batch(batch):
-            if entry['entryId'] == 'sq-cursor-bottom':
-                return entry['content']['operation']['cursor']['value']
-        raise ValueError('No next cursor value in batch.')
+    def _next_cursor_from_batch(self, batch: Dict) -> Optional[str]:
+        raise NotImplementedError()
