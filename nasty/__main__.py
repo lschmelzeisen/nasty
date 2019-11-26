@@ -3,66 +3,76 @@ import logging
 import sys
 from argparse import ArgumentParser, Namespace as ArgumentNamespace
 from logging import getLogger
-from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 import nasty
-from nasty.old.jobs import build_jobs, read_jobs, run_jobs, write_jobs
+from nasty.commands.command import Command
+from nasty.commands.replies_command import RepliesCommand
+from nasty.commands.search_command import SearchCommand
+from nasty.commands.thread_command import ThreadCommand
+from nasty.util.argparse import SingleMetavarHelpFormatter
 from nasty.util.logging import setup_logging
-from nasty.util.time import yyyy_mm_dd_date
 
 
 def main(argv: List[str]):
-    setup_logging(logging.DEBUG)
-    args = load_args(argv)
+    args, command = _load_args(argv)
 
-    jobs = build_jobs(keywords=args.keywords,
-                      start_date=args.time[0],
-                      end_date=args.time[1],
-                      lang=args.lang)
-    write_jobs(jobs, Path('jobs.jsonl'))
+    numeric_log_level = getattr(logging, args.log_level)
+    setup_logging(numeric_log_level)
 
-    jobs = read_jobs(Path('jobs.jsonl'))
-    run_jobs(jobs, num_processes=1)
-
-
-def load_args(argv: List[str]) -> ArgumentNamespace:
     logger = getLogger(nasty.__name__)
     logger.debug('Raw arguments: {}'.format(argv))
+    logger.debug('Parsed arguments: {}'.format(vars(args)))
+    logger.debug('Parsed command: {}.{}'.format(command.__module__,
+                                                command.__name__))
 
+    command(args).run()
+
+
+def _load_args(argv: List[str]) -> Tuple[ArgumentNamespace, Command.__class__]:
     argparser = ArgumentParser(prog='nasty',
                                description='NASTY - NASTY Advanced Search '
                                            'Tweet Yielder, a Twitter crawler.',
-                               add_help=False)
+                               add_help=False,
+                               formatter_class=SingleMetavarHelpFormatter)
+    _config_general_arguments(argparser)
+
+    subparsers = argparser.add_subparsers(title='command', metavar='<COMMAND>')
+    subparsers.required = True
+
+    for subcommand in [SearchCommand, RepliesCommand, ThreadCommand]:
+        subparser = subparsers.add_parser(
+            subcommand.command(),
+            aliases=subcommand.aliases(),
+            help=subcommand.description(),
+            description=subcommand.description(),
+            add_help=False,
+            formatter_class=SingleMetavarHelpFormatter)
+        subparser.set_defaults(command=subcommand)
+        subcommand.config_argparser(subparser)
+        _config_general_arguments(subparser)
+
+    args = argparser.parse_args(argv)
+
+    return args, args.command
+
+
+def _config_general_arguments(argparser: ArgumentParser) -> None:
+    g = argparser.add_argument_group('General Arguments')
 
     # The following line & the add_help=False above is to be able to customize
     # the help message. See: https://stackoverflow.com/a/35848313/211404
-    argparser.add_argument('-h', '--help', action='help',
-                           default=argparse.SUPPRESS,
-                           help='Show this help message and exit.')
+    g.add_argument('-h', '--help', action='help',
+                   default=argparse.SUPPRESS,
+                   help='Show this help message and exit.')
 
-    argparser.add_argument('-v', '--version', action='version',
-                           version='%(prog)s development version',
-                           help='Show program\'s version number and exit.')
+    g.add_argument('-v', '--version', action='version',
+                   version='%(prog)s development version',
+                   help='Show program\'s version number and exit.')
 
-    argparser.add_argument('-k', '--keywords', metavar='<KEYWORD>',
-                           type=str, nargs='+', required=True, dest='keywords',
-                           help='Keywords to search for.')
-
-    argparser.add_argument('-t', '--time', metavar='<DATE>',
-                           type=yyyy_mm_dd_date, nargs=2, required=True,
-                           dest='time',
-                           help='Time range the returned tweets need to be in.'
-                                ' Date format needs to be "YYYY-MM-DD".')
-
-    argparser.add_argument('--lang', metavar='<LANG>', type=str, dest='lang',
-                           default='en', help='Twitter Language to crawl with'
-                                              ' (default: "en").')
-
-    args = argparser.parse_args(argv)
-    logger.debug('Parsed arguments: {}'.format(vars(args)))
-
-    return args
+    g.add_argument('--log-level', metavar='<LEVEL>', type=str,
+                   choices=['DEBUG', 'INFO', 'WARN', 'ERROR'], default='INFO',
+                   help='Logging level (DEBUG, INFO, WARN, ERROR.)')
 
 
 if __name__ == '__main__':

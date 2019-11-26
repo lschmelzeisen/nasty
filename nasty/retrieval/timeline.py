@@ -49,7 +49,7 @@ class Timeline(ABC):
             no more matching Tweets exist after this batch.
 
             Note that by setting anything unequal to 20 here, we make ourselves
-            easily distinguishable from normal web browser. Additionally,
+            easily distinguishable from a normal web browser. Additionally,
             advanced queries like using AND or OR seem to no longer work as
             intended. For Thread and Reply, increasing the batch_size is likely
             to also increase the number of results (no idea why Twitter is doing

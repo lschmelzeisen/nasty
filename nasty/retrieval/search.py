@@ -24,6 +24,18 @@ class Search(Timeline):
         """Data class to store values that define a Twitter search query."""
 
         class Filter(Enum):
+            """Different sorting/filtering rules for Twitter search results.
+
+            - TOP: Sort result Tweets by popularity (e.g., when a lot of people
+              are interacting with or sharing via Retweets and replies)
+            - LATEST: Sort result Tweets by most-recent post date.
+            - PHOTOS: To only see Tweets that includes photos.
+            - PHOTOS: To only see Tweets that includes videos.
+
+            See:
+            https://help.twitter.com/en/using-twitter/top-search-results-faqs
+            """
+
             TOP = enum.auto()
             LATEST = enum.auto()
             PHOTOS = enum.auto()
@@ -115,8 +127,7 @@ class Search(Timeline):
                     self.__dict__ == other.__dict__)
 
         def to_json(self) -> Dict[str, Any]:
-            obj = {}
-            obj['query'] = self.query
+            obj = {'query': self.query}
 
             if self.since:
                 obj['since'] = self.since.isoformat()

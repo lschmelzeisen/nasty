@@ -1,5 +1,5 @@
-from typing import Dict, Iterable, Optional
 from abc import abstractmethod
+from typing import Dict, Iterable, Optional
 
 from nasty.retrieval.timeline import Timeline
 
@@ -60,8 +60,8 @@ class Conversation(Timeline):
             }
         }
 
-    # Copy definitions of base class, so that PyCharm doesn't give the warning
-    # that we have forgotten to implement abstract methods.
+    # Repeating abstractmethod definitions of base class to not trigger
+    # PyCharm's inspection to implement abstract base methods.
 
     @abstractmethod
     def _tweet_ids_in_batch(self, batch: Dict) -> Iterable[str]:
