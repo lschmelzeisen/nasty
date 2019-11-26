@@ -62,17 +62,17 @@ class TestRepliesUnlimited(unittest.TestCase):
     @RequestsCache()
     @disrespect_robotstxt
     def test_1155486497451184128(self):
-        self._run_test('1155486497451184128', 200, 5)
+        self._run_test('1155486497451184128', 200, 2)
 
     @RequestsCache()
     @disrespect_robotstxt
     def test_1180505950613958658(self):
-        self._run_test('1180505950613958658', 200, 4)
+        self._run_test('1180505950613958658', 200, 2)
 
     @RequestsCache()
     @disrespect_robotstxt
     def test_550399835682390016(self):
-        self._run_test('550399835682390016', 200, 26)
+        self._run_test('550399835682390016', 200, 15)
 
     def _run_test(self, tweet_id: str, min_expected: int, min_tombstones: int):
         # batch_size=100 to speed up these larger requests.
