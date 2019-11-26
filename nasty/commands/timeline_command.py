@@ -1,8 +1,10 @@
+import json
 from abc import abstractmethod
 from argparse import ArgumentParser
-from typing import List
+from typing import Iterable, List
 
 from nasty.commands.command import Command
+from nasty.tweet import Tweet
 
 
 class TimelineCommand(Command):
@@ -34,7 +36,7 @@ class TimelineCommand(Command):
         raise NotImplementedError()
 
     @classmethod
-    def config_operational_arguments(cls, argparser: ArgumentParser) -> None:
+    def _config_operational_arguments(cls, argparser: ArgumentParser) -> None:
         g = argparser.add_argument_group(
             'Operational Arguments', 'Control how Tweets are retrieved.')
         g.add_argument('-n', '--max-tweets', metavar='<N>', type=int,
@@ -46,8 +48,13 @@ class TimelineCommand(Command):
                                         'Set to -1 for default behavior. Only '
                                         'change when necessary.')
 
-    def parse_operational_arguments(self) -> None:
+    def _parse_operational_arguments(self) -> None:
         if self._args.max_tweets == -1:
             self._args.max_tweets = None
         if self._args.batch_size == -1:
             self._args.batch_size = None
+
+    @classmethod
+    def _print_results(cls, results: Iterable[Tweet]) -> None:
+        for tweet in results:
+            print(json.dumps(tweet.to_json()))

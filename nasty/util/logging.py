@@ -6,7 +6,7 @@ import urllib3
 
 def setup_logging(level: int) -> None:
     logging.basicConfig(
-        format='{asctime} {levelname:1.1} [ {name:14} ] {message}',
+        format='{asctime} {levelname:1.1} [ {name:24} ] {message}',
         style='{',
         level=level)
 

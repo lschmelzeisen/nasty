@@ -38,7 +38,14 @@ class SearchCommand(TimelineCommand):
                        help='Two-letter language code for Tweets. Defaults to '
                             '"en".')
 
-        cls.config_operational_arguments(argparser)
+        cls._config_operational_arguments(argparser)
 
     def run(self) -> None:
-        self.parse_operational_arguments()
+        self._parse_operational_arguments()
+
+        query = Search.Query(self._args.query, self._args.since,
+                             self._args.until, self._args.filter,
+                             self._args.lang)
+        search = Search(query, self._args.max_tweets, self._args.batch_size)
+
+        self._print_results(search)
