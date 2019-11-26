@@ -1,27 +1,29 @@
 import argparse
+import logging
 import sys
 from argparse import ArgumentParser, Namespace as ArgumentNamespace
 from logging import getLogger
+from pathlib import Path
 from typing import List
 
 import nasty
-from nasty.init import get_source_folder, init_nasty
 from nasty.old.jobs import build_jobs, read_jobs, run_jobs, write_jobs
+from nasty.util.logging import setup_logging
 from nasty.util.time import yyyy_mm_dd_date
 
 
 def main(argv: List[str]):
-    config = init_nasty()
+    setup_logging(logging.DEBUG)
     args = load_args(argv)
 
     jobs = build_jobs(keywords=args.keywords,
                       start_date=args.time[0],
                       end_date=args.time[1],
                       lang=args.lang)
-    write_jobs(jobs, get_source_folder() / 'jobs.jsonl')
+    write_jobs(jobs, Path('jobs.jsonl'))
 
-    jobs = read_jobs(get_source_folder() / 'jobs.jsonl')
-    run_jobs(jobs, num_processes=config['num_processes'])
+    jobs = read_jobs(Path('jobs.jsonl'))
+    run_jobs(jobs, num_processes=1)
 
 
 def load_args(argv: List[str]) -> ArgumentNamespace:

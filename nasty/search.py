@@ -1,11 +1,12 @@
 import enum
+import logging
 from datetime import date
 from enum import Enum
 from logging import getLogger
 from typing import Any, Dict, Iterable, Optional
 
-from nasty.init import init_nasty
 from nasty.timeline import Timeline
+from nasty.util.logging import setup_logging
 from nasty.util.time import yyyy_mm_dd_date
 
 
@@ -302,7 +303,7 @@ class Search(Timeline):
 
 
 if __name__ == '__main__':
-    init_nasty()
+    setup_logging(logging.DEBUG)
     logger = getLogger(__name__)
 
     query = Search.Query(

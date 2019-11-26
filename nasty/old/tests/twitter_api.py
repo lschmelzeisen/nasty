@@ -4,7 +4,7 @@ from typing import Dict, List, Union
 import tweepy
 
 import nasty
-from nasty.init import init_nasty
+from nasty.old.init import init_nasty
 from nasty.old.tweet import Tweet
 from nasty.util.misc import chunked
 

@@ -1,12 +1,13 @@
+import logging
 import unittest
 from typing import Optional
 
-from nasty.init import init_nasty
 from nasty.tests.requests_cache import RequestsCache
 from nasty.thread import Thread
 from nasty.util.disrespect_robotstxt import disrespect_robotstxt
+from nasty.util.logging import setup_logging
 
-init_nasty()
+setup_logging(logging.DEBUG)
 
 
 class TestNoThread(unittest.TestCase):

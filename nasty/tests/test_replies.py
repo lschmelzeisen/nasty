@@ -1,11 +1,12 @@
+import logging
 import unittest
 
-from nasty.init import init_nasty
 from nasty.replies import Replies
 from nasty.tests.requests_cache import RequestsCache
 from nasty.util.disrespect_robotstxt import disrespect_robotstxt
+from nasty.util.logging import setup_logging
 
-init_nasty()
+setup_logging(logging.DEBUG)
 
 
 class TestNoReplies(unittest.TestCase):

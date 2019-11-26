@@ -1,8 +1,11 @@
+import logging
 import unittest
 from datetime import datetime, timezone
 
-from nasty.init import init_nasty
 from nasty.tweet import Tweet
+from nasty.util.logging import setup_logging
+
+setup_logging(logging.DEBUG)
 
 tweet_json = {
     # Tweet accessed via Search API on 2019-09-27
@@ -169,8 +172,6 @@ tweet_json = {
             'followed_by': None,
             'require_some_consent': False}}
 }
-
-init_nasty()
 
 
 class TestTweet(unittest.TestCase):

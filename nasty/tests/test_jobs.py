@@ -1,4 +1,5 @@
 import json
+import logging
 import lzma
 import unittest
 from datetime import date, datetime
@@ -9,16 +10,16 @@ from uuid import uuid4
 
 import responses
 
-from nasty.init import init_nasty
 from nasty.jobs import Jobs, _Job, _RepliesWork, _SearchWork, _ThreadWork
 from nasty.search import Search
 from nasty.tests.requests_cache import RequestsCache
 from nasty.tweet import Tweet
 from nasty.util.disrespect_robotstxt import disrespect_robotstxt
 from nasty.util.json import JsonSerializedException
+from nasty.util.logging import setup_logging
 from nasty.util.path import TemporaryDirectoryPath, TemporaryFilePath
 
-init_nasty()
+setup_logging(logging.DEBUG)
 
 
 class TestJobDumpLoad(unittest.TestCase):
