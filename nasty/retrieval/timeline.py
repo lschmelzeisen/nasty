@@ -10,7 +10,7 @@ import requests.cookies
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
-from nasty.errors import UnexpectedStatusCodeException
+from nasty.util.errors import UnexpectedStatusCodeException
 from nasty.tweet import Tweet
 from nasty.util.disrespect_robotstxt import is_ignoring_robotstxt
 

@@ -8,10 +8,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from nasty.replies import Replies
-from nasty.search import Search
-from nasty.thread import Thread
-from nasty.timeline import Timeline
+from nasty.retrieval.replies import Replies
+from nasty.retrieval.search import Search
+from nasty.retrieval.thread import Thread
+from nasty.retrieval.timeline import Timeline
 from nasty.util.consts import NASTY_DATE_TIME_FORMAT
 from nasty.util.json import JsonSerializedException
 

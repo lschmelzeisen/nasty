@@ -5,7 +5,7 @@ from enum import Enum
 from logging import getLogger
 from typing import Any, Dict, Iterable, Optional
 
-from nasty.timeline import Timeline
+from nasty.retrieval.timeline import Timeline
 from nasty.util.logging import setup_logging
 from nasty.util.time import yyyy_mm_dd_date
 

@@ -1,7 +1,7 @@
 from logging import getLogger
 from typing import Dict, Iterable, Optional
 
-from nasty.conversation import Conversation
+from nasty.retrieval.conversation import Conversation
 
 
 class Replies(Conversation):

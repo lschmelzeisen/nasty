@@ -4,7 +4,7 @@ import re
 import unittest
 from datetime import date, datetime, timedelta, timezone
 
-from nasty.search import Search
+from nasty.retrieval.search import Search
 from nasty.tests.requests_cache import RequestsCache
 from nasty.util.disrespect_robotstxt import disrespect_robotstxt
 from nasty.util.logging import setup_logging

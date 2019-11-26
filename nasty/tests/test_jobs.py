@@ -11,7 +11,7 @@ from uuid import uuid4
 import responses
 
 from nasty.jobs import Jobs, _Job, _RepliesWork, _SearchWork, _ThreadWork
-from nasty.search import Search
+from nasty.retrieval.search import Search
 from nasty.tests.requests_cache import RequestsCache
 from nasty.tweet import Tweet
 from nasty.util.disrespect_robotstxt import disrespect_robotstxt

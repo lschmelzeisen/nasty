@@ -1,7 +1,7 @@
 from typing import Dict, Iterable, Optional
 from abc import abstractmethod
 
-from nasty.timeline import Timeline
+from nasty.retrieval.timeline import Timeline
 
 
 class Conversation(Timeline):
