@@ -16,7 +16,7 @@ from nasty.util.consts import NASTY_DATE_TIME_FORMAT
 from nasty.util.json import JsonSerializedException
 
 
-class _Work(ABC):
+class Work(ABC):
     def __init__(self,
                  type_: str,
                  max_tweets: Optional[int] = 100,
@@ -28,7 +28,7 @@ class _Work(ABC):
     def __repr__(self) -> str:
         return type(self).__name__ + repr(self.to_json())
 
-    def __eq__(self, other: '_Work') -> bool:
+    def __eq__(self, other: 'Work') -> bool:
         return (type(self) == type(other)) and (self.__dict__ == other.__dict__)
 
     @abstractmethod
@@ -41,18 +41,18 @@ class _Work(ABC):
 
     @classmethod
     @abstractmethod
-    def from_json(cls, obj: Dict[str, Any]) -> '_Work':
+    def from_json(cls, obj: Dict[str, Any]) -> 'Work':
         if obj['type'] == 'search':
-            return _SearchWork.from_json(obj)
+            return SearchWork.from_json(obj)
         elif obj['type'] == 'replies':
-            return _RepliesWork.from_json(obj)
+            return RepliesWork.from_json(obj)
         elif obj['type'] == 'thread':
-            return _ThreadWork.from_json(obj)
+            return ThreadWork.from_json(obj)
         else:
             raise RuntimeError('Unknown work type: "{}".'.format(obj['type']))
 
 
-class _SearchWork(_Work):
+class SearchWork(Work):
     def __init__(self,
                  query: Search.Query,
                  max_tweets: Optional[int],
@@ -77,14 +77,14 @@ class _SearchWork(_Work):
         return obj
 
     @classmethod
-    def from_json(cls, obj: Dict[str, Any]) -> '_SearchWork':
+    def from_json(cls, obj: Dict[str, Any]) -> 'SearchWork':
         assert obj['type'] == 'search'
         return cls(Search.Query.from_json(obj['query']),
                    obj.get('max_tweets'),
                    obj.get('batch_size'))
 
 
-class _RepliesWork(_Work):
+class RepliesWork(Work):
     def __init__(self,
                  tweet_id: str,
                  max_tweets: Optional[int],
@@ -109,13 +109,13 @@ class _RepliesWork(_Work):
         return obj
 
     @classmethod
-    def from_json(cls, obj: Dict[str, Any]) -> '_RepliesWork':
+    def from_json(cls, obj: Dict[str, Any]) -> 'RepliesWork':
         assert obj['type'] == 'replies'
         return cls(
             obj['tweet_id'], obj.get('max_tweets'), obj.get('batch_size'))
 
 
-class _ThreadWork(_Work):
+class ThreadWork(Work):
     def __init__(self,
                  tweet_id: str,
                  max_tweets: Optional[int],
@@ -140,16 +140,16 @@ class _ThreadWork(_Work):
         return obj
 
     @classmethod
-    def from_json(cls, obj: Dict[str, Any]) -> '_ThreadWork':
+    def from_json(cls, obj: Dict[str, Any]) -> 'ThreadWork':
         assert obj['type'] == 'thread'
         return cls(
             obj['tweet_id'], obj.get('max_tweets'), obj.get('batch_size'))
 
 
-class _Job:
+class Job:
     def __init__(self,
                  id_: str,
-                 work: _Work,
+                 work: Work,
                  completed_at: Optional[datetime] = None,
                  exception: Optional[JsonSerializedException] = None):
         self.id = id_
@@ -187,9 +187,9 @@ class _Job:
         return obj
 
     @classmethod
-    def from_json(cls, obj: Dict[str, Any]) -> '_Job':
+    def from_json(cls, obj: Dict[str, Any]) -> 'Job':
         return cls(id_=obj['id'],
-                   work=_Work.from_json(obj['work']),
+                   work=Work.from_json(obj['work']),
                    completed_at=(datetime.strptime(obj['completed_at'],
                                                    NASTY_DATE_TIME_FORMAT)
                                  if 'completed_at' in obj else None),
@@ -199,7 +199,7 @@ class _Job:
 
 
 class Jobs:
-    def __init__(self, jobs: List[_Job]):
+    def __init__(self, jobs: List[Job]):
         self._jobs = jobs
 
     def __eq__(self, other: Any) -> bool:
@@ -225,7 +225,7 @@ class Jobs:
         jobs = cls.new()
         with file.open('r', encoding='UTF-8') as fin:
             for line in fin:
-                jobs._jobs.append(_Job.from_json(json.loads(line)))
+                jobs._jobs.append(Job.from_json(json.loads(line)))
 
         return jobs
 
@@ -234,21 +234,21 @@ class Jobs:
                        max_tweets: Optional[int] = 100,
                        batch_size: Optional[int] = None) -> None:
         self._jobs.append(
-            _Job(uuid4().hex, _SearchWork(query, max_tweets, batch_size)))
+            Job(uuid4().hex, SearchWork(query, max_tweets, batch_size)))
 
     def add_replies_job(self,
                         tweet_id: str,
                         max_tweets: Optional[int] = 100,
                         batch_size: Optional[int] = None) -> None:
         self._jobs.append(
-            _Job(uuid4().hex, _RepliesWork(tweet_id, max_tweets, batch_size)))
+            Job(uuid4().hex, RepliesWork(tweet_id, max_tweets, batch_size)))
 
     def add_thread_job(self,
                        tweet_id: str,
                        max_tweets: Optional[int] = 100,
                        batch_size: Optional[int] = None) -> None:
         self._jobs.append(
-            _Job(uuid4().hex, _ThreadWork(tweet_id, max_tweets, batch_size)))
+            Job(uuid4().hex, ThreadWork(tweet_id, max_tweets, batch_size)))
 
     def run(self, out_dir: Path, num_processes: int = 1) -> bool:
         logger = getLogger(__name__)
@@ -268,7 +268,7 @@ class Jobs:
         return result
 
     @classmethod
-    def _run_job(cls, job: _Job, out_dir: Path) -> bool:
+    def _run_job(cls, job: Job, out_dir: Path) -> bool:
         logger = getLogger(__name__)
         logger.info('Running job: {!r}'.format(job))
 
@@ -280,7 +280,7 @@ class Jobs:
                          'from previous run.')
 
             with meta_file.open('r', encoding='UTF-8') as fin:
-                previous_job = _Job.from_json(json.load(fin))
+                previous_job = Job.from_json(json.load(fin))
 
             if job.work != previous_job.work:
                 logger.error('  Previous job work does not match current one, '

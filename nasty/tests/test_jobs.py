@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import responses
 
-from nasty.jobs import Jobs, _Job, _RepliesWork, _SearchWork, _ThreadWork
+from nasty.jobs import Job, Jobs, RepliesWork, SearchWork, ThreadWork
 from nasty.retrieval.search import Search
 from nasty.tests.requests_cache import RequestsCache
 from nasty.tweet import Tweet
@@ -24,13 +24,13 @@ setup_logging(logging.DEBUG)
 
 class TestJobDumpLoad(unittest.TestCase):
     def test_search_job_trump(self):
-        job = _Job(uuid4().hex, _SearchWork(Search.Query('trump'), 1000, None))
-        self.assertEqual(job, _Job.from_json(job.to_json()))
+        job = Job(uuid4().hex, SearchWork(Search.Query('trump'), 1000, None))
+        self.assertEqual(job, Job.from_json(job.to_json()))
 
     def test_search_job_trump_completed_at(self):
-        job = _Job(uuid4().hex, _SearchWork(Search.Query('trump'), 10000, 100),
-                   completed_at=datetime.now())
-        self.assertEqual(job, _Job.from_json(job.to_json()))
+        job = Job(uuid4().hex, SearchWork(Search.Query('trump'), 10000, 100),
+                  completed_at=datetime.now())
+        self.assertEqual(job, Job.from_json(job.to_json()))
 
     def test_search_job_trump_exceptions(self):
         # Collect exception with trace.
@@ -39,17 +39,17 @@ class TestJobDumpLoad(unittest.TestCase):
         except ValueError as e:
             exception = JsonSerializedException.from_exception(e)
 
-        job = _Job(uuid4().hex, _SearchWork(Search.Query('trump'), 10, 1),
-                   exception=exception)
-        self.assertEqual(job, _Job.from_json(job.to_json()))
+        job = Job(uuid4().hex, SearchWork(Search.Query('trump'), 10, 1),
+                  exception=exception)
+        self.assertEqual(job, Job.from_json(job.to_json()))
 
     def test_replies_job(self):
-        job = _Job(uuid4().hex, _RepliesWork('332308211321425920', None, None))
-        self.assertEqual(job, _Job.from_json(job.to_json()))
+        job = Job(uuid4().hex, RepliesWork('332308211321425920', None, None))
+        self.assertEqual(job, Job.from_json(job.to_json()))
 
     def test_thread_job(self):
-        job = _Job(uuid4().hex, _ThreadWork('332308211321425920', 123, 456))
-        self.assertEqual(job, _Job.from_json(job.to_json()))
+        job = Job(uuid4().hex, ThreadWork('332308211321425920', 123, 456))
+        self.assertEqual(job, Job.from_json(job.to_json()))
 
 
 class TestJobsDumpLoad(unittest.TestCase):
@@ -176,7 +176,7 @@ class TestSearchJobsRun(unittest.TestCase):
             # Change job to instead query for 'obama'.
             meta_file = temp_dir / jobs._jobs[0].meta_file_name
             with meta_file.open('r', encoding='UTF-8') as fin:
-                job = _Job.from_json(json.load(fin))
+                job = Job.from_json(json.load(fin))
             job.work.query.query = 'obama'
             jobs._jobs[0] = job
 
@@ -254,7 +254,7 @@ class TestSearchJobsRun(unittest.TestCase):
             self.assertFalse(jobs.run(temp_dir))
             with (temp_dir / jobs._jobs[0].meta_file_name).open(
                     'r', encoding='UTF-8') as fin:
-                job = _Job.from_json(json.load(fin))
+                job = Job.from_json(json.load(fin))
             self.assertEqual(job.exception.type,
                              'UnexpectedStatusCodeException')
 
@@ -275,7 +275,7 @@ class TestSearchJobsRun(unittest.TestCase):
             files.remove(meta_file)
 
             with meta_file.open('r', encoding='UTF-8') as fin:
-                completed_job = _Job.from_json(json.load(fin))
+                completed_job = Job.from_json(json.load(fin))
 
             self.assertTrue(job.work == completed_job.work)
             self.assertGreater(datetime.now(), completed_job.completed_at)
