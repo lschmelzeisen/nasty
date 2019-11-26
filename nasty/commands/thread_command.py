@@ -1,8 +1,9 @@
 from argparse import ArgumentParser
-from typing import List
+from typing import Iterable, List
 
 from nasty.commands.timeline_command import TimelineCommand
 from nasty.retrieval.thread import Thread
+from nasty.tweet import Tweet
 
 
 class ThreadCommand(TimelineCommand):
@@ -19,7 +20,7 @@ class ThreadCommand(TimelineCommand):
         return 'Retrieve all Tweets threaded under a Tweet.'
 
     @classmethod
-    def config_argparser(cls, argparser: ArgumentParser) -> None:
+    def _config_retrieval_arguments(cls, argparser: ArgumentParser) -> None:
         g = argparser.add_argument_group(
             'Thread Arguments', 'Control to which Tweet threaded Tweets are '
                                 'retrieved.')
@@ -27,12 +28,7 @@ class ThreadCommand(TimelineCommand):
                        required=True, help='ID of the Tweet to retrieve '
                                            'threaded Tweets for (required).')
 
-        cls._config_operational_arguments(argparser)
-
-    def run(self) -> None:
-        self._parse_operational_arguments()
-
-        thread = Thread(self._args.tweet_id, self._args.max_tweets,
-                        self._args.batch_size)
-
-        self._print_results(thread)
+    def retrieval_iterable(self) -> Iterable[Tweet]:
+        return Thread(self._args.tweet_id,
+                      self._args.max_tweets,
+                      self._args.batch_size)

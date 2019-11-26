@@ -1,3 +1,4 @@
+import argparse
 import json
 from abc import abstractmethod
 from argparse import ArgumentParser
@@ -5,6 +6,7 @@ from typing import Iterable, List
 
 from nasty.commands.command import Command
 from nasty.tweet import Tweet
+from nasty.util.disrespect_robotstxt import disrespect_robotstxt
 
 
 class TimelineCommand(Command):
@@ -27,16 +29,9 @@ class TimelineCommand(Command):
         raise NotImplementedError()
 
     @classmethod
-    @abstractmethod
     def config_argparser(cls, argparser: ArgumentParser) -> None:
-        raise NotImplementedError()
+        cls._config_retrieval_arguments(argparser)
 
-    @abstractmethod
-    def run(self) -> None:
-        raise NotImplementedError()
-
-    @classmethod
-    def _config_operational_arguments(cls, argparser: ArgumentParser) -> None:
         g = argparser.add_argument_group(
             'Operational Arguments', 'Control how Tweets are retrieved.')
         g.add_argument('-n', '--max-tweets', metavar='<N>', type=int,
@@ -47,14 +42,34 @@ class TimelineCommand(Command):
                        default=-1, help='Batch size to retrieve Tweets in. '
                                         'Set to -1 for default behavior. Only '
                                         'change when necessary.')
+        g.add_argument('-d', '--disrespect-robotstxt', action='store_true',
+                       help=argparse.SUPPRESS)
 
-    def _parse_operational_arguments(self) -> None:
+    @classmethod
+    @abstractmethod
+    def _config_retrieval_arguments(cls, argparser: ArgumentParser) -> None:
+        raise NotImplementedError()
+
+    def run(self) -> None:
         if self._args.max_tweets == -1:
             self._args.max_tweets = None
         if self._args.batch_size == -1:
             self._args.batch_size = None
 
-    @classmethod
-    def _print_results(cls, results: Iterable[Tweet]) -> None:
-        for tweet in results:
+        if self._args.disrespect_robotstxt:
+            self.run_retrieval_with_disrespect_robotstxt()
+        else:
+            self.run_retrieval()
+
+    @disrespect_robotstxt
+    def run_retrieval_with_disrespect_robotstxt(self) -> None:
+        """Wrapper for dynamic addition of @disrespect_robotstxt decorator."""
+        self.run_retrieval()
+
+    def run_retrieval(self) -> None:
+        for tweet in self.retrieval_iterable():
             print(json.dumps(tweet.to_json()))
+
+    @abstractmethod
+    def retrieval_iterable(self) -> Iterable[Tweet]:
+        raise NotImplementedError()
