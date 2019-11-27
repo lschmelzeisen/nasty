@@ -1,9 +1,9 @@
 from argparse import ArgumentParser
-from typing import Iterable, List
+from typing import List
 
 from nasty.commands.timeline_command import TimelineCommand
 from nasty.retrieval.replies import Replies
-from nasty.tweet import Tweet
+from nasty.retrieval.timeline import Timeline
 
 
 class RepliesCommand(TimelineCommand):
@@ -20,7 +20,7 @@ class RepliesCommand(TimelineCommand):
         return 'Retrieve all directly replying Tweets to a Tweet.'
 
     @classmethod
-    def _config_retrieval_arguments(cls, argparser: ArgumentParser) -> None:
+    def _config_retrieval_args(cls, argparser: ArgumentParser) -> None:
         g = argparser.add_argument_group(
             'Replies Arguments', 'Control to which Tweet replies are '
                                  'retrieved.')
@@ -28,7 +28,7 @@ class RepliesCommand(TimelineCommand):
                        required=True, help='ID of the Tweet to retrieve '
                                            'replies for (required).')
 
-    def retrieval_iterable(self) -> Iterable[Tweet]:
+    def setup_retrieval(self) -> Timeline:
         return Replies(self._args.tweet_id,
                        self._args.max_tweets,
                        self._args.batch_size)

@@ -3,16 +3,17 @@ from abc import ABC, abstractmethod
 from http import HTTPStatus
 from logging import getLogger
 from time import sleep
-from typing import Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Optional
 
 import requests
 import requests.cookies
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
-from nasty.util.errors import UnexpectedStatusCodeException
+from nasty.jobs import Job
 from nasty.tweet import Tweet
 from nasty.util.disrespect_robotstxt import is_ignoring_robotstxt
+from nasty.util.errors import UnexpectedStatusCodeException
 
 crawl_delay: Optional[float] = None
 
@@ -31,6 +32,47 @@ class Timeline(ABC):
     format as the results from the Twitter developer API (and even contain
     more information).
     """
+
+    class Work(ABC):
+        def __init__(self,
+                     type_: str,
+                     max_tweets: Optional[int],
+                     batch_size: Optional[int]):
+            self.type = type_
+            self.max_tweets = max_tweets
+            self.batch_size = batch_size
+
+        def __repr__(self) -> str:
+            return type(self).__name__ + repr(self.to_json())
+
+        def __eq__(self, other: 'Timeline.Work') -> bool:
+            return (type(self) == type(other)) and (
+                    self.__dict__ == other.__dict__)
+
+        @abstractmethod
+        def to_timeline(self) -> 'Timeline':
+            raise NotImplementedError()
+
+        @abstractmethod
+        def to_json(self) -> Dict[str, Any]:
+            raise NotImplementedError()
+
+        @classmethod
+        @abstractmethod
+        def from_json(cls, obj: Dict[str, Any]) -> 'Timeline.Work':
+            from nasty.retrieval.search import Search
+            from nasty.retrieval.replies import Replies
+            from nasty.retrieval.thread import Thread
+
+            if obj['type'] == 'search':
+                return Search.Work.from_json(obj)
+            elif obj['type'] == 'replies':
+                return Replies.Work.from_json(obj)
+            elif obj['type'] == 'thread':
+                return Thread.Work.from_json(obj)
+            else:
+                raise RuntimeError(
+                    'Unknown work type: "{}".'.format(obj['type']))
 
     def __init__(self,
                  max_tweets: Optional[int] = 100,
@@ -73,6 +115,10 @@ class Timeline(ABC):
             self.batch_size = batch_size
 
         self.num_batches_fetched = None
+
+    @abstractmethod
+    def to_job(self) -> Job:
+        raise NotImplementedError()
 
     @abstractmethod
     def _timeline_url(self) -> Dict:

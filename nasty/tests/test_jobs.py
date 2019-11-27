@@ -6,11 +6,10 @@ from datetime import date, datetime
 from http import HTTPStatus
 from logging import getLogger
 from pathlib import Path
-from uuid import uuid4
 
 import responses
 
-from nasty.jobs import Job, Jobs, RepliesWork, SearchWork, ThreadWork
+from nasty.jobs import Job, Jobs
 from nasty.retrieval.search import Search
 from nasty.tests.requests_cache import RequestsCache
 from nasty.tweet import Tweet
@@ -24,11 +23,11 @@ setup_logging(logging.DEBUG)
 
 class TestJobDumpLoad(unittest.TestCase):
     def test_search_job_trump(self):
-        job = Job(uuid4().hex, SearchWork(Search.Query('trump'), 1000, None))
+        job = Job(_SearchWork(Search.Query('trump'), 1000, None))
         self.assertEqual(job, Job.from_json(job.to_json()))
 
     def test_search_job_trump_completed_at(self):
-        job = Job(uuid4().hex, SearchWork(Search.Query('trump'), 10000, 100),
+        job = Job(_SearchWork(Search.Query('trump'), 10000, 100),
                   completed_at=datetime.now())
         self.assertEqual(job, Job.from_json(job.to_json()))
 
@@ -39,24 +38,24 @@ class TestJobDumpLoad(unittest.TestCase):
         except ValueError as e:
             exception = JsonSerializedException.from_exception(e)
 
-        job = Job(uuid4().hex, SearchWork(Search.Query('trump'), 10, 1),
+        job = Job(_SearchWork(Search.Query('trump'), 10, 1),
                   exception=exception)
         self.assertEqual(job, Job.from_json(job.to_json()))
 
     def test_replies_job(self):
-        job = Job(uuid4().hex, RepliesWork('332308211321425920', None, None))
+        job = Job(_RepliesWork('332308211321425920', None, None))
         self.assertEqual(job, Job.from_json(job.to_json()))
 
     def test_thread_job(self):
-        job = Job(uuid4().hex, ThreadWork('332308211321425920', 123, 456))
+        job = Job(_ThreadWork('332308211321425920', 123, 456))
         self.assertEqual(job, Job.from_json(job.to_json()))
 
 
 class TestJobsDumpLoad(unittest.TestCase):
     def test_single_search_job(self):
-        def run_test(*job_args, **job_kwargs) -> None:
+        def run_test(*work_args, **work_kwargs) -> None:
             jobs = Jobs.new()
-            jobs.add_search_job(*job_args, **job_kwargs)
+            jobs.add(Job.new(_SearchWork(*work_args, **work_kwargs)))
             with TemporaryFilePath(prefix='nasty-test-',
                                    suffix='.jsonl') as temp_file:
                 jobs.dump(temp_file)

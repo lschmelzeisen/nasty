@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from typing import Dict, Iterable, Optional
 
+from nasty.jobs import Job
 from nasty.retrieval.timeline import Timeline
 
 
@@ -62,6 +63,10 @@ class Conversation(Timeline):
 
     # Repeating abstractmethod definitions of base class to not trigger
     # PyCharm's inspection to implement abstract base methods.
+
+    @abstractmethod
+    def to_job(self) -> Job:
+        raise NotImplementedError()
 
     @abstractmethod
     def _tweet_ids_in_batch(self, batch: Dict) -> Iterable[str]:

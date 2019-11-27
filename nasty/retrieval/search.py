@@ -5,6 +5,7 @@ from enum import Enum
 from logging import getLogger
 from typing import Any, Dict, Iterable, Optional
 
+from nasty.jobs import Job
 from nasty.retrieval.timeline import Timeline
 from nasty.util.logging import setup_logging
 from nasty.util.time import yyyy_mm_dd_date
@@ -19,6 +20,37 @@ class Search(Timeline):
     early, even though more matching Tweets would exists. However, there is
     no way to detect this.
     """
+
+    class Work(Timeline.Work):
+        def __init__(self,
+                     query: 'Search.Query',
+                     max_tweets: Optional[int],
+                     batch_size: Optional[int]):
+            super().__init__('search', max_tweets, batch_size)
+            self.query = query
+
+        def to_timeline(self) -> Timeline:
+            return Search(self.query, self.max_tweets, self.batch_size)
+
+        def to_json(self) -> Dict[str, Any]:
+            obj = {
+                'type': self.type,
+                'query': self.query.to_json(),
+            }
+
+            if self.max_tweets is not None:
+                obj['max_tweets'] = self.max_tweets
+            if self.batch_size is not None:
+                obj['batch_size'] = self.batch_size
+
+            return obj
+
+        @classmethod
+        def from_json(cls, obj: Dict[str, Any]) -> Timeline.Work:
+            assert obj['type'] == 'search'
+            return cls(Search.Query.from_json(obj['query']),
+                       obj.get('max_tweets'),
+                       obj.get('batch_size'))
 
     class Query:
         """Data class to store values that define a Twitter search query."""
@@ -170,6 +202,9 @@ class Search(Timeline):
 
         logger = getLogger(__name__)
         logger.debug('Searching tweets matching {}.'.format(self.query))
+
+    def to_job(self) -> Job:
+        return Job(self.Work(self.query, self.max_tweets, self.batch_size))
 
     def _timeline_url(self) -> Dict:
         return {

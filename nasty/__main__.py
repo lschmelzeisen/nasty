@@ -35,7 +35,6 @@ def _load_args(argv: List[str]) -> Tuple[ArgumentNamespace, Command.__class__]:
                                            'Tweet Yielder, a Twitter crawler.',
                                add_help=False,
                                formatter_class=SingleMetavarHelpFormatter)
-    _config_general_arguments(argparser)
 
     subparsers = argparser.add_subparsers(title='command', metavar='<COMMAND>')
     subparsers.required = True
@@ -50,14 +49,16 @@ def _load_args(argv: List[str]) -> Tuple[ArgumentNamespace, Command.__class__]:
             formatter_class=SingleMetavarHelpFormatter)
         subparser.set_defaults(command=subcommand)
         subcommand.config_argparser(subparser)
-        _config_general_arguments(subparser)
+        _config_general_args(subparser)
+
+    _config_general_args(argparser)
 
     args = argparser.parse_args(argv)
 
     return args, args.command
 
 
-def _config_general_arguments(argparser: ArgumentParser) -> None:
+def _config_general_args(argparser: ArgumentParser) -> None:
     g = argparser.add_argument_group('General Arguments')
 
     # The following line & the add_help=False above is to be able to customize

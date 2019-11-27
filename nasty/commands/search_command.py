@@ -1,9 +1,9 @@
 from argparse import ArgumentParser
-from typing import Iterable, List
+from typing import List
 
 from nasty.commands.timeline_command import TimelineCommand
 from nasty.retrieval.search import Search
-from nasty.tweet import Tweet
+from nasty.retrieval.timeline import Timeline
 from nasty.util.time import yyyy_mm_dd_date
 
 
@@ -21,7 +21,7 @@ class SearchCommand(TimelineCommand):
         return 'Retrieve Tweets using the Twitter Advanced Search.'
 
     @classmethod
-    def _config_retrieval_arguments(cls, argparser: ArgumentParser) -> None:
+    def _config_retrieval_args(cls, argparser: ArgumentParser) -> None:
         g = argparser.add_argument_group(
             'Search Arguments', 'Control what kind of Tweets are searched.')
         g.add_argument('-q', '--query', metavar='<QUERY>', type=str,
@@ -39,7 +39,7 @@ class SearchCommand(TimelineCommand):
                        help='Two-letter language code for Tweets. Defaults to '
                             '"en".')
 
-    def retrieval_iterable(self) -> Iterable[Tweet]:
+    def setup_retrieval(self) -> Timeline:
         return Search(Search.Query(self._args.query,
                                    self._args.since,
                                    self._args.until,

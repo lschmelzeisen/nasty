@@ -1,11 +1,43 @@
 from logging import getLogger
-from typing import Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Optional
 
+from nasty.jobs import Job
 from nasty.retrieval.conversation import Conversation
+from nasty.retrieval.timeline import Timeline
 
 
 class Replies(Conversation):
     """Retrieve all direct replies to a Tweet."""
+
+    class Work(Timeline.Work):
+        def __init__(self,
+                     tweet_id: str,
+                     max_tweets: Optional[int],
+                     batch_size: Optional[int]):
+            super().__init__('replies', max_tweets, batch_size)
+            self.tweet_id = tweet_id
+
+        def to_timeline(self) -> Timeline:
+            return Replies(self.tweet_id, self.max_tweets, self.batch_size)
+
+        def to_json(self) -> Dict[str, Any]:
+            obj = {
+                'type': self.type,
+                'tweet_id': self.tweet_id,
+            }
+
+            if self.max_tweets is not None:
+                obj['max_tweets'] = self.max_tweets
+            if self.batch_size is not None:
+                obj['batch_size'] = self.batch_size
+
+            return obj
+
+        @classmethod
+        def from_json(cls, obj: Dict[str, Any]) -> Timeline.Work:
+            assert obj['type'] == 'replies'
+            return cls(
+                obj['tweet_id'], obj.get('max_tweets'), obj.get('batch_size'))
 
     def __init__(self,
                  tweet_id: str,
@@ -23,6 +55,9 @@ class Replies(Conversation):
 
         logger = getLogger(__name__)
         logger.debug('Fetching replies of Tweet {}.'.format(self.tweet_id))
+
+    def to_job(self) -> Job:
+        return Job(self.Work(self.tweet_id, self.max_tweets, self.batch_size))
 
     def _tweet_ids_in_batch(self, batch: Dict) -> Iterable[str]:
         # Replies are nested in conversation threads contained in instructions.

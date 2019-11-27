@@ -1,159 +1,27 @@
 import json
 import lzma
 import multiprocessing
-from abc import ABC, abstractmethod
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from uuid import uuid4
 
-from nasty.retrieval.replies import Replies
-from nasty.retrieval.search import Search
-from nasty.retrieval.thread import Thread
-from nasty.retrieval.timeline import Timeline
 from nasty.util.consts import NASTY_DATE_TIME_FORMAT
 from nasty.util.json import JsonSerializedException
 
-
-class Work(ABC):
-    def __init__(self,
-                 type_: str,
-                 max_tweets: Optional[int] = 100,
-                 batch_size: Optional[int] = None):
-        self.type = type_
-        self.max_tweets = max_tweets
-        self.batch_size = batch_size
-
-    def __repr__(self) -> str:
-        return type(self).__name__ + repr(self.to_json())
-
-    def __eq__(self, other: 'Work') -> bool:
-        return (type(self) == type(other)) and (self.__dict__ == other.__dict__)
-
-    @abstractmethod
-    def to_timeline(self) -> Timeline:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def to_json(self) -> Dict[str, Any]:
-        raise NotImplementedError()
-
-    @classmethod
-    @abstractmethod
-    def from_json(cls, obj: Dict[str, Any]) -> 'Work':
-        if obj['type'] == 'search':
-            return SearchWork.from_json(obj)
-        elif obj['type'] == 'replies':
-            return RepliesWork.from_json(obj)
-        elif obj['type'] == 'thread':
-            return ThreadWork.from_json(obj)
-        else:
-            raise RuntimeError('Unknown work type: "{}".'.format(obj['type']))
-
-
-class SearchWork(Work):
-    def __init__(self,
-                 query: Search.Query,
-                 max_tweets: Optional[int],
-                 batch_size: Optional[int]):
-        super().__init__('search', max_tweets, batch_size)
-        self.query = query
-
-    def to_timeline(self) -> Search:
-        return Search(self.query, self.max_tweets, self.batch_size)
-
-    def to_json(self) -> Dict[str, Any]:
-        obj = {
-            'type': self.type,
-            'query': self.query.to_json(),
-        }
-
-        if self.max_tweets is not None:
-            obj['max_tweets'] = self.max_tweets
-        if self.batch_size is not None:
-            obj['batch_size'] = self.batch_size
-
-        return obj
-
-    @classmethod
-    def from_json(cls, obj: Dict[str, Any]) -> 'SearchWork':
-        assert obj['type'] == 'search'
-        return cls(Search.Query.from_json(obj['query']),
-                   obj.get('max_tweets'),
-                   obj.get('batch_size'))
-
-
-class RepliesWork(Work):
-    def __init__(self,
-                 tweet_id: str,
-                 max_tweets: Optional[int],
-                 batch_size: Optional[int]):
-        super().__init__('replies', max_tweets, batch_size)
-        self.tweet_id = tweet_id
-
-    def to_timeline(self) -> Replies:
-        return Replies(self.tweet_id, self.max_tweets, self.batch_size)
-
-    def to_json(self) -> Dict[str, Any]:
-        obj = {
-            'type': self.type,
-            'tweet_id': self.tweet_id,
-        }
-
-        if self.max_tweets is not None:
-            obj['max_tweets'] = self.max_tweets
-        if self.batch_size is not None:
-            obj['batch_size'] = self.batch_size
-
-        return obj
-
-    @classmethod
-    def from_json(cls, obj: Dict[str, Any]) -> 'RepliesWork':
-        assert obj['type'] == 'replies'
-        return cls(
-            obj['tweet_id'], obj.get('max_tweets'), obj.get('batch_size'))
-
-
-class ThreadWork(Work):
-    def __init__(self,
-                 tweet_id: str,
-                 max_tweets: Optional[int],
-                 batch_size: Optional[int]):
-        super().__init__('thread', max_tweets, batch_size)
-        self.tweet_id = tweet_id
-
-    def to_timeline(self) -> Thread:
-        return Thread(self.tweet_id, self.max_tweets, self.batch_size)
-
-    def to_json(self) -> Dict[str, Any]:
-        obj = {
-            'type': self.type,
-            'tweet_id': self.tweet_id,
-        }
-
-        if self.max_tweets is not None:
-            obj['max_tweets'] = self.max_tweets
-        if self.batch_size is not None:
-            obj['batch_size'] = self.batch_size
-
-        return obj
-
-    @classmethod
-    def from_json(cls, obj: Dict[str, Any]) -> 'ThreadWork':
-        assert obj['type'] == 'thread'
-        return cls(
-            obj['tweet_id'], obj.get('max_tweets'), obj.get('batch_size'))
+if TYPE_CHECKING:
+    from nasty.retrieval.timeline import Timeline
 
 
 class Job:
     def __init__(self,
-                 id_: str,
-                 work: Work,
+                 work: 'Timeline.Work',
+                 id_: str = uuid4().hex,
                  completed_at: Optional[datetime] = None,
                  exception: Optional[JsonSerializedException] = None):
-        self.id = id_
         self.work = work
+        self.id = id_
         self.completed_at = completed_at
         self.exception = exception
 
@@ -189,7 +57,7 @@ class Job:
     @classmethod
     def from_json(cls, obj: Dict[str, Any]) -> 'Job':
         return cls(id_=obj['id'],
-                   work=Work.from_json(obj['work']),
+                   work=Timeline.Work.from_json(obj['work']),
                    completed_at=(datetime.strptime(obj['completed_at'],
                                                    NASTY_DATE_TIME_FORMAT)
                                  if 'completed_at' in obj else None),
@@ -229,26 +97,8 @@ class Jobs:
 
         return jobs
 
-    def add_search_job(self,
-                       query: Search.Query,
-                       max_tweets: Optional[int] = 100,
-                       batch_size: Optional[int] = None) -> None:
-        self._jobs.append(
-            Job(uuid4().hex, SearchWork(query, max_tweets, batch_size)))
-
-    def add_replies_job(self,
-                        tweet_id: str,
-                        max_tweets: Optional[int] = 100,
-                        batch_size: Optional[int] = None) -> None:
-        self._jobs.append(
-            Job(uuid4().hex, RepliesWork(tweet_id, max_tweets, batch_size)))
-
-    def add_thread_job(self,
-                       tweet_id: str,
-                       max_tweets: Optional[int] = 100,
-                       batch_size: Optional[int] = None) -> None:
-        self._jobs.append(
-            Job(uuid4().hex, ThreadWork(tweet_id, max_tweets, batch_size)))
+    def add(self, job: Job):
+        self._jobs.append(job)
 
     def run(self, out_dir: Path, num_processes: int = 1) -> bool:
         logger = getLogger(__name__)

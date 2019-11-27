@@ -1,7 +1,9 @@
 from logging import getLogger
-from typing import Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Optional
 
+from nasty.jobs import Job
 from nasty.retrieval.conversation import Conversation
+from nasty.retrieval.timeline import Timeline
 
 
 class Thread(Conversation):
@@ -14,6 +16,36 @@ class Thread(Conversation):
 
     See: https://help.twitter.com/en/using-twitter/create-a-thread
     """
+
+    class Work(Timeline.Work):
+        def __init__(self,
+                     tweet_id: str,
+                     max_tweets: Optional[int],
+                     batch_size: Optional[int]):
+            super().__init__('thread', max_tweets, batch_size)
+            self.tweet_id = tweet_id
+
+        def to_timeline(self) -> Timeline:
+            return Thread(self.tweet_id, self.max_tweets, self.batch_size)
+
+        def to_json(self) -> Dict[str, Any]:
+            obj = {
+                'type': self.type,
+                'tweet_id': self.tweet_id,
+            }
+
+            if self.max_tweets is not None:
+                obj['max_tweets'] = self.max_tweets
+            if self.batch_size is not None:
+                obj['batch_size'] = self.batch_size
+
+            return obj
+
+        @classmethod
+        def from_json(cls, obj: Dict[str, Any]) -> Timeline.Work:
+            assert obj['type'] == 'thread'
+            return cls(
+                obj['tweet_id'], obj.get('max_tweets'), obj.get('batch_size'))
 
     def __init__(self,
                  tweet_id: str,
@@ -31,6 +63,9 @@ class Thread(Conversation):
 
         logger = getLogger(__name__)
         logger.debug('Fetching thread of Tweet {}.'.format(self.tweet_id))
+
+    def to_job(self):
+        return Job(self.Work(self.tweet_id, self.max_tweets, self.batch_size))
 
     def _tweet_ids_in_batch(self, batch: Dict) -> Iterable[str]:
         # The first conversation batch contains entries for the Tweet with the
@@ -150,16 +185,3 @@ class Thread(Conversation):
             return instructions[0]['addToModule']['moduleItems']
         else:
             raise RuntimeError('Could parse conversation instructions.')
-
-# 1183715553057239040
-
-# The requested Tweet entry look like this:
-# { "entryId": "tweet-1155486497451184128",
-#   "sortIndex": "8067885539403591679",
-#   "content": {
-#     "item": {
-#       "content": {
-#         "tweet": {
-#           "id": "1155486497451184128",
-#           "displayType": "SelfThread",
-#           "hasModeratedReplies": false }}}}}

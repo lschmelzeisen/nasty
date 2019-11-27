@@ -2,10 +2,10 @@ import argparse
 import json
 from abc import abstractmethod
 from argparse import ArgumentParser
-from typing import Iterable, List
+from typing import List
 
 from nasty.commands.command import Command
-from nasty.tweet import Tweet
+from nasty.retrieval.timeline import Timeline
 from nasty.util.disrespect_robotstxt import disrespect_robotstxt
 
 
@@ -30,7 +30,7 @@ class TimelineCommand(Command):
 
     @classmethod
     def config_argparser(cls, argparser: ArgumentParser) -> None:
-        cls._config_retrieval_arguments(argparser)
+        cls._config_retrieval_args(argparser)
 
         g = argparser.add_argument_group(
             'Operational Arguments', 'Control how Tweets are retrieved.')
@@ -45,9 +45,13 @@ class TimelineCommand(Command):
         g.add_argument('-d', '--disrespect-robotstxt', action='store_true',
                        help=argparse.SUPPRESS)
 
+        g = argparser.add_argument_group('Job Arguments')
+        g.add_argument('-j', '--job', action='store_true',
+                       help='lel')
+
     @classmethod
     @abstractmethod
-    def _config_retrieval_arguments(cls, argparser: ArgumentParser) -> None:
+    def _config_retrieval_args(cls, argparser: ArgumentParser) -> None:
         raise NotImplementedError()
 
     def run(self) -> None:
@@ -56,10 +60,16 @@ class TimelineCommand(Command):
         if self._args.batch_size == -1:
             self._args.batch_size = None
 
-        if self._args.disrespect_robotstxt:
+        if self._args.job:
+            print(json.dumps(self.setup_retrieval().to_job().to_json()))
+        elif self._args.disrespect_robotstxt:
             self.run_retrieval_with_disrespect_robotstxt()
         else:
             self.run_retrieval()
+
+    @abstractmethod
+    def setup_retrieval(self) -> Timeline:
+        raise NotImplementedError()
 
     @disrespect_robotstxt
     def run_retrieval_with_disrespect_robotstxt(self) -> None:
@@ -67,9 +77,5 @@ class TimelineCommand(Command):
         self.run_retrieval()
 
     def run_retrieval(self) -> None:
-        for tweet in self.retrieval_iterable():
+        for tweet in self.setup_retrieval():
             print(json.dumps(tweet.to_json()))
-
-    @abstractmethod
-    def retrieval_iterable(self) -> Iterable[Tweet]:
-        raise NotImplementedError()
