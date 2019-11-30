@@ -7,12 +7,9 @@ __pycache__/
 .idea/
 
 # Virtual environments
-venv/
+.venv/
 
-# Config file
-config.toml
-
-# Generated files
-nasty/tests/resources/requests_cache.pickle
-out/
-jobs.jsonl
+# Cache files
+.mypy_cache/
+.pytest_cache/
+tests/resources/requests_cache.pickle
