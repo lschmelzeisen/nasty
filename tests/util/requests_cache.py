@@ -1,6 +1,6 @@
 import pickle
 from logging import getLogger
-from multiprocessing import Lock, synchronize
+from multiprocessing import Lock
 from pathlib import Path
 from unittest.mock import patch
 
@@ -12,10 +12,9 @@ logger = getLogger(__name__)
 
 F = TypeVar('F', bound=Callable[..., Any])
 
-_LOCK: Final[synchronize.Lock] = Lock()
+_LOCK: Final = Lock()
 _ORIG_SESSION_SEND: Final[Callable[..., Response]] = Session.send
-_RESOURCE_DIR: Final[Path] = (Path(__file__).parent / 'resources')
-_CACHE_FILE: Final[Path] = _RESOURCE_DIR / 'requests_cache.pickle'
+_CACHE_FILE: Final = Path(__file__).parent / '.requests_cache.pickle'
 
 
 class _CacheKey:
@@ -45,8 +44,6 @@ def requests_cache(regenerate: bool = False) -> Callable[..., F]:
         key = _CacheKey(request)
 
         with _LOCK:
-            Path.mkdir(_RESOURCE_DIR, exist_ok=True, parents=True)
-
             cache: Dict[_CacheKey, Response] = {}
             if _CACHE_FILE.exists():
                 with _CACHE_FILE.open('rb') as fin:

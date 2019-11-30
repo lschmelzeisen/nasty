@@ -1,10 +1,6 @@
-import logging
 from datetime import datetime, timezone
 
-from nasty._util.logging_ import setup_logging
 from nasty.tweet.tweet import Tweet
-
-setup_logging(logging.DEBUG)
 
 tweet_json = {
     # Tweet accessed via Search API on 2019-09-27

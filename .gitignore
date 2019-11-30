@@ -12,4 +12,4 @@ __pycache__/
 # Cache files
 .mypy_cache/
 .pytest_cache/
-tests/util/resources/requests_cache.pickle
+tests/util/.requests_cache.pickle
