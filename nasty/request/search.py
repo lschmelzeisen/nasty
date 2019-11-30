@@ -98,6 +98,9 @@ class Search(Request):
         :param lang: Only search Tweets written in this language.
         """
 
+        if since is not None and until is not None and since >= until:
+            raise ValueError("since date must be before until date.")
+
         super().__init__(max_tweets=max_tweets, batch_size=batch_size)
         self.query: Final = query
         self.since: Final = since

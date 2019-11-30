@@ -29,6 +29,38 @@ DEFAULT_BATCH_SIZE: Final = 20
 
 class Request(ABC, JsonSerializable):
     def __init__(self, *, max_tweets: Optional[int], batch_size: int):
+        """Construct a new timeline view.
+
+         :param max_tweets: Stop retrieving Tweets after this many tweets have
+             been found. Set to None in order to receive as many Tweets as
+             possible. Note that this can return quite a lot of tweets,
+             especially if using Search, Filter.LATEST and no date range.
+         :param batch_size: The batch size in which Tweets should be retrieved.
+
+             The normal web interface always queries 20 Tweets per batch. Twitter
+             interprets this parameter more as a guideline and can either return
+             more or less then the requested amount. This does not indicate that
+             no more matching Tweets exist after this batch.
+
+             Note that by setting anything unequal to 20 here, we make ourselves
+             easily distinguishable from a normal web browser. Additionally,
+             advanced queries like using AND or OR seem to no longer work as
+             intended. For Thread and Reply, increasing the batch_size is likely
+             to also increase the number of results (no idea why Twitter is doing
+             this).
+
+             This parameter can be used to speed up the retrieval performance, by
+             reducing the HTTP overhead as less requests have to be performed per
+             returned Tweet. If you want to do this, we identified 100 to be a
+             good value because increasing it further does seem not return more
+             Tweets per request.
+         """
+
+        if max_tweets is not None and max_tweets <= 0:
+            raise ValueError("If max_tweets is given, it must be positive.")
+        if batch_size <= 0:
+            raise ValueError("batch_size must be positive.")
+
         self.max_tweets: Final = max_tweets
         self.batch_size: Final = batch_size
 
