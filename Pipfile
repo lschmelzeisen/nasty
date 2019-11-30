@@ -13,6 +13,7 @@ flake8-comprehensions = "~=3.1"
 flake8-print = "~=3.1"
 flake8-pyi = "~=19.3"
 isort = {extras = ["pipfile", "pyproject"],version = "~=4.3"}
+licenseheaders = {git = "https://github.com/johann-petrak/licenseheaders.git"}
 mypy = "~=0.750"
 pep8-naming = "~=0.9"
 pipenv-setup = "~=2.2"

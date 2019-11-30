@@ -31,8 +31,14 @@ check-black:
 .PHONY: check-black
 
 
-format: format-isort format-black
+format: format-licenseheaders format-isort format-black
 .PHONY: format
+
+format-licenseheaders:
+	@pipenv run licenseheaders --tmpl LICENSE.header --years 2019 --owner "Lukas Schmelzeisen" --dir nasty
+	@pipenv run licenseheaders --tmpl LICENSE.header --years 2019 --owner "Lukas Schmelzeisen" --dir stubs --additional-extensions python=.pyi
+	@pipenv run licenseheaders --tmpl LICENSE.header --years 2019 --owner "Lukas Schmelzeisen" --dir tests
+.PHONY: format-licenseheaders
 
 format-isort:
 	@pipenv run isort --recursive .
