@@ -1,21 +1,18 @@
 from abc import ABC, abstractmethod
+from typing import Dict, Mapping, Optional
 
 from overrides import overrides
-from typing import Dict, Mapping, Optional
 from typing_extensions import Final, final
 
-from ..tweet.tweet_stream import TweetStream
 from .._util.json_ import JsonSerializable
+from ..tweet.tweet_stream import TweetStream
 
 DEFAULT_MAX_TWEETS: Final = 100
 DEFAULT_BATCH_SIZE: Final = 20
 
 
 class Request(ABC, JsonSerializable):
-    def __init__(self,
-                 *,
-                 max_tweets: Optional[int],
-                 batch_size: int):
+    def __init__(self, *, max_tweets: Optional[int], batch_size: int):
         self.max_tweets: Final = max_tweets
         self.batch_size: Final = batch_size
 
@@ -33,30 +30,30 @@ class Request(ABC, JsonSerializable):
     @overrides
     def to_json(self) -> Mapping[str, object]:
         obj: Dict[str, object] = {
-            'type': type(self).__name__,
+            "type": type(self).__name__,
         }
         if self.max_tweets != DEFAULT_MAX_TWEETS:
-            obj['max_tweets'] = self.max_tweets
+            obj["max_tweets"] = self.max_tweets
         if self.batch_size != DEFAULT_BATCH_SIZE:
-            obj['batch_size'] = self.batch_size
+            obj["batch_size"] = self.batch_size
         return obj
 
     @classmethod
     @abstractmethod
     @overrides
-    def from_json(cls, obj: Mapping[str, object]) -> 'Request':
+    def from_json(cls, obj: Mapping[str, object]) -> "Request":
         from nasty.request.search import Search
         from nasty.request.replies import Replies
         from nasty.request.thread import Thread
 
-        if obj['type'] == Search.__name__:
+        if obj["type"] == Search.__name__:
             return Search.from_json(obj)
-        elif obj['type'] == Replies.__name__:
+        elif obj["type"] == Replies.__name__:
             return Replies.from_json(obj)
-        elif obj['type'] == Thread.__name__:
+        elif obj["type"] == Thread.__name__:
             return Thread.from_json(obj)
 
-        raise RuntimeError('Unknown request type: "{}".'.format(obj['type']))
+        raise RuntimeError("Unknown request type: '{}'.".format(obj["type"]))
 
     @abstractmethod
     def request(self) -> TweetStream:

@@ -1,0 +1,33 @@
+[flake8]
+exclude = .venv,old_v*
+# required for Black compatability
+max-line-length = 88
+# flake8-mccabe
+max-complexity = 10
+select =
+    # pycodestyle
+    E
+    W
+    # flake8
+    F
+    # flake8-mccabe / flake8-comprehensions
+    C
+    # flake8-builtins
+    A
+    # flake8-bugbear / flake8-bandit
+    B
+    # flake8-pyi
+    Y
+    # flake8-print
+    T
+    # pep8-naming
+    N
+ignore =
+    # required for Black compatability
+    E203
+    W503
+    # disable class-attribtues overlapping with builtins
+    A003
+per-file-ignores =
+    # Black formats stub files differently
+    stubs/*:E302,E704

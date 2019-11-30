@@ -1,14 +1,15 @@
 from itertools import zip_longest
-
 from typing import Iterable, Optional, Sequence, TypeVar
 
-T = TypeVar('T')
+_T_item = TypeVar("_T_item")
 
 
-def chunked(chunk_size: int,
-            iterable: Iterable[T],
-            pad: bool = False,
-            pad_value: Optional[T] = None) -> Iterable[Sequence[T]]:
+def chunked(
+    chunk_size: int,
+    iterable: Iterable[_T_item],
+    pad: bool = False,
+    pad_value: Optional[_T_item] = None,
+) -> Iterable[Sequence[_T_item]]:
     """Separate an iterable into equal size chunks."""
 
     iters = [iter(iterable)] * chunk_size

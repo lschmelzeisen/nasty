@@ -1,8 +1,8 @@
 from overrides import overrides
 
-from .conversation_retriever import ConversationRetriever
 from .._util.typing_ import checked_cast
 from ..request.replies import Replies
+from .conversation_retriever import ConversationRetriever
 
 
 class RepliesRetriever(ConversationRetriever):

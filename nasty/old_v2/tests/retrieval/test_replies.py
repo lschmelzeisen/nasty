@@ -1,10 +1,10 @@
 import logging
 import unittest
 
-from nasty.retrieval.replies import Replies
-from nasty.tests.util.requests_cache import RequestsCache
 from nasty._util.disrespect_robotstxt import disrespect_robotstxt
 from nasty._util.logging_ import setup_logging
+from nasty.retrieval.replies import Replies
+from nasty.tests.util.requests_cache import RequestsCache
 
 setup_logging(logging.DEBUG)
 
@@ -13,7 +13,7 @@ class TestNoReplies(unittest.TestCase):
     @RequestsCache()
     @disrespect_robotstxt
     def test_1110485791279595525(self):
-        tweets = list(Replies('1110485791279595525'))
+        tweets = list(Replies("1110485791279595525"))
         self.assertEqual(0, len(tweets))
 
 
@@ -21,13 +21,17 @@ class TestExactReplies(unittest.TestCase):
     @RequestsCache()
     @disrespect_robotstxt
     def test_1115689254271819777(self):
-        tweets = set(tweet.id for tweet in Replies('1115689254271819777'))
-        self.assertEqual(tweets,
-                         {'1115690002233556993',
-                          '1115947355000406016',
-                          '1115692135808999424',
-                          '1115903315773153280',
-                          '1115692500730171392'})
+        tweets = set(tweet.id for tweet in Replies("1115689254271819777"))
+        self.assertEqual(
+            tweets,
+            {
+                "1115690002233556993",
+                "1115947355000406016",
+                "1115692135808999424",
+                "1115903315773153280",
+                "1115692500730171392",
+            },
+        )
 
 
 class TestRepliesMaxTweets(unittest.TestCase):
@@ -47,7 +51,7 @@ class TestRepliesMaxTweets(unittest.TestCase):
         self._run_test(100)
 
     def _run_test(self, max_tweets: int):
-        tweets = list(Replies('1096092704709070851', max_tweets=max_tweets))
+        tweets = list(Replies("1096092704709070851", max_tweets=max_tweets))
 
         self.assertEqual(max_tweets, len(tweets))
 
@@ -63,17 +67,17 @@ class TestRepliesUnlimited(unittest.TestCase):
     @RequestsCache()
     @disrespect_robotstxt
     def test_1155486497451184128(self):
-        self._run_test('1155486497451184128', 200, 2)
+        self._run_test("1155486497451184128", 200, 2)
 
     @RequestsCache()
     @disrespect_robotstxt
     def test_1180505950613958658(self):
-        self._run_test('1180505950613958658', 200, 2)
+        self._run_test("1180505950613958658", 200, 2)
 
     @RequestsCache()
     @disrespect_robotstxt
     def test_550399835682390016(self):
-        self._run_test('550399835682390016', 200, 15)
+        self._run_test("550399835682390016", 200, 15)
 
     def _run_test(self, tweet_id: str, min_expected: int, min_tombstones: int):
         # batch_size=100 to speed up these larger requests.

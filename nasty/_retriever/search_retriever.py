@@ -1,8 +1,8 @@
 from overrides import overrides
 
-from .retriever import Retriever
 from .._util.typing_ import checked_cast
 from ..request.search import Search
+from .retriever import Retriever
 
 
 class SearchRetriever(Retriever):

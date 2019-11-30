@@ -6,17 +6,17 @@ Checks if all meta files have a data file. (Not tested in test_for_empty_fil..)
 Checks if data files are filled. (Checked in test_for_empty_files_marked_com..)
 """
 
+import json
+import os
 import unittest
 from pathlib import Path
-from unittest import TestCase
 from typing import List
-import os
-import json
+from unittest import TestCase
+
 from nasty.tests.old.test_for_empty_files_marked_completed import gz_is_empty
 
 
-def make_paths_from_filenames(folder: Path, files: List[str]) -> \
-        List[Path]:
+def make_paths_from_filenames(folder: Path, files: List[str]) -> List[Path]:
     paths = []
     for file in files:
         paths.append(folder / file)
@@ -25,11 +25,11 @@ def make_paths_from_filenames(folder: Path, files: List[str]) -> \
 
 
 class TestIfAllDataForMetaIsDownloaded(TestCase):
-
     def test_if_all_marked_completed(self):
         out_directory = Path().absolute().parent.parent / "out"
-        meta_filenames = [f for f in os.listdir(out_directory)
-                          if f.endswith("meta.json")]
+        meta_filenames = [
+            f for f in os.listdir(out_directory) if f.endswith("meta.json")
+        ]
         meta_files = make_paths_from_filenames(out_directory, meta_filenames)
         is_failed = False
         failed_files = []
@@ -48,8 +48,9 @@ class TestIfAllDataForMetaIsDownloaded(TestCase):
 
     def test_if_all_meta_have_data_files(self):
         out_directory = Path().absolute().parent.parent / "out"
-        meta_filenames = [f for f in os.listdir(out_directory)
-                          if f.endswith("meta.json")]
+        meta_filenames = [
+            f for f in os.listdir(out_directory) if f.endswith("meta.json")
+        ]
         is_failed = False
         failed_files = []
         for meta_filename in meta_filenames:
@@ -66,8 +67,9 @@ class TestIfAllDataForMetaIsDownloaded(TestCase):
 
     def test_for_empty_data_files(self):
         out_directory = Path().absolute().parent.parent / "out"
-        meta_filenames = [f for f in os.listdir(out_directory)
-                          if f.endswith("meta.json")]
+        meta_filenames = [
+            f for f in os.listdir(out_directory) if f.endswith("meta.json")
+        ]
         is_failed = False
         failed_files = []
         for meta_filename in meta_filenames:
@@ -83,5 +85,5 @@ class TestIfAllDataForMetaIsDownloaded(TestCase):
             self.fail("Not all data files are filled.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

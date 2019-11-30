@@ -1,7 +1,5 @@
 from typing import Any, Callable, TypeVar
 
-F = TypeVar('F', bound=Callable[..., Any])
+_T_func = TypeVar("_T_func", bound=Callable[..., Any])
 
-
-def overrides(func: F) -> F:
-    ...
+def overrides(func: _T_func) -> _T_func: ...

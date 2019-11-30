@@ -18,11 +18,10 @@ class Thread(Conversation):
     """
 
     class Work(Timeline.Work):
-        def __init__(self,
-                     tweet_id: str,
-                     max_tweets: Optional[int],
-                     batch_size: Optional[int]):
-            super().__init__('thread', max_tweets, batch_size)
+        def __init__(
+            self, tweet_id: str, max_tweets: Optional[int], batch_size: Optional[int]
+        ):
+            super().__init__("thread", max_tweets, batch_size)
             self.tweet_id = tweet_id
 
         def to_timeline(self) -> Timeline:
@@ -30,27 +29,28 @@ class Thread(Conversation):
 
         def to_json(self) -> Dict[str, Any]:
             obj = {
-                'type': self.type,
-                'tweet_id': self.tweet_id,
+                "type": self.type,
+                "tweet_id": self.tweet_id,
             }
 
             if self.max_tweets is not None:
-                obj['max_tweets'] = self.max_tweets
+                obj["max_tweets"] = self.max_tweets
             if self.batch_size is not None:
-                obj['batch_size'] = self.batch_size
+                obj["batch_size"] = self.batch_size
 
             return obj
 
         @classmethod
         def from_json(cls, obj: Dict[str, Any]) -> Timeline.Work:
-            assert obj['type'] == 'thread'
-            return cls(
-                obj['tweet_id'], obj.get('max_tweets'), obj.get('batch_size'))
+            assert obj["type"] == "thread"
+            return cls(obj["tweet_id"], obj.get("max_tweets"), obj.get("batch_size"))
 
-    def __init__(self,
-                 tweet_id: str,
-                 max_tweets: Optional[int] = 100,
-                 batch_size: Optional[int] = None):
+    def __init__(
+        self,
+        tweet_id: str,
+        max_tweets: Optional[int] = 100,
+        batch_size: Optional[int] = None,
+    ):
         """"Constructs a new thread view.
 
         See the base class for documentation of the tweet_id, max_tweets, and
@@ -58,11 +58,12 @@ class Thread(Conversation):
         """
 
         super().__init__(
-            tweet_id=tweet_id, max_tweets=max_tweets, batch_size=batch_size)
+            tweet_id=tweet_id, max_tweets=max_tweets, batch_size=batch_size
+        )
         self.num_tombstones = None
 
         logger = getLogger(__name__)
-        logger.debug('Fetching thread of Tweet {}.'.format(self.tweet_id))
+        logger.debug("Fetching thread of Tweet {}.".format(self.tweet_id))
 
     def to_job(self):
         return Job(self.Work(self.tweet_id, self.max_tweets, self.batch_size))
@@ -110,7 +111,7 @@ class Thread(Conversation):
         #             { "entryId": "tweet-1156634771507810306", ... },
         #             ... ]}}]}}
         for entry in self._parse_batch_instructions(batch):
-            if entry['entryId'].startswith('tweet-'):
+            if entry["entryId"].startswith("tweet-"):
                 # Tweets in the thread look like this:
                 # { "entryId": "tweet-1155488356165398528",
                 #   "item": {
@@ -120,7 +121,7 @@ class Thread(Conversation):
                 #         "displayType": "SelfThread" }}
                 #     ... }}
 
-                if 'tombstone' in entry['item']['content']:
+                if "tombstone" in entry["item"]["content"]:
                     # Sometimes Tweets become unavailable over time (for
                     # instance because they were deleted). They sometimes still
                     # show up in results but are only designated with a
@@ -143,14 +144,16 @@ class Thread(Conversation):
                     self.num_tombstones += 1
 
                 else:
-                    yield entry['item']['content']['tweet']['id']
+                    yield entry["item"]["content"]["tweet"]["id"]
 
-            elif (entry['entryId'].startswith('conversationThread-')
-                  and entry['entryId'].endswith('-show_more_cursor')):
+            elif entry["entryId"].startswith("conversationThread-") and entry[
+                "entryId"
+            ].endswith("-show_more_cursor"):
                 pass
             else:
-                raise RuntimeError('Unknown entry type in entry-ID: {}'
-                                   .format(entry['entryId']))
+                raise RuntimeError(
+                    "Unknown entry type in entry-ID: {}".format(entry["entryId"])
+                )
 
     def _next_cursor_from_batch(self, batch: Dict) -> Optional[str]:
         # See the documentation of _tweet_ids_in_batch() on where the cursor
@@ -165,23 +168,26 @@ class Thread(Conversation):
         #          "actionText": "5 more replies" }}}
         #       ... }}
         cursor_entry = self._parse_batch_instructions(batch)[-1]
-        if (cursor_entry['entryId'].startswith('conversationThread-')
-                and cursor_entry['entryId'].endswith('-show_more_cursor')):
-            return cursor_entry['item']['content']['timelineCursor']['value']
+        if cursor_entry["entryId"].startswith("conversationThread-") and cursor_entry[
+            "entryId"
+        ].endswith("-show_more_cursor"):
+            return cursor_entry["item"]["content"]["timelineCursor"]["value"]
         return None
 
     @classmethod
     def _parse_batch_instructions(cls, batch: Dict) -> Iterable[Dict]:
         # See the documentation of _tweet_ids_in_batch() on what JSON-structures
         # this navigates.
-        instructions = batch['timeline']['instructions']
-        if 'addEntries' in instructions[0]:
-            entries = instructions[0]['addEntries']['entries']
-            if not (len(entries) >= 2 and entries[1]['entryId'].startswith(
-                    'conversationThread-')):
+        instructions = batch["timeline"]["instructions"]
+        if "addEntries" in instructions[0]:
+            entries = instructions[0]["addEntries"]["entries"]
+            if not (
+                len(entries) >= 2
+                and entries[1]["entryId"].startswith("conversationThread-")
+            ):
                 return []
-            return entries[1]['content']['timelineModule']['items']
-        elif 'addToModule' in instructions[0]:
-            return instructions[0]['addToModule']['moduleItems']
+            return entries[1]["content"]["timelineModule"]["items"]
+        elif "addToModule" in instructions[0]:
+            return instructions[0]["addToModule"]["moduleItems"]
         else:
-            raise RuntimeError('Could parse conversation instructions.')
+            raise RuntimeError("Could parse conversation instructions.")

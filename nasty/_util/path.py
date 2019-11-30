@@ -6,7 +6,7 @@ from overrides import overrides
 
 
 @contextmanager
-def TemporaryFilePath(*args, **kwargs):
+def TemporaryFilePath(*args, **kwargs):  # noqa: N802
     file = NamedTemporaryFile(*args, **kwargs, delete=False)
     path = Path(file.name)
     file.close()

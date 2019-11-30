@@ -1,11 +1,10 @@
 from inspect import stack
-
 from typing import Any, Callable, TypeVar, cast
 
-F = TypeVar('F', bound=Callable[..., Any])
+_T_func = TypeVar("_T_func", bound=Callable[..., Any])
 
 
-def disrespect_robotstxt(func: F) -> F:
+def disrespect_robotstxt(func: _T_func) -> _T_func:
     """Decorator to mark call stacks that should ignore robots.txt requirements.
 
     Specifically, this is used to designate Timeline to ignore the Crawl-Delay
@@ -28,13 +27,13 @@ def disrespect_robotstxt(func: F) -> F:
     def disrespect_robotstxt_marker(*args, **kwargs):  # type: ignore
         return func(*args, **kwargs)
 
-    return cast(F, disrespect_robotstxt_marker)
+    return cast(_T_func, disrespect_robotstxt_marker)
 
 
 def is_ignoring_robotstxt() -> bool:
     result = False
     for frame in stack():
-        if frame.function == 'disrespect_robotstxt_marker':
+        if frame.function == "disrespect_robotstxt_marker":
             result = True
 
         # Need to explicitly delete frame reference to avoid reference cycle.

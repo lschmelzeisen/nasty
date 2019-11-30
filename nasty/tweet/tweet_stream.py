@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
+from typing import Iterable, Iterator
 
 from overrides import overrides
-from typing import Iterable, Iterator
 
 from .tweet import Tweet
 

@@ -10,16 +10,15 @@ from ..tweet.tweet_stream import TweetStream
 
 class RetrieverTweetStream(TweetStream):
     @overrides
-    def __init__(self, retriever: 'Retriever'):
+    def __init__(self, retriever: "Retriever"):
         self._retriever: Final = retriever
-        ...
 
     @overrides
     def __next__(self) -> Tweet:
-        ...
+        pass
 
     @property
-    def retriever(self) -> 'Retriever':
+    def retriever(self) -> "Retriever":
         return self._retriever
 
 

@@ -10,10 +10,10 @@ import requests.cookies
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
-from nasty.jobs import Job
-from nasty.tweet import Tweet
 from nasty._util.disrespect_robotstxt import is_ignoring_robotstxt
 from nasty._util.errors import UnexpectedStatusCodeException
+from nasty.jobs import Job
+from nasty.tweet import Tweet
 
 crawl_delay: Optional[float] = None
 
@@ -34,10 +34,9 @@ class Timeline(ABC):
     """
 
     class Work(ABC):
-        def __init__(self,
-                     type_: str,
-                     max_tweets: Optional[int],
-                     batch_size: Optional[int]):
+        def __init__(
+            self, type_: str, max_tweets: Optional[int], batch_size: Optional[int]
+        ):
             self.type = type_
             self.max_tweets = max_tweets
             self.batch_size = batch_size
@@ -45,12 +44,11 @@ class Timeline(ABC):
         def __repr__(self) -> str:
             return type(self).__name__ + repr(self.to_json())
 
-        def __eq__(self, other: 'Timeline.Work') -> bool:
-            return (type(self) == type(other)) and (
-                    self.__dict__ == other.__dict__)
+        def __eq__(self, other: "Timeline.Work") -> bool:
+            return (type(self) == type(other)) and (self.__dict__ == other.__dict__)
 
         @abstractmethod
-        def to_timeline(self) -> 'Timeline':
+        def to_timeline(self) -> "Timeline":
             raise NotImplementedError()
 
         @abstractmethod
@@ -59,24 +57,23 @@ class Timeline(ABC):
 
         @classmethod
         @abstractmethod
-        def from_json(cls, obj: Dict[str, Any]) -> 'Timeline.Work':
+        def from_json(cls, obj: Dict[str, Any]) -> "Timeline.Work":
             from nasty.retrieval.search import Search
             from nasty.retrieval.replies import Replies
             from nasty.retrieval.thread import Thread
 
-            if obj['type'] == 'search':
+            if obj["type"] == "search":
                 return Search.Work.from_json(obj)
-            elif obj['type'] == 'replies':
+            elif obj["type"] == "replies":
                 return Replies.Work.from_json(obj)
-            elif obj['type'] == 'thread':
+            elif obj["type"] == "thread":
                 return Thread.Work.from_json(obj)
             else:
-                raise RuntimeError(
-                    'Unknown work type: "{}".'.format(obj['type']))
+                raise RuntimeError('Unknown work type: "{}".'.format(obj["type"]))
 
-    def __init__(self,
-                 max_tweets: Optional[int] = 100,
-                 batch_size: Optional[int] = None):
+    def __init__(
+        self, max_tweets: Optional[int] = 100, batch_size: Optional[int] = None
+    ):
         """Construct a new timeline view.
 
         :param max_tweets: Stop retrieving Tweets after this many tweets have
@@ -135,16 +132,28 @@ class Timeline(ABC):
         with requests.Session() as session:
             # Configure on which status codes we should perform automated
             # retries.
-            session.mount('https://', HTTPAdapter(max_retries=Retry(
-                total=5, connect=5, redirect=10, backoff_factor=0.1,
-                raise_on_redirect=True, raise_on_status=True,
-                status_forcelist=[HTTPStatus.REQUEST_TIMEOUT,  # HTTP 408
-                                  HTTPStatus.CONFLICT,  # HTTP 409
-                                  HTTPStatus.INTERNAL_SERVER_ERROR,  # HTTP 500
-                                  HTTPStatus.NOT_IMPLEMENTED,  # HTTP 501
-                                  HTTPStatus.BAD_GATEWAY,  # HTTP 502
-                                  HTTPStatus.SERVICE_UNAVAILABLE,  # HTTP 503
-                                  HTTPStatus.GATEWAY_TIMEOUT])))  # HTTP 504
+            session.mount(
+                "https://",
+                HTTPAdapter(
+                    max_retries=Retry(
+                        total=5,
+                        connect=5,
+                        redirect=10,
+                        backoff_factor=0.1,
+                        raise_on_redirect=True,
+                        raise_on_status=True,
+                        status_forcelist=[
+                            HTTPStatus.REQUEST_TIMEOUT,  # HTTP 408
+                            HTTPStatus.CONFLICT,  # HTTP 409
+                            HTTPStatus.INTERNAL_SERVER_ERROR,  # HTTP 500
+                            HTTPStatus.NOT_IMPLEMENTED,  # HTTP 501
+                            HTTPStatus.BAD_GATEWAY,  # HTTP 502
+                            HTTPStatus.SERVICE_UNAVAILABLE,  # HTTP 503
+                            HTTPStatus.GATEWAY_TIMEOUT,
+                        ],
+                    )
+                ),
+            )  # HTTP 504
 
             # Need to establish a session with Twitter, else we would only get
             # rate limit errors for all requests to api.twitter.com.
@@ -154,16 +163,14 @@ class Timeline(ABC):
             consecutive_empty_batch = 0
             num_yielded_tweets = 0
             cursor = None
-            while not (self.max_tweets
-                       and num_yielded_tweets == self.max_tweets):
+            while not (self.max_tweets and num_yielded_tweets == self.max_tweets):
                 # Load the next result batch. If we run into rate limit errors,
                 # establish a new session. Only stop when this fails multiple
                 # times in a row.
                 try:
                     batch = self._fetch_batch(session, cursor=cursor)
                 except UnexpectedStatusCodeException as e:
-                    if (e.status_code
-                            == HTTPStatus.TOO_MANY_REQUESTS):  # HTTP 429
+                    if e.status_code == HTTPStatus.TOO_MANY_REQUESTS:  # HTTP 429
                         consecutive_rate_limits += 1
                         if consecutive_rate_limits != 3:
                             self._establish_twitter_session(session)
@@ -177,8 +184,7 @@ class Timeline(ABC):
 
                     batch_had_tweets = True
                     num_yielded_tweets += 1
-                    if (self.max_tweets
-                            and num_yielded_tweets == self.max_tweets):
+                    if self.max_tweets and num_yielded_tweets == self.max_tweets:
                         break
 
                 # Stop the iteration once the returned batch no longer contains
@@ -234,25 +240,26 @@ class Timeline(ABC):
         """
 
         logger = getLogger(__name__)
-        logger.debug('  Establishing new Twitter session.')
+        logger.debug("  Establishing new Twitter session.")
 
         session.headers.clear()
         session.cookies.clear()
 
         # We use the current Chrome User-Agent string to get the most recent
         # version of the Twitter mobile website.
-        session.headers['User-Agent'] = (
-            'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N)'
-            ' AppleWebKit/537.36 (KHTML, like Gecko)'
-            ' Chrome/68.0.3440.84 Mobile Safari/537.36'
-            ' NASTYbot')
+        session.headers["User-Agent"] = (
+            "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N)"
+            " AppleWebKit/537.36 (KHTML, like Gecko)"
+            " Chrome/68.0.3440.84 Mobile Safari/537.36"
+            " NASTYbot"
+        )
 
         # The following header shouldn't matter for the actual returned Tweets.
         # Still, since api.twitter.com also returns some localized strings for
         # the UI (e.g. headings), we set this to English, so these strings are
         # always the same. If not set, Twitter will guesstimate the language
         # from the IP.
-        session.headers['Accept-Language'] = 'en_US,en'
+        session.headers["Accept-Language"] = "en_US,en"
 
         # Query HTML stub page. Also automatically adds any returned cookies by
         # Twitter via response headers to the session.
@@ -261,11 +268,12 @@ class Timeline(ABC):
         self._verify_and_log_response(response)
 
         main_js_url = re.findall(
-            '(https://abs.twimg.com/responsive-web/web/main.[a-z0-9]+.js)',
-            response.text)[0]
+            "(https://abs.twimg.com/responsive-web/web/main.[a-z0-9]+.js)",
+            response.text,
+        )[0]
         guest_token = re.findall(
-            'document\\.cookie = decodeURIComponent\\(\\"gt=([0-9]+);',
-            response.text)[0]
+            'document\\.cookie = decodeURIComponent\\(\\"gt=([0-9]+);', response.text
+        )[0]
 
         # Queries the JS-script that carries the bearer token. Currently, this
         # does not seem to constant for all users, but we still check in case
@@ -277,19 +285,23 @@ class Timeline(ABC):
         bearer_token = re.findall('.="Web-12",.="([^"]+)"', response.text)[0]
 
         # Emulate cookie setting that would be performed via Javascript.
-        session.cookies.set_cookie(requests.cookies.create_cookie(
-            'gt', guest_token, domain='.twitter.com', path='/'))
+        session.cookies.set_cookie(
+            requests.cookies.create_cookie(
+                "gt", guest_token, domain=".twitter.com", path="/"
+            )
+        )
 
         # Set the two headers that we need to access api.twitter.com.
-        session.headers['Authorization'] = 'Bearer {}'.format(bearer_token)
-        session.headers['X-Guest-Token'] = guest_token
+        session.headers["Authorization"] = "Bearer {}".format(bearer_token)
+        session.headers["X-Guest-Token"] = guest_token
 
-        logger.debug('    Guest token: {}. Bearer token: {}.'.format(
-            guest_token, bearer_token))
+        logger.debug(
+            "    Guest token: {}. Bearer token: {}.".format(guest_token, bearer_token)
+        )
 
-    def _fetch_batch(self,
-                     session: requests.Session,
-                     cursor: Optional[str] = None) -> Dict:
+    def _fetch_batch(
+        self, session: requests.Session, cursor: Optional[str] = None
+    ) -> Dict:
         """Fetches the next batch of Tweets in the timeline.
 
         :param session: A session established with Twitter.
@@ -313,8 +325,9 @@ class Timeline(ABC):
         self.num_batches_fetched += 1
 
         batch = response.json()
-        logger.debug('    Contained ~{} Tweets.'.format(
-            self._approx_num_tweets_in_batch(batch)))
+        logger.debug(
+            "    Contained ~{} Tweets.".format(self._approx_num_tweets_in_batch(batch))
+        )
 
         return batch
 
@@ -327,18 +340,17 @@ class Timeline(ABC):
 
         global crawl_delay
         if crawl_delay is None:
-            response = session.get('https://mobile.twitter.com/robots.txt')
+            response = session.get("https://mobile.twitter.com/robots.txt")
             cls._verify_and_log_response(response)
 
             for line in response.text.splitlines():
-                if line.lower().startswith('crawl-delay:'):
-                    crawl_delay = float(line[len('crawl-delay:'):])
+                if line.lower().startswith("crawl-delay:"):
+                    crawl_delay = float(line[len("crawl-delay:") :])
                     break
             else:
-                raise RuntimeError('Could not determine crawl-delay.')
+                raise RuntimeError("Could not determine crawl-delay.")
 
-            logger.debug(
-                '    Determined crawl-delay of {:.2f}s.'.format(crawl_delay))
+            logger.debug("    Determined crawl-delay of {:.2f}s.".format(crawl_delay))
 
         sleep(crawl_delay)
 
@@ -347,12 +359,14 @@ class Timeline(ABC):
         logger = getLogger(__name__)
 
         status = HTTPStatus(response.status_code)
-        logger.debug('    Received {} {} for {}'.format(
-            status.value, status.name, response.url))
+        logger.debug(
+            "    Received {} {} for {}".format(status.value, status.name, response.url)
+        )
 
         if response.status_code != HTTPStatus.OK.value:
             raise UnexpectedStatusCodeException(
-                response.url, HTTPStatus(response.status_code))
+                response.url, HTTPStatus(response.status_code)
+            )
 
     @classmethod
     def _approx_num_tweets_in_batch(cls, batch: Dict) -> int:
@@ -360,14 +374,14 @@ class Timeline(ABC):
 
         This is just an upper bound of actual timeline length, because Tweets
         might contain quoted Tweets which would also add to this."""
-        return len(batch['globalObjects']['tweets'])
+        return len(batch["globalObjects"]["tweets"])
 
     def _tweets_in_batch(self, batch: Dict) -> Iterable[Dict]:
         logger = getLogger(__name__)
 
         # Grab ID to Tweet and ID to user mappings.
-        tweets = batch['globalObjects']['tweets']
-        users = batch['globalObjects']['users']
+        tweets = batch["globalObjects"]["tweets"]
+        users = batch["globalObjects"]["users"]
 
         # Iterate over the sorted order of tweet IDs.
         for tweet_id in self._tweet_ids_in_batch(batch):
@@ -377,18 +391,19 @@ class Timeline(ABC):
                 # returned without accompanying meta information. I have no
                 # idea why this happens or how to fix it.
                 logger.warning(
-                    'Found Tweet-ID {} in timeline, but did not receive '
-                    'Tweet meta information.'.format(tweet_id))
+                    "Found Tweet-ID {} in timeline, but did not receive "
+                    "Tweet meta information.".format(tweet_id)
+                )
                 continue
 
             # Lookup user object and set for tweet.
-            tweet['user'] = users[tweet['user_id_str']]
+            tweet["user"] = users[tweet["user_id_str"]]
 
             # Delete remaining user fields in order to be similar to the Twitter
             # developer API and because the information is stored in the user
             # object anyways.
-            tweet.pop('user_id', None)  # present on Search, not on Conversation
-            tweet.pop('user_id_str')
+            tweet.pop("user_id", None)  # present on Search, not on Conversation
+            tweet.pop("user_id_str")
 
             yield tweet
 

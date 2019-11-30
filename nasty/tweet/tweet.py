@@ -1,7 +1,7 @@
 from datetime import datetime
+from typing import Mapping, cast
 
 from overrides import overrides
-from typing import Mapping, cast
 from typing_extensions import Final
 
 from .._util.consts import TWITTER_CREATED_AT_FORMAT
@@ -19,13 +19,14 @@ class Tweet(JsonSerializable):
 
     @overrides
     def __repr__(self) -> str:
-        return type(self).__name__ + repr({
-            'created_at': self.created_at,
-            'id': self.id,
-            'text': self.text,
-            'user': self.user,
-            'url': self.url,
-        })
+        obj = {
+            "created_at": self.created_at,
+            "id": self.id,
+            "text": self.text,
+            "user": self.user,
+            "url": self.url,
+        }
+        return type(self).__name__ + repr(obj)
 
     @overrides
     def __eq__(self, other: object) -> bool:
@@ -33,24 +34,25 @@ class Tweet(JsonSerializable):
 
     @property
     def created_at(self) -> datetime:
-        return datetime.strptime(checked_cast(str, self.json['created_at']),
-                                 TWITTER_CREATED_AT_FORMAT)
+        return datetime.strptime(
+            checked_cast(str, self.json["created_at"]), TWITTER_CREATED_AT_FORMAT
+        )
 
     @property
     def id(self) -> TweetId:
-        return checked_cast(TweetId, self.json['id_str'])
+        return checked_cast(TweetId, self.json["id_str"])
 
     @property
     def text(self) -> str:
-        return checked_cast(str, self.json['full_text'])
+        return checked_cast(str, self.json["full_text"])
 
     @property
-    def user(self) -> 'User':
-        return User(cast(Mapping[str, object], self.json['user']))
+    def user(self) -> "User":
+        return User(cast(Mapping[str, object], self.json["user"]))
 
     @property
     def url(self) -> str:
-        return '{}/status/{}'.format(self.user.url, self.id)
+        return "{}/status/{}".format(self.user.url, self.id)
 
     @overrides
     def to_json(self) -> Mapping[str, object]:
@@ -58,7 +60,7 @@ class Tweet(JsonSerializable):
 
     @classmethod
     @overrides
-    def from_json(cls, obj: Mapping[str, object]) -> 'Tweet':
+    def from_json(cls, obj: Mapping[str, object]) -> "Tweet":
         return cls(obj)
 
 
@@ -73,12 +75,13 @@ class User(JsonSerializable):
 
     @overrides
     def __repr__(self) -> str:
-        return type(self).__name__ + repr({
-            'id': self.id,
-            'name': self.name,
-            'screen_name': self.screen_name,
-            'url': self.url,
-        })
+        obj = {
+            "id": self.id,
+            "name": self.name,
+            "screen_name": self.screen_name,
+            "url": self.url,
+        }
+        return type(self).__name__ + repr(obj)
 
     @overrides
     def __eq__(self, other: object) -> bool:
@@ -86,19 +89,19 @@ class User(JsonSerializable):
 
     @property
     def id(self) -> UserId:
-        return checked_cast(UserId, self.json['id_str'])
+        return checked_cast(UserId, self.json["id_str"])
 
     @property
     def name(self) -> str:
-        return checked_cast(str, self.json['name'])
+        return checked_cast(str, self.json["name"])
 
     @property
     def screen_name(self) -> str:
-        return checked_cast(str, self.json['screen_name'])
+        return checked_cast(str, self.json["screen_name"])
 
     @property
     def url(self) -> str:
-        return 'https://twitter.com/{}'.format(self.screen_name)
+        return "https://twitter.com/{}".format(self.screen_name)
 
     @overrides
     def to_json(self) -> Mapping[str, object]:
@@ -106,5 +109,5 @@ class User(JsonSerializable):
 
     @classmethod
     @overrides
-    def from_json(cls, obj: Mapping[str, object]) -> 'User':
+    def from_json(cls, obj: Mapping[str, object]) -> "User":
         return cls(obj)

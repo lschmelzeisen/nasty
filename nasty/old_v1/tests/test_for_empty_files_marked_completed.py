@@ -2,16 +2,17 @@
 Useful to check if user-agent needs to be changed.
 But can also fail for empty searches (keyword-day).
 """
-import unittest
-from unittest import TestCase
-import os
 import gzip
 import json
+import os
 import tempfile
+import unittest
 from datetime import date, timedelta
-from typing import List, Tuple
 from pathlib import Path
-from nasty.old.jobs import run_jobs, build_jobs
+from typing import List, Tuple
+from unittest import TestCase
+
+from nasty.old.jobs import build_jobs, run_jobs
 
 
 def build_and_run_jobs_with_ape(tmp_out):
@@ -42,15 +43,16 @@ class TestForEmptyFilesMarkedCompleted(TestCase):
                             is_failed = True
                             failed_files.append(meta_file)
             if is_failed:
-                print(f"{len(failed_files)} empty files, "
-                      f"that were marked as completed. Files:")
+                print(
+                    f"{len(failed_files)} empty files, "
+                    f"that were marked as completed. Files:"
+                )
                 for filename in failed_files:
                     print(filename.name)
                 self.fail("The data file was empty.")
 
 
-def load_file_paths(folder) -> \
-        Tuple[List[Path], List[Path]]:
+def load_file_paths(folder) -> Tuple[List[Path], List[Path]]:
     # folder: path for parameter resulted in the inspection showing
     # listdir(folder) as "wanted 'T' got 'Path', but would still run fine
     meta_files = []
@@ -73,10 +75,10 @@ def gz_is_empty(fname):
         or if fname itself has zero length
         Raises OSError if fname has non-zero length and is not a gzip file
     """
-    with gzip.open(fname, 'rb') as f:
+    with gzip.open(fname, "rb") as f:
         data = f.read(1)
     return len(data) == 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

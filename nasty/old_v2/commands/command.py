@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from argparse import ArgumentParser, Namespace as ArgumentNamespace
+from argparse import ArgumentParser
+from argparse import Namespace as ArgumentNamespace
 from typing import List
 
 

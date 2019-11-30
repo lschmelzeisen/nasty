@@ -10,11 +10,10 @@ class Replies(Conversation):
     """Retrieve all direct replies to a Tweet."""
 
     class Work(Timeline.Work):
-        def __init__(self,
-                     tweet_id: str,
-                     max_tweets: Optional[int],
-                     batch_size: Optional[int]):
-            super().__init__('replies', max_tweets, batch_size)
+        def __init__(
+            self, tweet_id: str, max_tweets: Optional[int], batch_size: Optional[int]
+        ):
+            super().__init__("replies", max_tweets, batch_size)
             self.tweet_id = tweet_id
 
         def to_timeline(self) -> Timeline:
@@ -22,27 +21,28 @@ class Replies(Conversation):
 
         def to_json(self) -> Dict[str, Any]:
             obj = {
-                'type': self.type,
-                'tweet_id': self.tweet_id,
+                "type": self.type,
+                "tweet_id": self.tweet_id,
             }
 
             if self.max_tweets is not None:
-                obj['max_tweets'] = self.max_tweets
+                obj["max_tweets"] = self.max_tweets
             if self.batch_size is not None:
-                obj['batch_size'] = self.batch_size
+                obj["batch_size"] = self.batch_size
 
             return obj
 
         @classmethod
         def from_json(cls, obj: Dict[str, Any]) -> Timeline.Work:
-            assert obj['type'] == 'replies'
-            return cls(
-                obj['tweet_id'], obj.get('max_tweets'), obj.get('batch_size'))
+            assert obj["type"] == "replies"
+            return cls(obj["tweet_id"], obj.get("max_tweets"), obj.get("batch_size"))
 
-    def __init__(self,
-                 tweet_id: str,
-                 max_tweets: Optional[int] = 100,
-                 batch_size: Optional[int] = None):
+    def __init__(
+        self,
+        tweet_id: str,
+        max_tweets: Optional[int] = 100,
+        batch_size: Optional[int] = None,
+    ):
         """"Constructs a new replies view.
 
         See the base class for documentation of the tweet_id, max_tweets, and
@@ -50,11 +50,12 @@ class Replies(Conversation):
         """
 
         super().__init__(
-            tweet_id=tweet_id, max_tweets=max_tweets, batch_size=batch_size)
+            tweet_id=tweet_id, max_tweets=max_tweets, batch_size=batch_size
+        )
         self.num_tombstones = None
 
         logger = getLogger(__name__)
-        logger.debug('Fetching replies of Tweet {}.'.format(self.tweet_id))
+        logger.debug("Fetching replies of Tweet {}.".format(self.tweet_id))
 
     def to_job(self) -> Job:
         return Job(self.Work(self.tweet_id, self.max_tweets, self.batch_size))
@@ -88,15 +89,15 @@ class Replies(Conversation):
         # cursor needed to fetch the next batch. Seldom it will be a
         # "cursor-showMoreThreads-..." or a 'cursor-showMoreThreadsPrompt-..."
         # reply. If no more replies exist the cursor entry will also not exist.
-        instructions = batch['timeline']['instructions']
+        instructions = batch["timeline"]["instructions"]
 
-        for entry in instructions[0]['addEntries']['entries']:
-            if entry['entryId'].startswith('tweet-'):
+        for entry in instructions[0]["addEntries"]["entries"]:
+            if entry["entryId"].startswith("tweet-"):
                 # We do not want to return the Tweet with the requested ID
                 # because it is not a reply to itself.
                 pass
 
-            elif entry['entryId'].startswith('conversationThread-'):
+            elif entry["entryId"].startswith("conversationThread-"):
                 # Conversation thread entries look like this:
                 #  { "entryId": "conversationThread-1155488356165398528",
                 #    "sortIndex": "8067885539403591669",
@@ -120,9 +121,9 @@ class Replies(Conversation):
                 # That is, a conversation is a list of Tweet entries. Here the
                 # first entry is a direct reply to the requested Tweet and all
                 # following entries are replies to the previous entry.
-                reply_tweet = entry['content']['timelineModule']['items'][0]
+                reply_tweet = entry["content"]["timelineModule"]["items"][0]
 
-                if 'tombstone' in reply_tweet['item']['content']:
+                if "tombstone" in reply_tweet["item"]["content"]:
                     # Sometimes Tweets become unavailable over time (for
                     # instance because they were deleted). They sometimes still
                     # show up in results but are only designated with a
@@ -145,9 +146,9 @@ class Replies(Conversation):
                     self.num_tombstones += 1
 
                 else:
-                    yield reply_tweet['item']['content']['tweet']['id']
+                    yield reply_tweet["item"]["content"]["tweet"]["id"]
 
-            elif entry['entryId'].startswith('label-'):
+            elif entry["entryId"].startswith("label-"):
                 # Sometimes additional replies can be loaded in the UI via a
                 # "Load more replies" button. These replies appear under a
                 # "More replies" label, which is added by this entry.
@@ -160,15 +161,16 @@ class Replies(Conversation):
                 #           "text": "More replies",
                 #           "displayType": "InlineHeader" }}}}}
                 pass
-            elif entry['entryId'].startswith('cursor-bottom-'):
+            elif entry["entryId"].startswith("cursor-bottom-"):
                 pass
-            elif entry['entryId'].startswith('cursor-showMoreThreads-'):
+            elif entry["entryId"].startswith("cursor-showMoreThreads-"):
                 pass
-            elif entry['entryId'].startswith('cursor-showMoreThreadsPrompt-'):
+            elif entry["entryId"].startswith("cursor-showMoreThreadsPrompt-"):
                 pass
             else:
-                raise RuntimeError('Unknown entry type in entry-ID: {}'
-                                   .format(entry['entryId']))
+                raise RuntimeError(
+                    "Unknown entry type in entry-ID: {}".format(entry["entryId"])
+                )
 
     def _next_cursor_from_batch(self, batch: Dict) -> Optional[str]:
         # See the documentation of _tweet_ids_in_batch() on where the cursor
@@ -180,10 +182,10 @@ class Replies(Conversation):
         #       "cursor": {
         #         "value": "LBkWgMC1tbaij4kgJQISAAA=",
         #         "cursorType": "Bottom" }}}}
-        instructions = batch['timeline']['instructions']
-        cursor_entry = instructions[0]['addEntries']['entries'][-1]
-        if cursor_entry['entryId'].startswith('cursor-bottom'):
-            return cursor_entry['content']['operation']['cursor']['value']
+        instructions = batch["timeline"]["instructions"]
+        cursor_entry = instructions[0]["addEntries"]["entries"][-1]
+        if cursor_entry["entryId"].startswith("cursor-bottom"):
+            return cursor_entry["content"]["operation"]["cursor"]["value"]
 
         # Seldom the cursor entry looks like this instead:
         # { "entryId": "cursor-showMoreThreads-8067885539403590108",
@@ -210,9 +212,9 @@ class Replies(Conversation):
         #           "actionText": "Show",
         #           "labelText": "Show additional replies, including those "
         #                        "that may contain offensive content" }}}}}
-        elif (cursor_entry['entryId'].startswith('cursor-showMoreThreads-')
-              or cursor_entry['entryId'].startswith(
-                    'cursor-showMoreThreadsPrompt-')):
-            return cursor_entry['content']['operation']['cursor']['value']
+        elif cursor_entry["entryId"].startswith(
+            "cursor-showMoreThreads-"
+        ) or cursor_entry["entryId"].startswith("cursor-showMoreThreadsPrompt-"):
+            return cursor_entry["content"]["operation"]["cursor"]["value"]
 
         return None
