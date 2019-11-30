@@ -4,24 +4,24 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-mypy = "~=0.750"
-pytest = "~=5.3"
-responses = "~=0.10"
-pipenv-setup = "~=2.2"
-isort = {extras = ["pipfile", "pyproject"],version = "~=4.3"}
 black = "==19.10b0"
 flake8 = "~=3.7"
-pep8-naming = "~=0.9"
-flake8-bugbear = "~=19.8"
-flake8-pyi = "~=19.3"
 flake8-bandit = "~=2.1"
+flake8-bugbear = "~=19.8"
 flake8-builtins = "~=1.4"
 flake8-comprehensions = "~=3.1"
 flake8-print = "~=3.1"
+flake8-pyi = "~=19.3"
+isort = {extras = ["pipfile", "pyproject"],version = "~=4.3"}
+mypy = "~=0.750"
+pep8-naming = "~=0.9"
+pipenv-setup = "~=2.2"
+pytest = "~=5.3"
+responses = "~=0.10"
 
 [packages]
-requests = "~=2.22"
 overrides = "~=2.5"
+requests = "~=2.22"
 typing-extensions = "~=3.7"
 
 [requires]
