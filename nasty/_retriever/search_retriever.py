@@ -127,7 +127,7 @@ class SearchRetrieverBatch(RetrieverBatch):
                 pass
             else:
                 raise RuntimeError(
-                    "Unknown entry type in entry-ID: {}".format(entry["entryId"])
+                    "Unknown entry type in entry-ID '{}'.".format(entry["entryId"])
                 )
 
     @overrides
@@ -160,7 +160,7 @@ class SearchRetrieverBatch(RetrieverBatch):
         )
 
 
-class SearchRetriever(Retriever[Search, SearchRetrieverBatch]):
+class SearchRetriever(Retriever[Search]):
     @classmethod
     @overrides
     def _retriever_batch_type(cls) -> Type[SearchRetrieverBatch]:
@@ -225,10 +225,10 @@ class SearchRetriever(Retriever[Search, SearchRetrieverBatch]):
         """
         result = self._request.query
         if self._request.since:
-            result += " since:{}".format(self._request.since.isoformat())
+            result += " since:" + self._request.since.isoformat()
         if self._request.until:
-            result += " until:{}".format(self._request.until.isoformat())
-        result += " lang:{}".format(self._request.lang)
+            result += " until:" + self._request.until.isoformat()
+        result += " lang:" + self._request.lang
         return result
 
     def _f_url_param(self) -> Optional[str]:

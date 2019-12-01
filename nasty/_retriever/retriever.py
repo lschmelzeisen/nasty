@@ -125,10 +125,9 @@ class RetrieverBatch(ABC):
 
 
 _T_Request = TypeVar("_T_Request", bound=Request)
-_T_RetrieverBatch = TypeVar("_T_RetrieverBatch", bound=RetrieverBatch)
 
 
-class Retriever(Generic[_T_Request, _T_RetrieverBatch], ABC):
+class Retriever(Generic[_T_Request], ABC):
     """Retrieves Tweets belonging to a specific Twitter timeline view.
 
     Implemented via Twitter's mobile web interface. For this we emulate what a normal
@@ -181,7 +180,7 @@ class Retriever(Generic[_T_Request, _T_RetrieverBatch], ABC):
 
     @classmethod
     @abstractmethod
-    def _retriever_batch_type(cls) -> Type[_T_RetrieverBatch]:
+    def _retriever_batch_type(cls) -> Type[RetrieverBatch]:
         raise NotImplementedError()
 
     @property
@@ -334,7 +333,7 @@ class Retriever(Generic[_T_Request, _T_RetrieverBatch], ABC):
         )
 
     @final
-    def _fetch_batch(self) -> _T_RetrieverBatch:
+    def _fetch_batch(self) -> RetrieverBatch:
         return self._retriever_batch_type()(
             self._session_get(**self._batch_url()).json()
         )
