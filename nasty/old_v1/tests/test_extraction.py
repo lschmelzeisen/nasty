@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 
-import unittest
 from codecs import open
 from pathlib import Path
 from unittest import TestCase

@@ -198,7 +198,7 @@ class TestSearchQueryString(unittest.TestCase):
                 phrase = "{} {}".format(keyword1, keyword2).lower()
                 try:
                     self.assertIn(phrase, all_tweet_text)
-                except AssertionError as e:
+                except AssertionError:
                     # Remove non alphanumeric
                     # See https://stackoverflow.com/a/1277047/211404
                     all_tweet_text = re.sub("[\W_]+", "", all_tweet_text)
@@ -238,7 +238,7 @@ class TestSearchQueryUser(unittest.TestCase):
                     self.assertNotEqual(
                         0, tweet.text.lower().count("@".format(user).lower())
                     )
-                except AssertionError as e:
+                except AssertionError:
                     # Sometimes when a user creates a thread his individual
                     # Tweets will not reply to the user, for example:
                     # https://twitter.com/_/status/1197499643086753793
