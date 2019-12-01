@@ -32,64 +32,90 @@ class SearchRetrieverBatch(RetrieverBatch):
             Sequence[Any], self._json["timeline"]["instructions"]
         )
 
-        # Search results are contained in instructions. The first batch of a
-        # search will look like this:
-        # { ...
-        #   "timeline": {
-        #     "id": "search-6602913952152093875",
-        #     "instructions": [
-        #       { "addEntries": {
-        #           "entries": [
-        #             { "entryId": "sq-I-t-1155486497451184128", ... },
-        #             { "entryId": "sq-I-t-1194473608061607936", ... },
-        #             { "entryId": "sq-M-1-d7721393", ... },
-        #             { "entryId": "sq-E-1981039365", ... },
-        #             ...
-        #             { "entryId": "sq-cursor-top", ... },
-        #             { "entryId": "sq-cursor-bottom", ... }]}}],
-        #     ... }}
+        # Search results are contained in instructions. The first batch of a search will
+        # look like this:
+        # {
+        #     ...
+        #     "timeline": {
+        #         "id": "search-6602913952152093875",
+        #         "instructions": [
+        #             {
+        #                 "addEntries": {
+        #                     "entries": [
+        #                         {"entryId": "sq-I-t-1155486497451184128", ...},
+        #                         {"entryId": "sq-I-t-1194473608061607936", ...},
+        #                         {"entryId": "sq-M-1-d7721393", ...},
+        #                         {"entryId": "sq-E-1981039365", ...},
+        #                         ...
+        #                         {"entryId": "sq-cursor-top", ...},
+        #                         {"entryId": "sq-cursor-bottom", ...},
+        #                     ]
+        #                 }
+        #             }
+        #         ],
+        #         ...
+        #     },
+        # }
         #
         # We need to separate the following entity types:
         # - "sq-I-t-..." are the Tweets matching the search query.
-        # - "sq-M-..." contain supplementary information like user profiles that
-        #   are somehow related to the matching Tweets (usually occurs once).
+        # - "sq-M-..." contain supplementary information like user profiles that are
+        #   somehow related to the matching Tweets (usually occurs once).
         # - "sq-E-..." seem to contain suggested live events (occur rarely).
         # - "sq-cursor-..." entries contain the cursors to fetch the next batch.
         #
-        # All following batches will look similar except that the
-        # "sq-cursor-..." entries are now differently placed:
-        # { ...
-        #   "timeline": {
-        #     "id": "search-6602913956034868792",
-        #     "instructions": [
-        #       { "addEntries": {
-        #           "entries": [
-        #             { "entryId": "sq-I-t-1157704001112219650", ... },
-        #             { "entryId": "sq-I-t-1156734175040266240", ... },
-        #             { ... }]}},
-        #       { "replaceEntry": {
-        #           "entryIdToReplace": "sq-cursor-top",
-        #           "entry": {
-        #             "entryId": "sq-cursor-top", ... }}},
-        #       { "replaceEntry": {
-        #           "entryIdToReplace": "sq-cursor-bottom",
-        #           "entry": {
-        #             "entryId": "sq-cursor-bottom", ... }}}],
-        #     ... }}
+        # All following batches will look similar except that the "sq-cursor-..."
+        # entries are now differently placed:
+        # {
+        #     ...
+        #     "timeline": {
+        #         "id": "search-6602913956034868792",
+        #         "instructions": [
+        #             {
+        #                 "addEntries": {
+        #                     "entries": [
+        #                         {"entryId": "sq-I-t-1157704001112219650", ...},
+        #                         {"entryId": "sq-I-t-1156734175040266240", ...},
+        #                         ...
+        #                     ]
+        #                 }
+        #             },
+        #             {
+        #                 "replaceEntry": {
+        #                     "entryIdToReplace": "sq-cursor-top",
+        #                     "entry": {"entryId": "sq-cursor-top", ...},
+        #                 }
+        #             },
+        #             {
+        #                 "replaceEntry": {
+        #                     "entryIdToReplace": "sq-cursor-bottom",
+        #                     "entry": {"entryId": "sq-cursor-bottom", ...},
+        #                 }
+        #             },
+        #         ],
+        #         ...
+        #     },
+        # }
 
         for entry in instructions[0]["addEntries"]["entries"]:
             if entry["entryId"].startswith("sq-I-t-"):
                 # Matching Tweet entries look like this:
-                # { "entryId": "sq-I-t-1155486497451184128",
-                #   "sortIndex": "999970",
-                #   "content": {
-                #     "item": {
-                #       "content": {
-                #         "tweet": {
-                #           "id": "1155486497451184128",
-                #           "displayType": "Tweet",
-                #           "highlights": { ... }}}
-                #       ... }}}
+                # {
+                #     "entryId": "sq-I-t-1155486497451184128",
+                #     "sortIndex": "999970",
+                #     "content": {
+                #         "item": {
+                #             "content": {
+                #                 "tweet": {
+                #                     "id": "1155486497451184128",
+                #                     "displayType": "Tweet",
+                #                     "highlights": {...},
+                #                 }
+                #             },
+                #             ...
+                #         }
+                #     },
+                # }
                 yield checked_cast(
                     TweetId, entry["content"]["item"]["content"]["tweet"]["id"]
                 )
@@ -110,17 +136,19 @@ class SearchRetrieverBatch(RetrieverBatch):
             Sequence[Any], self._json["timeline"]["instructions"]
         )
 
-        # As documented in _tweet_ids_in_batch(), the cursor objects can occur
-        # either as part of "addEntries" or replaceEntry". We are only
-        # interested in sq-cursor-bottom and I'm not sure what sq-cursor-top is
-        # for. The actual cursor entry will look like this:
-        # { "entryId": "sq-cursor-bottom",
-        #   "sortIndex": "0",
-        #   "content": {
-        #     "operation": {
-        #       "cursor": {
-        #         "value": "scroll:thGAVUV...",
-        #         "cursorType": "Bottom" }}}}
+        # As documented in _tweet_ids_in_batch(), the cursor objects can occur either
+        # as part of "addEntries" or replaceEntry". We are only interested in
+        # sq-cursor-bottom and I'm not sure what sq-cursor-top is for. The actual cursor
+        # entry will look like this:
+        # {
+        #     "entryId": "sq-cursor-bottom",
+        #     "sortIndex": "0",
+        #     "content": {
+        #         "operation": {
+        #             "cursor": {"value": "scroll:thGAVUV...", "cursorType": "Bottom"}
+        #         }
+        #     },
+        # }
 
         cursor_entry = instructions[0]["addEntries"]["entries"][-1]
         if cursor_entry["entryId"] != "sq-cursor-bottom":
@@ -155,9 +183,8 @@ class SearchRetriever(Retriever[Search, SearchRetrieverBatch]):
         return {
             "url": "https://api.twitter.com/2/search/adaptive.json",
             "params": {
-                # Not sure what most of the parameters with fixed values do. We
-                # set them so that they are identical to those sent from the
-                # normal web interface.
+                # Not sure what most of the parameters with fixed values do. We set them
+                # so that they are identical to those sent via the normal web interface.
                 "include_profile_interstitial_type": "1",
                 "include_blocking": "1",
                 "include_blocked_by": "1",
