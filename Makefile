@@ -28,7 +28,7 @@ check-mypy:
 .PHONY: check-mypy
 
 check-isort:
-	@pipenv run isort --check-only --recursive .
+	@pipenv run isort --check-only --recursive --quiet .
 .PHONY: check-isort
 
 check-black:
@@ -50,7 +50,7 @@ format-autoflake:
 .PHONY: format-autoflake
 
 format-isort:
-	@pipenv run isort --recursive .
+	@pipenv run isort --recursive --quiet .
 .PHONY: format-isort
 
 format-black:

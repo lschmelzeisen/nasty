@@ -7,3 +7,4 @@ use_parentheses = true
 
 [tool.black]
 target-version = ['py36']
+quiet = true
