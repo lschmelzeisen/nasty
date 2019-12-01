@@ -14,26 +14,26 @@
 # limitations under the License.
 #
 
-from typing import Set, Tuple
+from typing import Optional, Sequence, Tuple
 
 import pytest
 
-from nasty.request.replies import Replies
+from nasty.request.thread import Thread
 from nasty.tweet.tweet import TweetId
 
 
 @pytest.mark.parametrize("max_tweets", [1, 10, 100], ids=repr)
 def test_max_tweets(max_tweets: int) -> None:
     tweets = list(
-        Replies(TweetId("1096092704709070851"), max_tweets=max_tweets).request()
+        Thread(TweetId("1183715553057239040"), max_tweets=max_tweets).request()
     )
     assert max_tweets == len(tweets)
     assert len(tweets) == len({tweet.id for tweet in tweets})
 
 
 @pytest.mark.parametrize("tweet_id", [TweetId("1110485791279595525")], ids=repr)
-def test_no_replies(tweet_id: TweetId) -> None:
-    assert not list(Replies(tweet_id).request())
+def test_no_thread(tweet_id: TweetId) -> None:
+    assert not list(Thread(tweet_id).request())
 
 
 @pytest.mark.parametrize(
@@ -41,35 +41,32 @@ def test_no_replies(tweet_id: TweetId) -> None:
     [
         (
             TweetId("1115689254271819777"),
-            {
+            [
                 TweetId("1115690002233556993"),
-                TweetId("1115947355000406016"),
-                TweetId("1115692135808999424"),
-                TweetId("1115903315773153280"),
-                TweetId("1115692500730171392"),
-            },
+                TweetId("1115690615612825601"),
+                TweetId("1115691710657499137"),
+            ],
         ),
     ],
     ids=repr,
 )
-def test_exact(args: Tuple[TweetId, Set[TweetId]]) -> None:
-    tweet_id, replies = args
-    assert replies == {tweet.id for tweet in Replies(tweet_id).request()}
+def test_exact(args: Tuple[TweetId, Sequence[TweetId]]) -> None:
+    tweet_id, thread = args
+    assert thread == [tweet.id for tweet in Thread(tweet_id).request()]
 
 
 @pytest.mark.parametrize(
     "args",
     [
-        (TweetId("1155486497451184128"), 200, 2),
-        (TweetId("1180505950613958658"), 200, 2),
-        (TweetId("550399835682390016"), 200, 15),
+        (TweetId("1155486497451184128"), 35, None),
+        (TweetId("1180505950613958658"), 8, None),
     ],
     ids=repr,
 )
-def test_unlimited(args: Tuple[TweetId, int, int]) -> None:
+def test_unlimited(args: Tuple[TweetId, int, Optional[int]]) -> None:
     tweet_id, min_expected, min_tombstones = args
     # Using batch_size=100 to speed up these larger requests.
-    tweets = list(Replies(tweet_id, max_tweets=None, batch_size=100).request())
+    tweets = list(Thread(tweet_id, max_tweets=None, batch_size=100).request())
     assert min_expected <= len(tweets)
     # TODO: assert min_tombstones
     assert len(tweets) == len({tweet.id for tweet in tweets})
