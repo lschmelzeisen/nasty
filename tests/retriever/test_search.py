@@ -24,21 +24,12 @@ import pytest
 from nasty.request.search import Search, SearchFilter
 
 
-# Using batch_size=100 to speed up these larger requests and since we don't care about
-# accuracy to query here.
-@pytest.mark.parametrize(
-    "search",
-    [
-        Search("trump", max_tweets=1, batch_size=100),
-        Search("trump", max_tweets=10, batch_size=100),
-        Search("trump", max_tweets=100, batch_size=100),
-        Search("trump", max_tweets=1000, batch_size=100),
-    ],
-    ids=repr,
-)
-def test_search_max_tweets(search: Search) -> None:
-    tweets = list(search.request())
-    assert search.max_tweets == len(tweets)
+@pytest.mark.parametrize("max_tweets", [1, 10, 100, 1000], ids=repr)
+def test_max_tweets(max_tweets: int) -> None:
+    # Using batch_size=100 to speed up these larger requests and since we don't care
+    # about accuracy to query here.
+    tweets = list(Search("trump", max_tweets=max_tweets, batch_size=100).request())
+    assert max_tweets == len(tweets)
     assert len(tweets) == len({tweet.id for tweet in tweets})
 
 
