@@ -18,9 +18,9 @@ import pickle
 from logging import getLogger
 from multiprocessing import Lock
 from pathlib import Path
-from typing import Any, Callable, Dict, TypeVar, cast
-from unittest.mock import patch
+from typing import Any, Callable, Dict, TypeVar
 
+from _pytest.monkeypatch import MonkeyPatch
 from requests import PreparedRequest, Response, Session
 from typing_extensions import Final
 
@@ -29,7 +29,6 @@ logger = getLogger(__name__)
 _T_func = TypeVar("_T_func", bound=Callable[..., Any])
 
 _LOCK: Final = Lock()
-_ORIG_SESSION_SEND: Final[Callable[..., Response]] = Session.send
 _CACHE_FILE: Final = Path(__file__).parent / ".requests_cache.pickle"
 
 
@@ -52,10 +51,13 @@ class _CacheKey:
         return type(self) == type(other) and self.__dict__ == other.__dict__
 
 
-def requests_cache(regenerate: bool = False) -> Callable[[_T_func], _T_func]:
-    def _mock_requests_send(
+def activate_requests_cache(monkeypatch: MonkeyPatch, regenerate: bool) -> None:
+    orig_session_send: Final[Callable[..., Response]] = Session.send
+
+    def mock_session_send(
         self: Session, request: PreparedRequest, **kwargs: Any
     ) -> Response:
+        # TODO: rewrite caching logic to use pytest's cache, i.e., serialize to JSON.
         key = _CacheKey(request)
 
         with _LOCK:
@@ -77,7 +79,7 @@ def requests_cache(regenerate: bool = False) -> Callable[[_T_func], _T_func]:
 
                 cache.pop(key)
 
-            response = _ORIG_SESSION_SEND(self, request, **kwargs)
+            response = orig_session_send(self, request, **kwargs)
             cache[key] = response
 
             with _CACHE_FILE.open("wb") as fout:
@@ -85,11 +87,4 @@ def requests_cache(regenerate: bool = False) -> Callable[[_T_func], _T_func]:
 
             return response
 
-    def decorator(func: _T_func) -> _T_func:
-        @patch.object(Session, "send", _mock_requests_send)
-        def patched_func(*args, **kwargs):  # type: ignore
-            return func(*args, **kwargs)
-
-        return cast(_T_func, patched_func)
-
-    return decorator
+    monkeypatch.setattr(Session, "send", mock_session_send)

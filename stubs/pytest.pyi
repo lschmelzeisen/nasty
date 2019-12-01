@@ -30,6 +30,17 @@ from typing import (
 
 _T_arg = TypeVar("_T_arg")
 _T_func = TypeVar("_T_func", bound=Callable[..., Any])
+_T_exp = TypeVar("_T_exp", bound=BaseException)
+
+def fixture(
+    callable_or_scope: Union[str, Callable[..., Any]] = ...,
+    *args: Any,
+    scope: str = ...,
+    params: Any = ...,
+    autouse: bool = ...,
+    ids: Iterable[str] = ...,
+    name: str = ...,
+) -> Callable[[_T_func], _T_func]: ...
 
 class mark:  # noqa: N801
     @staticmethod
@@ -40,8 +51,10 @@ class mark:  # noqa: N801
         ids: Optional[Union[Iterable[str], Callable[[_T_arg], str]]] = ...,
         scope: Optional[str] = ...,
     ) -> Callable[[_T_func], _T_func]: ...
-
-_T_exp = TypeVar("_T_exp", bound=BaseException)
+    @staticmethod
+    def requests_cache_disabled(func: _T_func) -> _T_func: ...
+    @staticmethod
+    def requests_cache_regenerate(func: _T_func) -> _T_func: ...
 
 class _pytest:  # noqa: N801
     class _code:  # noqa: N801

@@ -18,35 +18,40 @@ from http import HTTPStatus
 from logging import getLogger
 from timeit import timeit
 
-import requests
-
-from .requests_cache import requests_cache
+import pytest
+from requests import Session
 
 logger = getLogger(__name__)
+time_without_cache = None
+time_with_cache = None
 
 
-def test_requests_cache() -> None:
-    def perform_request() -> None:
-        with requests.Session() as session:
-            response = session.get("https://example.org")
-            assert HTTPStatus(response.status_code) == HTTPStatus.OK
+def _perform_request() -> None:
+    with Session() as session:
+        response = session.get("https://example.org")
+    assert HTTPStatus(response.status_code) == HTTPStatus.OK
 
-    @requests_cache(regenerate=True)
-    def perform_request_no_cache() -> None:
-        return perform_request()
 
-    @requests_cache()
-    def perform_request_with_cache() -> None:
-        return perform_request()
+@pytest.mark.requests_cache_regenerate
+def test_request_without_cache() -> None:
+    global time_without_cache
+    time_without_cache = timeit(_perform_request, number=1)
 
-    time_no_cache = timeit(perform_request_no_cache, number=1)
-    time_with_cache = timeit(perform_request_with_cache, number=1)
 
+def test_request_with_cache() -> None:
+    global time_with_cache
+    time_with_cache = timeit(_perform_request, number=1)
+
+
+def test_with_cache_faster() -> None:
+    global time_without_cache, time_with_cache
+    assert time_without_cache is not None
+    assert time_with_cache is not None
     logger.debug(
         "Request took {:.4f}s without cache and {:.4f}s with cache.".format(
-            time_no_cache, time_with_cache
+            time_without_cache, time_with_cache
         )
     )
 
     # Expect at least a 10x speedup through caching requests.
-    assert time_no_cache > 10 * time_with_cache
+    assert time_without_cache > 10 * time_with_cache
