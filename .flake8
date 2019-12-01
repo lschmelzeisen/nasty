@@ -1,6 +1,6 @@
 [flake8]
 exclude = .venv,old_v*
-# required for Black compatability
+# required for Black compatibility
 max-line-length = 88
 # flake8-mccabe
 max-complexity = 10
@@ -23,10 +23,10 @@ select =
     # pep8-naming
     N
 ignore =
-    # required for Black compatability
+    # required for Black compatibility
     E203
     W503
-    # disable class-attribtues overlapping with builtins
+    # disable class-attributes overlapping with builtins
     A003
 per-file-ignores =
     # Black formats stub files differently

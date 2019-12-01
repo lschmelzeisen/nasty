@@ -13,3 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+from typing import Any, Iterable
+
+class Retry:
+    def __init__(
+        self,
+        total: int = ...,
+        connect: int = ...,
+        read: int = ...,
+        redirect: int = ...,
+        status: int = ...,
+        method_whitelist: Iterable[str] = ...,
+        status_forcelist: Iterable[int] = ...,
+        backoff_factor: float = ...,
+        raise_on_redirect: bool = ...,
+        raise_on_status: bool = ...,
+        history: Any = ...,
+        respect_retry_after_header: bool = ...,
+        remove_headers_on_redirect: Iterable[Any] = ...,
+    ): ...

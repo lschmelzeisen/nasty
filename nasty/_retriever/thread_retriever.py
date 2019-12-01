@@ -14,18 +14,37 @@
 # limitations under the License.
 #
 
+from typing import Iterable, Mapping, Optional, Type
+
 from overrides import overrides
 
-from .._util.typing_ import checked_cast
+from nasty.tweet.tweet import TweetId
+
 from ..request.thread import Thread
 from .conversation_retriever import ConversationRetriever
+from .retriever import RetrieverBatch
 
 
-class ThreadRetriever(ConversationRetriever):
-    def __init__(self, request: Thread):
-        super().__init__(request)
-
-    @property  # type: ignore  # see https://github.com/python/mypy/issues/1362
+class ThreadRetrieverBatch(RetrieverBatch):
     @overrides
-    def request(self) -> Thread:
-        return checked_cast(Thread, self._request)
+    def _tweet_ids(self) -> Iterable[TweetId]:
+        pass
+
+    @overrides
+    def _next_cursor(self) -> Optional[str]:
+        pass
+
+
+class ThreadRetriever(ConversationRetriever[Thread, ThreadRetrieverBatch]):
+    @classmethod
+    @overrides
+    def _retriever_batch_type(cls) -> Type[ThreadRetrieverBatch]:
+        return ThreadRetrieverBatch
+
+    @overrides
+    def _timeline_url(self) -> Mapping[str, object]:
+        pass
+
+    @overrides
+    def _batch_url(self) -> Mapping[str, object]:
+        pass

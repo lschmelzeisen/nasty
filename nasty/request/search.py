@@ -45,27 +45,6 @@ class SearchFilter(JsonSerializableEnum):
     PHOTOS = enum.auto()
     VIDEOS = enum.auto()
 
-    # @property
-    # def url_param(self) -> Optional[str]:
-    #     return {
-    #         SearchFilter.LATEST: 'live',
-    #         SearchFilter.PHOTOS: 'image',
-    #         SearchFilter.VIDEOS: 'video',
-    #     }.get(self, None)
-    #
-    # @property
-    # def result_filter(self) -> Optional[str]:
-    #     return {
-    #         SearchFilter.PHOTOS: 'image',
-    #         SearchFilter.VIDEOS: 'video',
-    #     }.get(self, None)
-    #
-    # @property
-    # def tweet_search_mode(self) -> Optional[str]:
-    #     return {
-    #         SearchFilter.LATEST: 'live',
-    #     }.get(self, None)
-
 
 DEFAULT_FILTER = SearchFilter.TOP
 
@@ -158,22 +137,3 @@ class Search(Request):
         from .._retriever.search_retriever import SearchRetriever
 
         return SearchRetriever(self).tweet_stream
-
-    # @property
-    # def url_param(self) -> str:
-    #     """Transforms the stored query into the form that can be submitted to
-    #     Twitter as an URL param.
-    #
-    #     Does not perform URL escaping.
-    #     """
-    #
-    #     result = self.query
-    #
-    #     if self.since:
-    #         result += ' since:{}'.format(self.since.isoformat())
-    #     if self.until:
-    #         result += ' until:{}'.format(self.until.isoformat())
-    #
-    #     result += ' lang:{}'.format(self.lang)
-    #
-    #     return result

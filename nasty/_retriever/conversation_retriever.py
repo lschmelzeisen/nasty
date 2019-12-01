@@ -14,24 +14,29 @@
 # limitations under the License.
 #
 
-from typing import cast
+from abc import ABC
+from typing import Type, TypeVar, cast
 
 from overrides import overrides
 
-from .._util.typing_ import checked_cast
+from ..request.request import Request
 from ..tweet.conversation_tweet_stream import ConversationTweetStream
-from .retriever import Retriever, RetrieverTweetStream
+from .retriever import Retriever, RetrieverBatch, RetrieverTweetStream
 
 
 class ConversationRetrieverTweetStream(RetrieverTweetStream, ConversationTweetStream):
-    @property  # type: ignore  # see https://github.com/python/mypy/issues/1362y
+    pass
+
+
+_T_Request = TypeVar("_T_Request", bound=Request)
+_T_RetrieverBatch = TypeVar("_T_RetrieverBatch", bound=RetrieverBatch)
+
+
+class ConversationRetriever(Retriever[_T_Request, _T_RetrieverBatch], ABC):
+    @classmethod
     @overrides
-    def retriever(self) -> "ConversationRetriever":
-        return checked_cast(ConversationRetriever, self._retriever)
-
-
-class ConversationRetriever(Retriever):
-    _TWEET_STREAM_TYPE = ConversationRetrieverTweetStream
+    def _tweet_stream_type(cls) -> Type[ConversationRetrieverTweetStream]:
+        return ConversationRetrieverTweetStream
 
     @property  # type: ignore  # see https://github.com/python/mypy/issues/1362
     @overrides
