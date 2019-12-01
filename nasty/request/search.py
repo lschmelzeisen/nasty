@@ -15,14 +15,14 @@
 #
 
 import enum
-from datetime import date
-from typing import Dict, Mapping, Optional, cast
+from datetime import date, timedelta
+from typing import Dict, Mapping, Optional, Sequence, cast
 
 from overrides import overrides
 from typing_extensions import Final
 
 from .._util.json_ import JsonSerializableEnum
-from .._util.time_ import yyyy_mm_dd_date
+from .._util.time_ import daterange, yyyy_mm_dd_date
 from .._util.typing_ import checked_cast
 from ..tweet.tweet_stream import TweetStream
 from .request import DEFAULT_BATCH_SIZE, DEFAULT_MAX_TWEETS, Request
@@ -137,3 +137,22 @@ class Search(Request):
         from .._retriever.search_retriever import SearchRetriever
 
         return SearchRetriever(self).tweet_stream
+
+    def into_daily_requests(self) -> Sequence["Search"]:
+        if self.since is None or self.until is None:
+            raise ValueError(
+                "Need both since and until date for into_daily_requests()."
+            )
+
+        return [
+            Search(
+                self.query,
+                since=date_,
+                until=date_ + timedelta(days=1),
+                filter_=self.filter,
+                lang=self.lang,
+                max_tweets=self.max_tweets,
+                batch_size=self.batch_size,
+            )
+            for date_ in daterange(self.since, self.until - timedelta(days=1))
+        ]

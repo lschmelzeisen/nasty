@@ -14,7 +14,19 @@
 # limitations under the License.
 #
 
-from typing import Any, Callable, Iterable, Optional, TypeVar, Union
+from types import TracebackType
+from typing import (
+    Any,
+    Callable,
+    Generic,
+    Iterable,
+    Optional,
+    Pattern,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 _T_arg = TypeVar("_T_arg")
 _T_func = TypeVar("_T_func", bound=Callable[..., Any])
@@ -28,3 +40,25 @@ class mark:  # noqa: N801
         ids: Optional[Union[Iterable[str], Callable[[_T_arg], str]]] = ...,
         scope: Optional[str] = ...,
     ) -> Callable[[_T_func], _T_func]: ...
+
+_T_exp = TypeVar("_T_exp", bound=BaseException)
+
+class _pytest:  # noqa: N801
+    class _code:  # noqa: N801
+        class ExceptionInfo(Generic[_T_exp]): ...
+
+class RaisesContext(Generic[_T_exp]):
+    def __enter__(self) -> _pytest._code.ExceptionInfo[_T_exp]: ...
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> bool: ...
+
+def raises(  # noqa: F811
+    expected_exception: Union[Type[_T_exp], Tuple[Type[_T_exp], ...]],
+    *args: Any,
+    match: Optional[Union[str, Pattern[Any]]] = ...,
+    **kwargs: Any,
+) -> RaisesContext[_T_exp]: ...
