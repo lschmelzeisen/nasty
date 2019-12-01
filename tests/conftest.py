@@ -15,6 +15,7 @@
 #
 
 from logging import INFO, getLogger
+from os import environ
 
 import pytest
 import urllib3
@@ -37,13 +38,18 @@ def pytest_configure(config: Config) -> None:
 
 
 @pytest.fixture(autouse=True)
-def setup_logging() -> None:
-    getLogger(urllib3.__name__).setLevel(INFO)
-
-
-@pytest.fixture(autouse=True)
 def cache_requests(request: FixtureRequest, monkeypatch: MonkeyPatch) -> None:
     if request.node.get_closest_marker("requests_cache_disabled"):
         return
     regenerate = bool(request.node.get_closest_marker("requests_cache_regenerate"))
     activate_requests_cache(monkeypatch, regenerate)
+
+
+@pytest.fixture(autouse=True)
+def disrespect_robotstxt() -> None:
+    environ["NASTY_DISRESPECT_ROBOTSTXT"] = "1"
+
+
+@pytest.fixture(autouse=True)
+def setup_logging() -> None:
+    getLogger(urllib3.__name__).setLevel(INFO)

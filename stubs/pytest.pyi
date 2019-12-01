@@ -20,6 +20,7 @@ from typing import (
     Callable,
     Generic,
     Iterable,
+    NoReturn,
     Optional,
     Pattern,
     Tuple,
@@ -41,6 +42,7 @@ def fixture(
     ids: Iterable[str] = ...,
     name: str = ...,
 ) -> Callable[[_T_func], _T_func]: ...
+def skip(msg: str = ..., *, allow_module_level: bool = ...) -> NoReturn: ...
 
 class mark:  # noqa: N801
     @staticmethod
