@@ -118,7 +118,7 @@ class RequestExecutor:
         logger.debug("Saving requests to file '{}'.".format(file))
         with file.open("w", encoding="UTF-8") as fout:
             for job in self._jobs:
-                fout.write(json.dumps(job.to_json()))
+                json.dump(job.to_json(), fout)
                 fout.write("\n")
 
     def load_requests(self, file: Path) -> None:
@@ -138,7 +138,7 @@ class RequestExecutor:
             )
 
         logger.info(
-            "Request execution completed."
+            "Executing requests completed. "
             "{:d} successful, {:d} skipped, {:d} failed.".format(
                 result_counter[JobResult.SUCCESS],
                 result_counter[JobResult.SKIP],
@@ -146,7 +146,7 @@ class RequestExecutor:
             )
         )
         if result_counter[JobResult.FAIL]:
-            logger.error("Some requests failed.")
+            logger.error("Some requests failed!")
             return False
         return True
 
@@ -170,8 +170,8 @@ class RequestExecutor:
                     "erroneous, delete the meta and data files of this request and "
                     "rerun the executor."
                 )
-                logger.error("  Meta file: {}".format(meta_file))
-                logger.error("  Data file: {}".format(data_file))
+                logger.error("    Meta file: {}".format(meta_file))
+                logger.error("    Data file: {}".format(data_file))
                 return JobResult.FAIL
 
             if previous_job.completed_at:
@@ -198,7 +198,7 @@ class RequestExecutor:
             tweets = list(job.request.request())
             with lzma.open(data_file, "wt", encoding="UTF-8") as fout:
                 for tweet in tweets:
-                    fout.write(json.dumps(tweet.to_json()))
+                    json.dump(tweet.to_json(), fout)
                     fout.write("\n")
 
             job.completed_at = datetime.now()

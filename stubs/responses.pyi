@@ -13,3 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+from typing import Any, Callable, TypeVar
+
+_T_func = TypeVar("_T_func", bound=Callable[..., Any])
+
+GET: str
+
+def activate(func: _T_func) -> _T_func: ...
+def add(
+    method: str = ...,  # method or ``Response``
+    url: str = ...,
+    body: str = ...,
+    adding_headers: Any = ...,
+    *args: Any,
+    **kwargs: Any,
+) -> None: ...
