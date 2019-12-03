@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 import enum
 import json
 import lzma
@@ -160,7 +161,7 @@ class RequestExecutor:
             logger.debug("  Loading meta information from previous execution")
 
             with meta_file.open("r", encoding="UTF-8") as fin:
-                previous_job = _Job.from_json(json.loads(fin.read()))
+                previous_job = _Job.from_json(json.load(fin))
 
             if job.request != previous_job.request:
                 logger.error(

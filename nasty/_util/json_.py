@@ -17,11 +17,10 @@
 import traceback
 from abc import abstractmethod
 from datetime import datetime
-from enum import Enum
 from typing import Iterable, Mapping, Type, TypeVar, cast
 
 from overrides import overrides
-from typing_extensions import Final, final
+from typing_extensions import Final
 
 from .consts import NASTY_DATE_TIME_FORMAT
 from .typing_ import checked_cast
@@ -44,26 +43,6 @@ class JsonSerializable:
     @overrides
     def __repr__(self) -> str:
         return type(self).__name__ + repr(self.to_json())
-
-
-_T_JsonSerializableEnum = TypeVar(
-    "_T_JsonSerializableEnum", bound="JsonSerializableEnum"
-)
-
-
-class JsonSerializableEnum(JsonSerializable, Enum):
-    @final
-    @overrides
-    def to_json(self) -> Mapping[str, object]:
-        return {"enum": self.name}
-
-    @classmethod
-    @final
-    @overrides
-    def from_json(
-        cls: Type[_T_JsonSerializableEnum], obj: Mapping[str, object]
-    ) -> _T_JsonSerializableEnum:
-        return cls[checked_cast(str, obj["enum"])]
 
 
 class JsonSerializedException(JsonSerializable):

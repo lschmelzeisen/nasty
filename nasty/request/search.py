@@ -16,19 +16,19 @@
 
 import enum
 from datetime import date, timedelta
+from enum import Enum
 from typing import Dict, Mapping, Optional, Sequence, cast
 
 from overrides import overrides
 from typing_extensions import Final
 
-from .._util.json_ import JsonSerializableEnum
 from .._util.time_ import daterange, yyyy_mm_dd_date
 from .._util.typing_ import checked_cast
 from ..tweet.tweet_stream import TweetStream
 from .request import DEFAULT_BATCH_SIZE, DEFAULT_MAX_TWEETS, Request
 
 
-class SearchFilter(JsonSerializableEnum):
+class SearchFilter(Enum):
     """Different sorting/filtering rules for Twitter search results.
 
     - TOP: Sort result Tweets by popularity (e.g., when a lot of people are interacting
@@ -44,6 +44,13 @@ class SearchFilter(JsonSerializableEnum):
     LATEST = enum.auto()
     PHOTOS = enum.auto()
     VIDEOS = enum.auto()
+
+    def to_json(self) -> str:
+        return self.name
+
+    @classmethod
+    def from_json(cls, obj: str) -> "SearchFilter":
+        return cls[obj]
 
 
 DEFAULT_FILTER = SearchFilter.TOP
@@ -118,7 +125,7 @@ class Search(Request):
                 if "until" in obj
                 else None
             ),
-            filter_=SearchFilter.from_json(cast(Mapping[str, object], obj["filter"])),
+            filter_=SearchFilter.from_json(cast(str, obj["filter"])),
             lang=checked_cast(str, obj["lang"]),
             max_tweets=(
                 cast(Optional[int], obj["max_tweets"])
