@@ -41,6 +41,10 @@ class JsonSerializable:
     ) -> _T_JsonSerializable:
         raise NotImplementedError()
 
+    @overrides
+    def __repr__(self) -> str:
+        return type(self).__name__ + repr(self.to_json())
+
 
 _T_JsonSerializableEnum = TypeVar(
     "_T_JsonSerializableEnum", bound="JsonSerializableEnum"
@@ -70,10 +74,6 @@ class JsonSerializedException(JsonSerializable):
         self.type: Final = type_
         self.message: Final = message
         self.trace: Final = trace
-
-    @overrides
-    def __repr__(self) -> str:
-        return type(self).__name__ + repr(self.to_json())
 
     @overrides
     def __eq__(self, other: object) -> bool:
