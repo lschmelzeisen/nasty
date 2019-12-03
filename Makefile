@@ -14,7 +14,8 @@ test-pytest:
 check: check-flake8 check-mypy check-isort check-black
 .PHONY: check
 
-# Not using this rule because it even spams output in case of success (no quiet flag).
+# Not using this rule because it even spams output in case of success (no quiet flag),
+# and because most of the checking is already performed by flake8.
 #check-autoflake:
 #	@pipenv run autoflake --check --remove-all-unused-imports --remove-duplicate-keys --remove-unused-variables --recursive .
 #.PHONY: check-autoflake

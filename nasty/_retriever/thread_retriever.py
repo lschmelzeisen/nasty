@@ -161,7 +161,11 @@ class ThreadRetrieverBatch(ConversationRetrieverBatch):
         #         ...
         #     },
         # }
-        cursor_entry = self._parse_instructions()[-1]
+        instructions = self._parse_instructions()
+        if not instructions:
+            return None
+
+        cursor_entry = instructions[-1]
         if cursor_entry["entryId"].startswith("conversationThread-") and cursor_entry[
             "entryId"
         ].endswith("-show_more_cursor"):
