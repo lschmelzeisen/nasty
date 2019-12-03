@@ -138,7 +138,7 @@ class Search(Request):
 
         return SearchRetriever(self).tweet_stream
 
-    def into_daily_requests(self) -> Sequence["Search"]:
+    def to_daily_requests(self) -> Sequence["Search"]:
         if self.since is None or self.until is None:
             raise ValueError(
                 "Need both since and until date for into_daily_requests()."
