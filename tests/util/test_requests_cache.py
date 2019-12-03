@@ -53,5 +53,5 @@ def test_with_cache_faster() -> None:
         )
     )
 
-    # Expect at least a 10x speedup through caching requests.
-    assert time_without_cache > 10 * time_with_cache
+    # Expect at least a 5x speedup through caching requests.
+    assert time_without_cache > 5 * time_with_cache
