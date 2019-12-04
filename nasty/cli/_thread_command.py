@@ -14,42 +14,46 @@
 # limitations under the License.
 #
 
-from argparse import ArgumentParser
-from typing import List
+from argparse import ArgumentParser, _ArgumentGroup
+from typing import Sequence
 
-from nasty.old_v2.commands import TimelineCommand
-from nasty.retrieval.replies import Replies
-from nasty.retrieval.timeline import Timeline
+from ..request.thread import Thread
+from ..tweet.tweet import TweetId
+from ._request_command import _RequestCommand
 
 
-class RepliesCommand(TimelineCommand):
+class _ThreadCommand(_RequestCommand[Thread]):
     @classmethod
     def command(cls) -> str:
-        return "replies"
+        return "thread"
 
     @classmethod
-    def aliases(cls) -> List[str]:
-        return ["r"]
+    def aliases(cls) -> Sequence[str]:
+        return ["t"]
 
     @classmethod
     def description(cls) -> str:
-        return "Retrieve all directly replying Tweets to a Tweet."
+        return "Retrieve all Tweets threaded under a Tweet."
 
     @classmethod
-    def _config_retrieval_args(cls, argparser: ArgumentParser) -> None:
+    def _config_request_subclass_args(cls, argparser: ArgumentParser) -> _ArgumentGroup:
         g = argparser.add_argument_group(
-            "Replies Arguments", "Control to which Tweet replies are " "retrieved."
+            "Thread Arguments",
+            "Control to which Tweet's threaded Tweets are retrieved.",
         )
         g.add_argument(
             "-t",
             "--tweet-id",
             metavar="<ID>",
-            type=str,
+            type=TweetId,
             required=True,
-            help="ID of the Tweet to retrieve " "replies for (required).",
+            help="ID of the Tweet to retrieve threaded Tweets for (required).",
         )
+        return g
 
-    def setup_retrieval(self) -> Timeline:
-        return Replies(
-            self._args.tweet_id, self._args.max_tweets, self._args.batch_size
+    def build_request(self) -> Thread:
+        return Thread(
+            self._args.tweet_id,
+            max_tweets=self._args.max_tweets,
+            batch_size=self._args.batch_size,
         )

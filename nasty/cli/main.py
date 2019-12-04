@@ -18,61 +18,84 @@ import argparse
 import logging
 import sys
 from argparse import ArgumentParser
-from argparse import Namespace as ArgumentNamespace
 from logging import getLogger
-from typing import List, Tuple
+from typing import Optional, Sequence, Tuple, Type
 
-import nasty
-from nasty._util.argparse import SingleMetavarHelpFormatter
-from nasty._util.logging_ import setup_logging
-from nasty.old_v2.commands import RepliesCommand, SearchCommand, ThreadCommand
-from nasty.old_v2.commands.command import Command
+from .._util.argparse_ import SingleMetavarHelpFormatter
+from .._util.logging_ import setup_logging
+from ._command import _Command
+from ._replies_command import _RepliesCommand
+from ._search_command import _SearchCommand
+from ._thread_command import _ThreadCommand
+
+logger = getLogger(__name__)
 
 
-def main(argv: List[str]):
+def main(argv: Optional[Sequence[str]] = None) -> None:
+    if argv is None:
+        argv = sys.argv[1:]
+
     args, command = _load_args(argv)
 
     numeric_log_level = getattr(logging, args.log_level)
     setup_logging(numeric_log_level)
 
-    logger = getLogger(nasty.__name__)
     logger.debug("Raw arguments: {}".format(argv))
     logger.debug("Parsed arguments: {}".format(vars(args)))
-    logger.debug("Parsed command: {}.{}".format(command.__module__, command.__name__))
+    logger.debug(
+        "Parsed command: {}.{}".format(type(command).__module__, type(command).__name__)
+    )
 
-    command(args).run()
+    command.run()
 
 
-def _load_args(argv: List[str]) -> Tuple[ArgumentNamespace, Command.__class__]:
+def _load_args(argv: Sequence[str]) -> Tuple[argparse.Namespace, _Command]:
+    command_types: Sequence[Type[_Command]] = [
+        _SearchCommand,
+        _RepliesCommand,
+        _ThreadCommand,
+    ]
+
     argparser = ArgumentParser(
         prog="nasty",
-        description="NASTY - NASTY Advanced Search "
-        "Tweet Yielder, a Twitter crawler.",
+        usage=(
+            "nasty [-h] [-v] ["
+            + "|".join(command_type.command() for command_type in command_types)
+            + "] ..."
+        ),
+        description="NASTY Advanced Search Tweet Yielder.",
         add_help=False,
         formatter_class=SingleMetavarHelpFormatter,
     )
 
-    subparsers = argparser.add_subparsers(title="command", metavar="<COMMAND>")
+    subparsers = argparser.add_subparsers(
+        title="Commands", metavar="<COMMAND>", prog="nasty"
+    )
     subparsers.required = True
 
-    for subcommand in [SearchCommand, RepliesCommand, ThreadCommand]:
+    subparser_by_command_type = {}
+    for subcommand_type in command_types:
         subparser = subparsers.add_parser(
-            subcommand.command(),
-            aliases=subcommand.aliases(),
-            help=subcommand.description(),
-            description=subcommand.description(),
+            subcommand_type.command(),
+            aliases=subcommand_type.aliases(),
+            help=subcommand_type.description(),
+            description=subcommand_type.description(),
             add_help=False,
             formatter_class=SingleMetavarHelpFormatter,
         )
-        subparser.set_defaults(command=subcommand)
-        subcommand.config_argparser(subparser)
+        subparser.set_defaults(command=subcommand_type)
+        subparser_by_command_type[subcommand_type] = subparser
+        subcommand_type.config_argparser(subparser)
         _config_general_args(subparser)
 
     _config_general_args(argparser)
 
     args = argparser.parse_args(argv)
 
-    return args, args.command
+    command = args.command(args)
+    command.validate_arguments(subparser_by_command_type[args.command])
+
+    return args, command
 
 
 def _config_general_args(argparser: ArgumentParser) -> None:
@@ -104,7 +127,3 @@ def _config_general_args(argparser: ArgumentParser) -> None:
         default="INFO",
         help="Logging level (DEBUG, INFO, WARN, ERROR.)",
     )
-
-
-if __name__ == "__main__":
-    main(sys.argv[1:])

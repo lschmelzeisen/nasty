@@ -14,41 +14,45 @@
 # limitations under the License.
 #
 
-from argparse import ArgumentParser
-from typing import List
+from argparse import ArgumentParser, _ArgumentGroup
+from typing import Sequence
 
-from nasty.old_v2.commands import TimelineCommand
-from nasty.retrieval.thread import Thread
-from nasty.retrieval.timeline import Timeline
+from ..request.replies import Replies
+from ..tweet.tweet import TweetId
+from ._request_command import _RequestCommand
 
 
-class ThreadCommand(TimelineCommand):
+class _RepliesCommand(_RequestCommand[Replies]):
     @classmethod
     def command(cls) -> str:
-        return "thread"
+        return "replies"
 
     @classmethod
-    def aliases(cls) -> List[str]:
-        return ["t"]
+    def aliases(cls) -> Sequence[str]:
+        return ["r"]
 
     @classmethod
     def description(cls) -> str:
-        return "Retrieve all Tweets threaded under a Tweet."
+        return "Retrieve all directly replying Tweets to a Tweet."
 
     @classmethod
-    def _config_retrieval_args(cls, argparser: ArgumentParser) -> None:
+    def _config_request_subclass_args(cls, argparser: ArgumentParser) -> _ArgumentGroup:
         g = argparser.add_argument_group(
-            "Thread Arguments",
-            "Control to which Tweet threaded Tweets are " "retrieved.",
+            "Replies Arguments", "Control to which Tweet replies are retrieved."
         )
         g.add_argument(
             "-t",
             "--tweet-id",
             metavar="<ID>",
-            type=str,
+            type=TweetId,
             required=True,
-            help="ID of the Tweet to retrieve " "threaded Tweets for (required).",
+            help="ID of the Tweet to retrieve replies for (required).",
         )
+        return g
 
-    def setup_retrieval(self) -> Timeline:
-        return Thread(self._args.tweet_id, self._args.max_tweets, self._args.batch_size)
+    def build_request(self) -> Replies:
+        return Replies(
+            self._args.tweet_id,
+            max_tweets=self._args.max_tweets,
+            batch_size=self._args.batch_size,
+        )

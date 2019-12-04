@@ -213,6 +213,7 @@ class Retriever(Generic[_T_Request], ABC):
                     if consecutive_rate_limits != 3:
                         self._fetch_new_twitter_session()
                         continue
+                # TODO: Try to avoid 403-Forbidden (after ~5 hours) as well.
                 raise
             consecutive_rate_limits = 0
 

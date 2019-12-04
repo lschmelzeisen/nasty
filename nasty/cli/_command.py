@@ -14,13 +14,13 @@
 # limitations under the License.
 #
 
+import argparse
 from abc import ABC, abstractmethod
 from argparse import ArgumentParser
-from argparse import Namespace as ArgumentNamespace
-from typing import List
+from typing import Sequence
 
 
-class Command(ABC):
+class _Command(ABC):
     @classmethod
     @abstractmethod
     def command(cls) -> str:
@@ -28,7 +28,7 @@ class Command(ABC):
 
     @classmethod
     @abstractmethod
-    def aliases(cls) -> List[str]:
+    def aliases(cls) -> Sequence[str]:
         raise NotImplementedError()
 
     @classmethod
@@ -39,10 +39,13 @@ class Command(ABC):
     @classmethod
     @abstractmethod
     def config_argparser(cls, argparser: ArgumentParser) -> None:
-        raise NotImplementedError()
+        pass
 
-    def __init__(self, args: ArgumentNamespace):
+    def __init__(self, args: argparse.Namespace):
         self._args = args
+
+    def validate_arguments(self, argparser: ArgumentParser) -> None:
+        pass
 
     @abstractmethod
     def run(self) -> None:
