@@ -73,6 +73,7 @@ publish-pipenv-setup:
 .PHONY: publish-pipenv-setuppy
 
 publish-setuppy:
+	@rm -rf build dist
 	@pipenv run python setup.py sdist bdist_wheel
 .PHONY: publish-setuppy
 
