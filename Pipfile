@@ -20,6 +20,7 @@ pep8-naming = "~=0.9"
 pipenv-setup = "~=2.2"
 pytest = "~=5.3"
 responses = "~=0.10"
+flake8-eradicate = "~=0.2"
 
 [packages]
 overrides = "~=2.5"

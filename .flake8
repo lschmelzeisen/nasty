@@ -5,7 +5,7 @@ max-line-length = 88
 # flake8-mccabe
 max-complexity = 10
 select =
-    # pycodestyle
+    # pycodestyle / flake8-eradicate
     E
     W
     # flake8
@@ -29,5 +29,11 @@ ignore =
     # disable class-attributes overlapping with builtins
     A003
 per-file-ignores =
+    # Disable commented-out-code inspection in these files because we list explicitly
+    # list examples of JSON-Dicts returned by Twitter to illustrate the code, which
+    # trigger this inspection.
+    nasty/_retriever/replies_retriever.py:E800
+    nasty/_retriever/search_retriever.py:E800
+    nasty/_retriever/thread_retriever.py:E800
     # Black formats stub files differently
     stubs/*:E301,E302,E305,E701,E704,W504
