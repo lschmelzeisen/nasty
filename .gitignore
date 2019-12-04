@@ -9,16 +9,20 @@ dist/
 .eggs
 *.egg-info/
 
+# Unit test / coverage reports
+htmlcov/
+.coverage
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+
 # IDE files
 .idea/
 
 # Virtual environments
 .venv/
 
-# Cache files
-.mypy_cache/
-.pytest_cache/
+# Project specific generated files
 tests/util/.requests_cache.pickle
-
-# Auto-generated files
 nasty/version.py

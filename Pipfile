@@ -20,6 +20,7 @@ mypy = "~=0.750"
 pep8-naming = "~=0.9"
 pipenv-setup = "~=2.2"
 pytest = "~=5.3"
+pytest-cov = "~=2.8"
 responses = "~=0.10"
 twine = "~=3.1"
 
