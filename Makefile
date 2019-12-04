@@ -83,5 +83,6 @@ publish-twine-upload-testpypi:
 
 clean:
 	@rm -rf .eggs .mypy_cache .pytest_cache build dist nasty/version.py tests/util/.requests_cache.pickle
+	@git checkout HEAD -- nasty/version.py
 	@pipenv --rm
 .PHONY: clean
