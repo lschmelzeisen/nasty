@@ -99,7 +99,7 @@ class _Job(JsonSerializable):
         )
 
 
-class JobResult(Enum):
+class _JobResult(Enum):
     SUCCESS = enum.auto()
     SKIP = enum.auto()
     FAIL = enum.auto()
@@ -140,18 +140,18 @@ class RequestExecutor:
         logger.info(
             "Executing requests completed. "
             "{:d} successful, {:d} skipped, {:d} failed.".format(
-                result_counter[JobResult.SUCCESS],
-                result_counter[JobResult.SKIP],
-                result_counter[JobResult.FAIL],
+                result_counter[_JobResult.SUCCESS],
+                result_counter[_JobResult.SKIP],
+                result_counter[_JobResult.FAIL],
             )
         )
-        if result_counter[JobResult.FAIL]:
+        if result_counter[_JobResult.FAIL]:
             logger.error("Some requests failed!")
             return False
         return True
 
     @classmethod
-    def _execute_job(cls, job: _Job, out_dir: Path) -> JobResult:
+    def _execute_job(cls, job: _Job, out_dir: Path) -> _JobResult:
         logger.debug("Executing request: {}".format(job.request.to_json()))
 
         meta_file = out_dir / job.meta_file_name
@@ -172,7 +172,7 @@ class RequestExecutor:
                 )
                 logger.error("    Meta file: {}".format(meta_file))
                 logger.error("    Data file: {}".format(data_file))
-                return JobResult.FAIL
+                return _JobResult.FAIL
 
             if previous_job.completed_at:
                 logger.debug(
@@ -180,7 +180,7 @@ class RequestExecutor:
                         previous_job.completed_at.strftime(NASTY_DATE_TIME_FORMAT)
                     )
                 )
-                return JobResult.SKIP
+                return _JobResult.SKIP
 
             job = previous_job
             # Don't save previous exceptions back to file
@@ -193,7 +193,7 @@ class RequestExecutor:
             )
             data_file.unlink()
 
-        result = JobResult.SUCCESS
+        result = _JobResult.SUCCESS
         try:
             tweets = list(job.request.request())
             with lzma.open(data_file, "wt", encoding="UTF-8") as fout:
@@ -205,7 +205,7 @@ class RequestExecutor:
         except Exception as e:
             logger.exception("  Request execution failed with exception.")
             job.exception = JsonSerializedException.from_exception(e)
-            result = JobResult.FAIL
+            result = _JobResult.FAIL
 
         with meta_file.open("w", encoding="UTF-8") as fout:
             json.dump(job.to_json(), fout, indent=2)
