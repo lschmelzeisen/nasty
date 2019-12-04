@@ -24,6 +24,7 @@ from typing import Optional, Sequence, Tuple, Type
 from .._util.argparse_ import SingleMetavarHelpFormatter
 from .._util.logging_ import setup_logging
 from ._command import _Command
+from ._executor_command import _ExecutorCommand
 from ._replies_command import _RepliesCommand
 from ._search_command import _SearchCommand
 from ._thread_command import _ThreadCommand
@@ -54,6 +55,7 @@ def _load_args(argv: Sequence[str]) -> Tuple[argparse.Namespace, _Command]:
         _SearchCommand,
         _RepliesCommand,
         _ThreadCommand,
+        _ExecutorCommand,
     ]
 
     argparser = ArgumentParser(
@@ -74,18 +76,18 @@ def _load_args(argv: Sequence[str]) -> Tuple[argparse.Namespace, _Command]:
     subparsers.required = True
 
     subparser_by_command_type = {}
-    for subcommand_type in command_types:
+    for command_type in command_types:
         subparser = subparsers.add_parser(
-            subcommand_type.command(),
-            aliases=subcommand_type.aliases(),
-            help=subcommand_type.description(),
-            description=subcommand_type.description(),
+            command_type.command(),
+            aliases=command_type.aliases(),
+            help=command_type.description(),
+            description=command_type.description(),
             add_help=False,
             formatter_class=SingleMetavarHelpFormatter,
         )
-        subparser.set_defaults(command=subcommand_type)
-        subparser_by_command_type[subcommand_type] = subparser
-        subcommand_type.config_argparser(subparser)
+        subparser.set_defaults(command=command_type)
+        subparser_by_command_type[command_type] = subparser
+        command_type.config_argparser(subparser)
         _config_general_args(subparser)
 
     _config_general_args(argparser)
