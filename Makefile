@@ -11,7 +11,7 @@ test-pytest:
 .PHONY: test-pytest
 
 
-check: check-flake8 check-mypy check-isort check-black
+check: check-flake8 check-mypy check-vulture check-isort check-black
 .PHONY: check
 
 # Not using this rule because it even spams output in case of success (no quiet flag),
@@ -27,6 +27,10 @@ check-flake8:
 check-mypy:
 	@pipenv run mypy .
 .PHONY: check-mypy
+
+check-vulture:
+	@pipenv run vulture nasty vulture-whitelist.py
+.PHONY: check-vulture
 
 check-isort:
 	@pipenv run isort --check-only --recursive --quiet .
@@ -82,7 +86,16 @@ publish-twine-upload-testpypi:
 
 
 clean:
-	@rm -rf .eggs .mypy_cache .pytest_cache build dist nasty/version.py tests/util/.requests_cache.pickle
+	@rm -rf .eggs .mypy_cache .pytest_cache build dist tests/util/.requests_cache.pickle
 	@git checkout HEAD -- nasty/version.py
 	@pipenv --rm
 .PHONY: clean
+
+
+build-versionpy:
+	@pipenv run python setup.py --version
+.PHONY:
+
+build-vulture-whitelistpy:
+	@pipenv run vulture nasty --make-whitelist > vulture-whitelist.py || true
+.PHONY: build-vulture-whitelistpy

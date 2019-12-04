@@ -37,3 +37,5 @@ per-file-ignores =
     nasty/_retriever/thread_retriever.py:E800
     # Black formats stub files differently
     stubs/*:E301,E302,E305,E701,E704,W504
+    # Allow vulture's whitelist syntax
+    vulture-whitelist.py:F821
