@@ -86,15 +86,25 @@ class _SearchCommand(_RequestCommand[Search]):
     @classmethod
     def _config_executor_args(cls, argparser: ArgumentParser) -> _ArgumentGroup:
         g = super()._config_executor_args(argparser)
-        g.add_argument("-d", "--daily", action="store_true", help="oh lol")
+        g.add_argument(
+            "-d",
+            "--daily",
+            action="store_true",
+            help=(
+                "For a request with since and until date, submit one search request "
+                "per day in the date-range with identical settings otherwise."
+            ),
+        )
         return g
 
     def validate_arguments(self, argparser: ArgumentParser) -> None:
         super().validate_arguments(argparser)
-        if self._args.daily and (self._args.since is None or self._args.until is None):
-            argparser.error(
-                "For -d (--daily) both -s (--since) and -u (--until) must be set."
-            )
+        if self._args.daily:
+            if not self._args.to_executor:
+                argparser.error("-d (--daily) requires -e (--to-executor).")
+
+            if self._args.since is None or self._args.until is None:
+                argparser.error("-d (--daily) requires -s (--since) and -u (--until).")
 
     def _request_executor_submit(
         self, request_executor: RequestExecutor, request: Search

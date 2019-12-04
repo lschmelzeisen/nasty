@@ -83,7 +83,7 @@ class _RequestCommand(_Command, ABC, Generic[_T_Request]):
             "--to-executor",
             metavar="<FILE>",
             type=Path,
-            help="Store request in executor jobs file.",
+            help="Submit request to executor jobs file.",
         )
         return g
 
