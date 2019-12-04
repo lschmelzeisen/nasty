@@ -150,8 +150,10 @@ class SearchRetrieverBatch(RetrieverBatch):
         #     },
         # }
 
-        cursor_entry = instructions[0]["addEntries"]["entries"][-1]
-        if cursor_entry["entryId"] != "sq-cursor-bottom":
+        cursor_entry = None
+        if instructions[0]["addEntries"]["entries"]:
+            cursor_entry = instructions[0]["addEntries"]["entries"][-1]
+        if not cursor_entry or cursor_entry["entryId"] != "sq-cursor-bottom":
             cursor_entry = instructions[-1]["replaceEntry"]["entry"]
         if cursor_entry["entryId"] != "sq-cursor-bottom":
             raise RuntimeError("Could not locate cursor entry.")

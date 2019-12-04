@@ -202,6 +202,7 @@ class Retriever(Generic[_T_Request], ABC):
             return False
 
         consecutive_rate_limits = 0
+        consecutive_forbidden = 0
         consecutive_empty_batches = 0
         batch = None
         while True:
@@ -213,7 +214,13 @@ class Retriever(Generic[_T_Request], ABC):
                     if consecutive_rate_limits != 3:
                         self._fetch_new_twitter_session()
                         continue
-                # TODO: Try to avoid 403-Forbidden (after ~5 hours) as well.
+                    logger.info("Received 3 consecutive TOO MANY REQUESTS responses.")
+                elif e.status_code == HTTPStatus.FORBIDDEN:  # HTTP 403
+                    consecutive_forbidden += 1
+                    if consecutive_forbidden != 3:
+                        self._fetch_new_twitter_session()
+                        continue
+                    logger.info("Received 3 consecutive FORBIDDEN responses.")
                 raise
             consecutive_rate_limits = 0
 
@@ -227,6 +234,7 @@ class Retriever(Generic[_T_Request], ABC):
                 consecutive_empty_batches += 1
                 if consecutive_empty_batches != 3:
                     continue
+                logger.info("Received 3 consecutive empty batches.")
                 return False
 
             break
