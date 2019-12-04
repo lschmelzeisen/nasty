@@ -21,6 +21,8 @@ from argparse import ArgumentParser
 from logging import getLogger
 from typing import Optional, Sequence, Tuple, Type
 
+import nasty
+
 from .._util.argparse_ import SingleMetavarHelpFormatter
 from .._util.logging_ import setup_logging
 from ._command import _Command
@@ -117,7 +119,7 @@ def _config_general_args(argparser: ArgumentParser) -> None:
         "-v",
         "--version",
         action="version",
-        version="%(prog)s development version",
+        version="%(prog)s " + nasty.__version__,
         help="Show program's version number and exit.",
     )
 

@@ -24,6 +24,12 @@ from .request_executor import RequestExecutor
 from .tweet.conversation_tweet_stream import ConversationTweetStream
 from .tweet.tweet import Tweet, TweetId, User, UserId
 from .tweet.tweet_stream import TweetStream
+from .version import __version__
+
+__version_info__ = tuple(
+    (int(part) if part.isdigit() else part)
+    for part in __version__.split(".", maxsplit=4)
+)
 
 __all__ = [
     "main",
@@ -43,4 +49,6 @@ __all__ = [
     "User",
     "UserId",
     "TweetStream",
+    "__version__",
+    "__version_info__",
 ]

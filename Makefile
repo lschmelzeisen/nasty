@@ -42,7 +42,9 @@ format: format-licenseheaders format-autoflake format-isort format-black
 
 format-licenseheaders:
 	@pipenv run licenseheaders --tmpl LICENSE.header --years 2019 --owner "Lukas Schmelzeisen" --dir nasty
-	@pipenv run licenseheaders --tmpl LICENSE.header --years 2019 --owner "Lukas Schmelzeisen" --dir stubs --additional-extensions python=.pyi
+	@find stubs/ -name "*.pyi" -exec rename ".pyi" ".py" {} \;
+	@pipenv run licenseheaders --tmpl LICENSE.header --years 2019 --owner "Lukas Schmelzeisen" --dir stubs
+	@find stubs/ -name "*.py" -exec rename ".py" ".pyi" {} \;
 	@pipenv run licenseheaders --tmpl LICENSE.header --years 2019 --owner "Lukas Schmelzeisen" --dir tests
 .PHONY: format-licenseheaders
 
@@ -57,3 +59,29 @@ format-isort:
 format-black:
 	@pipenv run black .
 .PHONY: format-black
+
+
+publish: publish-pipenv-setup publish-setuppy publish-twine-check publish-twine-upload-testpypi
+.PHONY: publish
+
+publish-pipenv-setup:
+	@pipenv run pipenv-setup sync --dev --pipfile
+.PHONY: publish-pipenv-setuppy
+
+publish-setuppy:
+	@pipenv run python setup.py sdist bdist_wheel
+.PHONY: publish-setuppy
+
+publish-twine-check:
+	@pipenv run twine check dist/*
+.PHONY: publish-twine-check
+
+publish-twine-upload-testpypi:
+	@pipenv run twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+.PHONY: publish-twine-upload-testpypi
+
+
+clean:
+	@rm -rf .eggs .mypy_cache .pytest_cache build dist nasty/version.py tests/util/.requests_cache.pickle
+	@pipenv --rm
+.PHONY: clean

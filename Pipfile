@@ -11,16 +11,17 @@ flake8-bandit = "~=2.1"
 flake8-bugbear = "~=19.8"
 flake8-builtins = "~=1.4"
 flake8-comprehensions = "~=3.1"
+flake8-eradicate = "~=0.2"
 flake8-print = "~=3.1"
 flake8-pyi = "~=19.3"
 isort = {extras = ["pipfile", "pyproject"],version = "~=4.3"}
-licenseheaders = {git = "https://github.com/johann-petrak/licenseheaders.git"}
+licenseheaders = "~=0.7"
 mypy = "~=0.750"
 pep8-naming = "~=0.9"
 pipenv-setup = "~=2.2"
 pytest = "~=5.3"
 responses = "~=0.10"
-flake8-eradicate = "~=0.2"
+twine = "~=3.1"
 
 [packages]
 overrides = "~=2.5"

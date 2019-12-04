@@ -3,6 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Distribution / packaging
+build/
+dist/
+.eggs
+*.egg-info/
+
 # IDE files
 .idea/
 
@@ -13,3 +19,6 @@ __pycache__/
 .mypy_cache/
 .pytest_cache/
 tests/util/.requests_cache.pickle
+
+# Auto-generated files
+nasty/version.py

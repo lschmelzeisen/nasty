@@ -1,3 +1,7 @@
+[build-system]
+requiers = ["setuptools>=40.8.0", "wheel", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
 [tool.isort]
 line_length = 88
 multi_line_output = 3
