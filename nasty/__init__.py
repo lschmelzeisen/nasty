@@ -24,7 +24,12 @@ from .request_executor import RequestExecutor
 from .tweet.conversation_tweet_stream import ConversationTweetStream
 from .tweet.tweet import Tweet, TweetId, User, UserId
 from .tweet.tweet_stream import TweetStream
-from .version import __version__
+
+try:
+    # File is auto-generated. See "make build-versionpy".
+    from .version import __version__  # type: ignore
+except ImportError:
+    __version__ = "dev"
 
 __version_info__ = tuple(
     (int(part) if part.isdigit() else part)
