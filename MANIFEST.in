@@ -8,6 +8,7 @@ include Pipfile
 include Pipefile.lock
 include pyproject.toml
 include pytest.ini
+include README.rst
 include setup.py
 include vulture-whitelist.py
 recursive-include stubs *.pyi

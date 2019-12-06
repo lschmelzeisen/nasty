@@ -1,4 +1,9 @@
+from pathlib import Path
+
 from setuptools import find_packages, setup
+
+with open(Path(__file__).parent / "README.rst", encoding="UTF-8") as fin:
+    long_description = fin.read()
 
 setup(
     name="nasty",
@@ -7,7 +12,7 @@ setup(
         "write_to_template": '__version__ = "{version}"',
     },
     description="NASTY Advanced Search Tweet Yielder",
-    long_description="TODO",
+    long_description=long_description,
     long_description_content_type="text/x-rst; charset=UTF-8",
     author="Lukas Schmelzeisen",
     author_email="me@lschmelzeisen.com",
