@@ -156,9 +156,11 @@ and tracking dependencies.
 After its installation you can use the ``MAKEFILE``-helpers to run the plethora of
 axuiliary development tools.
 
-* ``make dev-environ`` to create a new virtual environment for Python and install all
+* ``make devenv`` to create a new virtual environment for Python and install all
   development dependencies.
 * ``make test`` to run all tests and report test coverage.
+* ``make test-tox`` to run all tests against all supported Python versions and run
+  linters.
 * ``make check`` to run linters and perform static type-checking.
 * ``make format`` to format all source code according to the project guidelines.
 * ``make publish`` to build the source and binary distributions and upload to `TestPyPI

@@ -1,5 +1,4 @@
 [flake8]
-exclude = .eggs,.venv,build
 # required for Black compatibility
 max-line-length = 88
 # flake8-mccabe

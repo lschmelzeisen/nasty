@@ -9,7 +9,7 @@ setup(
     name="nasty",
     use_scm_version={
         "write_to": "nasty/version.py",
-        "write_to_template": '__version__ = "{version}"',
+        "write_to_template": '__version__ = "{version}"\n',
     },
     description="NASTY Advanced Search Tweet Yielder",
     long_description=long_description,

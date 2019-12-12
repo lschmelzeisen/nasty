@@ -1,4 +1,4 @@
-dev-environ:
+devenv:
 	@PIPENV_VENV_IN_PROJECT=1 pipenv install --dev
 .PHONY: dev-environ
 
@@ -9,6 +9,10 @@ test: test-pytest
 test-pytest:
 	@pipenv run pytest tests
 .PHONY: test-pytest
+
+test-tox:
+	@pipenv run tox
+.PHONY: test-tox
 
 
 check: check-flake8 check-mypy check-vulture check-isort check-black
@@ -21,7 +25,7 @@ check: check-flake8 check-mypy check-vulture check-isort check-black
 #.PHONY: check-autoflake
 
 check-flake8:
-	@pipenv run flake8
+	@pipenv run flake8 nasty stubs tests setup.py vulture-whitelist.py
 .PHONY: check-flake8
 
 check-mypy:
@@ -87,7 +91,7 @@ publish-twine-upload-testpypi:
 
 
 clean:
-	@rm -rf .eggs .mypy_cache .pytest_cache build dist nasty/version.py tests/util/.requests_cache.pickle
+	@rm -rf .coverage .coverage.* .eggs *.egg-info .mypy_cache .pytest_cache .tox build dist nasty/version.py tests/util/.requests_cache.pickle
 	@pipenv --rm
 .PHONY: clean
 

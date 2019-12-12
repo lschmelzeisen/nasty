@@ -13,6 +13,7 @@ dist/
 htmlcov/
 .coverage
 .pytest_cache/
+.tox
 
 # mypy
 .mypy_cache/
