@@ -60,6 +60,7 @@ setup(
             "pytest~=5.3",
             "pytest-cov~=2.8",
             "responses~=0.10",
+            "tox~=3.14",
             "twine~=3.1",
             "vulture~=1.2",
         ],
