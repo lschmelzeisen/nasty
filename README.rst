@@ -13,7 +13,7 @@ NASTY Advanced Search Tweet Yielder
 **NASTY** is a tool/library for retrieving Tweets via the Twitter Web UI.
 Instead of using the `Twitter Developer API <https://developer.twitter.com/>`_ it
 works by acting like a normal web browser accessing Twitter.
-That is sends AJAX requests and parses Twitter's JSON responses.
+That is, it sends AJAX requests and parses Twitter's JSON responses.
 This approach makes it substantially different from the
 `other <https://github.com/bisguzar/twitter-scraper>`_
 `popular <https://github.com/Jefferson-Henrique/GetOldTweets-python>`_
@@ -124,14 +124,14 @@ To run all files stored in a jobs file and write the output to directory ``out``
 Python API
 ========================================================================================
 
-To fetch all Tweets about "climate change" written after 14 December 2019 in German::
+To fetch all Tweets about "climate change" written after 14 January 2019 in German::
 
     import nasty
     from datetime import datetime
 
     tweet_stream = nasty.Search("climate change",
                                 until=datetime(2019, 1, 14),
-                                lang="de")
+                                lang="de").request()
     for tweet in tweet_stream:
         print(tweet.created_at, tweet.text)
 
@@ -153,7 +153,7 @@ Please feel free to submit
 
 `Pipenv <https://pipenv.kennethreitz.org/>`_ is used for managing the Python environment
 and tracking dependencies.
-After its installation you can use the ``MAKEFILE``-helpers to run the plethora of
+After its installation you can use the ``Makefile``-helpers to run the plethora of
 axuiliary development tools.
 
 * ``make devenv`` to create a new virtual environment for Python and install all
