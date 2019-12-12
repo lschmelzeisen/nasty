@@ -40,7 +40,6 @@ class JsonSerializable:
     ) -> _T_JsonSerializable:
         raise NotImplementedError()
 
-    @overrides
     def __repr__(self) -> str:
         return type(self).__name__ + repr(self.to_json())
 
@@ -54,7 +53,6 @@ class JsonSerializedException(JsonSerializable):
         self.message: Final = message
         self.trace: Final = trace
 
-    @overrides
     def __eq__(self, other: object) -> bool:
         return type(self) == type(other) and self.__dict__ == other.__dict__
 

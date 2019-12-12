@@ -17,6 +17,8 @@
 from argparse import ArgumentParser, _ArgumentGroup
 from typing import Sequence
 
+from overrides import overrides
+
 from ..request.replies import Replies
 from ..tweet.tweet import TweetId
 from ._request_command import _RequestCommand
@@ -24,18 +26,22 @@ from ._request_command import _RequestCommand
 
 class _RepliesCommand(_RequestCommand[Replies]):
     @classmethod
+    @overrides
     def command(cls) -> str:
         return "replies"
 
     @classmethod
+    @overrides
     def aliases(cls) -> Sequence[str]:
         return ["r"]
 
     @classmethod
+    @overrides
     def description(cls) -> str:
         return "Retrieve all directly replying Tweets to a Tweet."
 
     @classmethod
+    @overrides
     def _config_request_subclass_args(cls, argparser: ArgumentParser) -> _ArgumentGroup:
         g = argparser.add_argument_group(
             "Replies Arguments", "Control to which Tweet replies are retrieved."
@@ -50,6 +56,7 @@ class _RepliesCommand(_RequestCommand[Replies]):
         )
         return g
 
+    @overrides
     def build_request(self) -> Replies:
         return Replies(
             self._args.tweet_id,

@@ -17,6 +17,8 @@
 from argparse import ArgumentParser, _ArgumentGroup
 from typing import Sequence
 
+from overrides import overrides
+
 from .._util.time_ import yyyy_mm_dd_date
 from ..request.search import DEFAULT_FILTER, Search, SearchFilter
 from ..request_executor import RequestExecutor
@@ -25,18 +27,22 @@ from ._request_command import _RequestCommand
 
 class _SearchCommand(_RequestCommand[Search]):
     @classmethod
+    @overrides
     def command(cls) -> str:
         return "search"
 
     @classmethod
+    @overrides
     def aliases(cls) -> Sequence[str]:
         return ["s"]
 
     @classmethod
+    @overrides
     def description(cls) -> str:
         return "Retrieve Tweets using the Twitter advanced search."
 
     @classmethod
+    @overrides
     def _config_request_subclass_args(cls, argparser: ArgumentParser) -> _ArgumentGroup:
         g = argparser.add_argument_group(
             "Search Arguments", "Control what kind of Tweets are searched."
@@ -84,6 +90,7 @@ class _SearchCommand(_RequestCommand[Search]):
         return g
 
     @classmethod
+    @overrides
     def _config_executor_args(cls, argparser: ArgumentParser) -> _ArgumentGroup:
         g = super()._config_executor_args(argparser)
         g.add_argument(
@@ -97,6 +104,7 @@ class _SearchCommand(_RequestCommand[Search]):
         )
         return g
 
+    @overrides
     def validate_arguments(self, argparser: ArgumentParser) -> None:
         super().validate_arguments(argparser)
         if self._args.daily:
@@ -106,6 +114,7 @@ class _SearchCommand(_RequestCommand[Search]):
             if self._args.since is None or self._args.until is None:
                 argparser.error("-d (--daily) requires -s (--since) and -u (--until).")
 
+    @overrides
     def _request_executor_submit(
         self, request_executor: RequestExecutor, request: Search
     ) -> None:
@@ -115,6 +124,7 @@ class _SearchCommand(_RequestCommand[Search]):
         else:
             request_executor.submit(request)
 
+    @overrides
     def build_request(self) -> Search:
         return Search(
             self._args.query,

@@ -51,7 +51,6 @@ crawl_delay: Optional[float] = None
 
 
 class RetrieverTweetStream(TweetStream):
-    @overrides
     def __init__(self, update_callback: Callable[[], bool]):
         self._update_callback: Final = update_callback
         self._tweets: Sequence[Tweet] = []

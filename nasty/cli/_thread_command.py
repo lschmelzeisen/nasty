@@ -17,6 +17,8 @@
 from argparse import ArgumentParser, _ArgumentGroup
 from typing import Sequence
 
+from overrides import overrides
+
 from ..request.thread import Thread
 from ..tweet.tweet import TweetId
 from ._request_command import _RequestCommand
@@ -24,18 +26,22 @@ from ._request_command import _RequestCommand
 
 class _ThreadCommand(_RequestCommand[Thread]):
     @classmethod
+    @overrides
     def command(cls) -> str:
         return "thread"
 
     @classmethod
+    @overrides
     def aliases(cls) -> Sequence[str]:
         return ["t"]
 
     @classmethod
+    @overrides
     def description(cls) -> str:
         return "Retrieve all Tweets threaded under a Tweet."
 
     @classmethod
+    @overrides
     def _config_request_subclass_args(cls, argparser: ArgumentParser) -> _ArgumentGroup:
         g = argparser.add_argument_group(
             "Thread Arguments",
@@ -51,6 +57,7 @@ class _ThreadCommand(_RequestCommand[Thread]):
         )
         return g
 
+    @overrides
     def build_request(self) -> Thread:
         return Thread(
             self._args.tweet_id,

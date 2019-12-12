@@ -52,7 +52,6 @@ class _Job(JsonSerializable):
         self.completed_at = completed_at
         self.exception = exception
 
-    @overrides
     def __eq__(self, other: object) -> bool:
         return type(self) == type(other) and self.__dict__ == other.__dict__
 

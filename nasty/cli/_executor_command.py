@@ -18,24 +18,30 @@ from argparse import ArgumentParser
 from pathlib import Path
 from typing import Sequence
 
+from overrides import overrides
+
 from ..request_executor import RequestExecutor
 from ._command import _Command
 
 
 class _ExecutorCommand(_Command):
     @classmethod
+    @overrides
     def command(cls) -> str:
         return "executor"
 
     @classmethod
+    @overrides
     def aliases(cls) -> Sequence[str]:
         return "e"
 
     @classmethod
+    @overrides
     def description(cls) -> str:
         return "Execute previously submitted requests."
 
     @classmethod
+    @overrides
     def config_argparser(cls, argparser: ArgumentParser) -> None:
         g = argparser.add_argument_group(
             "Executor Arguments",
@@ -61,6 +67,7 @@ class _ExecutorCommand(_Command):
             help="Directory to which results will be written.",
         )
 
+    @overrides
     def run(self) -> None:
         request_executor = RequestExecutor()
         request_executor.load_requests(self._args.executor_file)

@@ -87,6 +87,7 @@ class _RequestCommand(_Command, ABC, Generic[_T_Request]):
         )
         return g
 
+    @overrides
     def run(self) -> None:
         if self._args.max_tweets == -1:
             self._args.max_tweets = None
