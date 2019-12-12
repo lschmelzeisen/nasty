@@ -60,9 +60,9 @@ def test_exact(args: Tuple[TweetId, Set[TweetId]]) -> None:
 @pytest.mark.parametrize(
     "args",
     [
-        (TweetId("1155486497451184128"), 200, 2),
-        (TweetId("1180505950613958658"), 200, 2),
-        (TweetId("550399835682390016"), 200, 15),
+        (TweetId("1155486497451184128"), 150, 2),
+        (TweetId("1180505950613958658"), 150, 2),
+        (TweetId("550399835682390016"), 150, 15),
     ],
     ids=repr,
 )
