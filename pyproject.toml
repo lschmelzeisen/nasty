@@ -12,3 +12,20 @@ use_parentheses = true
 [tool.black]
 target-version = ['py36']
 quiet = true
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py36, py37, py38, check
+isolated_builds = true
+install_command = python -m pip install {opts} {packages} && pipenv install --dev --ignore-pipfile
+
+[testenv]
+deps = pipenv
+setenv = PIPENV_VERBOSITY=-1
+whitelist_externals = make
+commands = make test
+
+[testenv:check]
+commands = make check
+"""

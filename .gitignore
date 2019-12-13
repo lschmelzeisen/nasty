@@ -11,7 +11,7 @@ dist/
 
 # Unit test / coverage reports
 htmlcov/
-.coverage
+.coverage*
 .pytest_cache/
 .tox
 
