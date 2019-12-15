@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=40.8.0", "wheel", "setuptools_scm"]
+requires = ["setuptools>=40.8.0", "wheel", "setuptools_scm~=3.3"]
 build-backend = "setuptools.build_meta"
 
 [tool.isort]
@@ -21,11 +21,13 @@ isolated_builds = true
 install_command = python -m pip install {opts} {packages} && pipenv install --dev --ignore-pipfile
 
 [testenv]
+commands = make test
+whitelist_externals = make
 deps = pipenv
 setenv = PIPENV_VERBOSITY=-1
-whitelist_externals = make
-commands = make test
+description = Run the unit tests under {basepython}.
 
 [testenv:check]
 commands = make check
+description = Run linters, check formatting and static typing.
 """
