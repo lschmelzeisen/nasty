@@ -17,9 +17,7 @@ flake8-pyi = "~=19.3"
 isort = {extras = ["pipfile", "pyproject"],version = "~=4.3"}
 licenseheaders = "~=0.7"
 mypy = "~=0.750"
-nasty = {editable = true,path = "."}
 pep8-naming = "~=0.9"
-pipenv-setup = "~=2.2"
 pytest = "~=5.3"
 pytest-cov = "~=2.8"
 responses = "~=0.10"
@@ -28,9 +26,7 @@ twine = "~=3.1"
 vulture = "~=1.2"
 
 [packages]
-overrides = "~=2.5"
-requests = "~=2.22"
-typing-extensions = "~=3.7"
+nasty = {editable = true,path = "."}
 
 [requires]
 python_version = "3.6"

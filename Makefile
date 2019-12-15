@@ -69,12 +69,8 @@ format-black:
 .PHONY: format-black
 
 
-publish: publish-pipenv-setup publish-setuppy publish-twine-check publish-twine-upload-testpypi
+publish: publish-setuppy publish-twine-check publish-twine-upload-testpypi
 .PHONY: publish
-
-publish-pipenv-setup:
-	@pipenv run pipenv-setup sync --dev --pipfile
-.PHONY: publish-pipenv-setuppy
 
 publish-setuppy:
 	@rm -rf build dist
@@ -91,7 +87,7 @@ publish-twine-upload-testpypi:
 
 
 clean:
-	@rm -rf .coverage .coverage.* .eggs *.egg-info .mypy_cache .pytest_cache .tox build dist nasty/version.py tests/util/.requests_cache.pickle
+	@rm -rf .coverage* .eggs *.egg-info .mypy_cache .pytest_cache .tox build dist nasty/version.py tests/util/.requests_cache.pickle
 	@pipenv --rm
 .PHONY: clean
 

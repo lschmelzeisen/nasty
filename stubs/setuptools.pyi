@@ -14,27 +14,6 @@
 # limitations under the License.
 #
 
-from typing import Mapping, Sequence
+from typing import Mapping
 
-def find_packages(
-    where: str = ..., exclude: Sequence[str] = ..., include: Sequence[str] = ...
-) -> Sequence[str]: ...
-def setup(
-    name: str,
-    use_scm_version: Mapping[str, str],
-    description: str,
-    long_description: str,
-    long_description_content_type: str,
-    author: str,
-    author_email: str,
-    license: str,  # noqa: A002
-    classifiers: Sequence[str],
-    keywords: Sequence[str],
-    packages: Sequence[str],
-    python_requires: str,
-    setup_requires: Sequence[str],
-    install_requires: Sequence[str],
-    extras_require: Mapping[str, Sequence[str]],
-    entry_points: Mapping[str, Sequence[str]],
-    project_urls: Mapping[str, str],
-) -> None: ...
+def setup(use_scm_version: Mapping[str, str]) -> None: ...
