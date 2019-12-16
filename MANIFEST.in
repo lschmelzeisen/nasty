@@ -1,16 +1,12 @@
-include .coveragerc
-include .flake8
 include LICENSE
 include LICENSE.header
 include Makefile
-include mypy.ini
 include Pipfile
 include Pipefile.lock
 include pyproject.toml
 include pytest.ini
 include README.rst
 include setup.py
-include tox.ini
 include vulture-whitelist.py
 recursive-include assets *.svg *.png
 recursive-include nasty *.py
