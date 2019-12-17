@@ -11,13 +11,16 @@ test: test-pytest
 .PHONY: test
 
 test-pytest:
-	@pytest tests --cov --cov-report html:tests-coverage --cov-context test --html tests-report.html --self-contained-html
+	@pytest tests --cov --cov-report= --cov-context test --html tests-report.html --self-contained-html
+	@coverage html --dir tests-coverage
+	@coverage report
 .PHONY: test-pytest
 
 test-tox:
 	@coverage erase
 	@tox
 	@coverage html --dir tests-coverage
+	@coverage report
 .PHONY: test-tox
 
 
