@@ -15,7 +15,7 @@ flake8-eradicate = "~=0.2"
 flake8-print = "~=3.1"
 flake8-pyi = "~=19.3"
 isort = {extras = ["pipfile", "pyproject"],version = "~=4.3"}
-licenseheaders = "~=0.7"
+licenseheaders = "~=0.8"
 mypy = "~=0.750"
 pep8-naming = "~=0.9"
 tox = "~=3.14"

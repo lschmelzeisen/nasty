@@ -53,9 +53,7 @@ format: format-licenseheaders format-autoflake format-isort format-black
 
 format-licenseheaders:
 	@pipenv run licenseheaders --tmpl LICENSE.header --years 2019 --owner "Lukas Schmelzeisen" --dir nasty
-	@find stubs/ -name "*.pyi" -exec rename ".pyi" ".py" {} \;
-	@pipenv run licenseheaders --tmpl LICENSE.header --years 2019 --owner "Lukas Schmelzeisen" --dir stubs
-	@find stubs/ -name "*.py" -exec rename ".py" ".pyi" {} \;
+	@pipenv run licenseheaders --tmpl LICENSE.header --years 2019 --owner "Lukas Schmelzeisen" --dir stubs --additional-extensions python=.pyi
 	@pipenv run licenseheaders --tmpl LICENSE.header --years 2019 --owner "Lukas Schmelzeisen" --dir tests
 .PHONY: format-licenseheaders
 
