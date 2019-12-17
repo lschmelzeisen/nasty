@@ -49,6 +49,6 @@ envlist = py36, py37, py38
 isolated_builds = true
 
 [testenv]
-commands = pytest tests --cov --cov-report= --cov-context test --cov-append --html {envdir}/tests-report.html --self-contained-html
+commands = pytest --cov --cov-report= --cov-context test --cov-append --html {envdir}/tests-report.html --self-contained-html
 extras = test
 """

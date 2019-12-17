@@ -11,7 +11,7 @@ test: test-pytest
 .PHONY: test
 
 test-pytest:
-	@pytest tests --cov --cov-report= --cov-context test --html tests-report.html --self-contained-html
+	@pytest --cov --cov-report= --cov-context test --html tests-report.html --self-contained-html
 	@coverage html --dir tests-coverage
 	@coverage report
 .PHONY: test-pytest
