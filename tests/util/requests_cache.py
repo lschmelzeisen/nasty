@@ -83,7 +83,7 @@ def activate_requests_cache(monkeypatch: MonkeyPatch, regenerate: bool) -> None:
             cache[key] = response
 
             with _CACHE_FILE.open("wb") as fout:
-                pickle.dump(cache, fout, pickle.HIGHEST_PROTOCOL)
+                pickle.dump(cache, fout, protocol=4)
 
             return response
 
