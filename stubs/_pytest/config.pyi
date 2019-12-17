@@ -14,5 +14,12 @@
 # limitations under the License.
 #
 
+import argparse
+
+class PytestPluginManager:
+    def hasplugin(self, name: str) -> bool: ...
+
 class Config:
+    option: argparse.Namespace
+    pluginmanager: PytestPluginManager
     def addinivalue_line(self, name: str, line: str) -> None: ...

@@ -7,11 +7,14 @@ test: test-pytest
 .PHONY: test
 
 test-pytest:
-	@pipenv run pytest tests
+	@pipenv run pytest tests --cov --cov-report html:tests-coverage --cov-context test --html tests-report.html --self-contained-html
+
 .PHONY: test-pytest
 
 test-tox:
+	@pipenv run coverage erase
 	@pipenv run tox
+	@pipenv run coverage html --dir tests-coverage
 .PHONY: test-tox
 
 
@@ -87,7 +90,7 @@ publish-twine-upload-testpypi:
 
 
 clean:
-	@rm -rf .coverage* .eggs *.egg-info .mypy_cache .pytest_cache .tox build dist nasty/version.py tests/util/.requests_cache.pickle
+	@rm -rf .coverage* .eggs *.egg-info .mypy_cache .pytest_cache .tox build dist nasty/version.py tests/util/.requests_cache.pickle tests-coverage tests-report.html
 	@pipenv --rm
 .PHONY: clean
 

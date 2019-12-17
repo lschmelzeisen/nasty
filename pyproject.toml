@@ -2,6 +2,39 @@
 requires = ["setuptools>=40.8.0", "wheel", "setuptools_scm~=3.3"]
 build-backend = "setuptools.build_meta"
 
+[tool.black]
+target-version = ['py36']
+quiet = true
+
+[tool.coverage]
+    [tool.coverage.run]
+    branch = true
+    source = ["nasty"]
+
+    [tool.coverage.report]
+    exclude_lines = [
+        # Do not complain about missing debug-only code:
+        "def __repr__",
+
+        # Do not complain if tests do not hit defensive assertion code
+        "raise AssertionError",
+        "raise NotImplementedError",
+
+        # Do not complain if non-runnable code is not run:
+        'if __name__ == "__main__":',
+
+        # Do not complain about unimplemented code.
+        "pass",
+
+        # Hard to test missing import code.
+        "except ImportError",
+    ]
+    omit = ["nasty/__main__.py"]
+    skip_empty = true
+
+    [tool.coverage.html]
+    show_contexts = true
+
 [tool.isort]
 line_length = 88
 multi_line_output = 3
@@ -9,25 +42,13 @@ force_grid_wrap = 0
 include_trailing_comma = true
 use_parentheses = true
 
-[tool.black]
-target-version = ['py36']
-quiet = true
-
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py36, py37, py38, check
+envlist = py36, py37, py38
 isolated_builds = true
-install_command = python -m pip install {opts} {packages} && pipenv install --dev --ignore-pipfile
 
 [testenv]
-commands = make test
-whitelist_externals = make
-deps = pipenv
-setenv = PIPENV_VERBOSITY=-1
-description = Run the unit tests under {basepython}.
-
-[testenv:check]
-commands = make check
-description = Run linters, check formatting and static typing.
+commands = pytest tests --cov --cov-report= --cov-context test --cov-append --html {envdir}/tests-report.html --self-contained-html
+extras = test
 """

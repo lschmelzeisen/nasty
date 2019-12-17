@@ -10,10 +10,11 @@ dist/
 *.egg-info/
 
 # Unit test / coverage reports
-htmlcov/
 .coverage*
 .pytest_cache/
 .tox
+tests-coverage
+tests-report.html
 
 # mypy
 .mypy_cache/
