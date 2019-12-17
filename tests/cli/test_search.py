@@ -14,9 +14,11 @@
 # limitations under the License.
 #
 
+import json
 from datetime import date
 from logging import getLogger
-from typing import Any, Mapping
+from pathlib import Path
+from typing import Any, Mapping, Sequence
 
 import pytest
 from _pytest.capture import CaptureFixture
@@ -24,51 +26,100 @@ from _pytest.monkeypatch import MonkeyPatch
 
 from nasty.cli.main import main
 from nasty.request.search import Search, SearchFilter
+from nasty.request_executor import _Job
 
 from .mock_context import MockContext
 
 logger = getLogger(__name__)
 
+SEARCH_KWARGS = [
+    {"query": "trump"},
+    {"query": "donald trump"},
+    {"query": "trump", "since": date(2019, 3, 21), "until": date(2019, 3, 22)},
+    {"query": "trump", "filter_": SearchFilter.LATEST},
+    {"query": "trump", "lang": "de"},
+    {"query": "trump", "max_tweets": 17, "batch_size": 71},
+]
 
-@pytest.mark.parametrize(
-    "kwargs",
-    [
-        {"query": "trump"},
-        {"query": "donald trump"},
-        {"query": "trump", "since": date(2019, 3, 21), "until": date(2019, 3, 22)},
-        {"query": "trump", "filter_": SearchFilter.LATEST},
-        {"query": "trump", "lang": "de"},
-        {"query": "trump", "max_tweets": 17, "batch_size": 71},
-    ],
-    ids=repr,
-)
+
+def _make_args_from_search_kwargs(search_kwargs: Mapping[str, Any]) -> Sequence[str]:
+    args = ["search", "--query", search_kwargs["query"]]
+    if "since" in search_kwargs:
+        args.extend(["--since", search_kwargs["since"].strftime("%Y-%m-%d")])
+    if "until" in search_kwargs:
+        args.extend(["--until", search_kwargs["until"].strftime("%Y-%m-%d")])
+    if "filter_" in search_kwargs:
+        args.extend(["--filter", search_kwargs["filter_"].name])
+    if "lang" in search_kwargs:
+        args.extend(["--lang", search_kwargs["lang"]])
+    if "max_tweets" in search_kwargs:
+        args.extend(["--max-tweets", str(search_kwargs["max_tweets"])])
+    if "batch_size" in search_kwargs:
+        args.extend(["--batch-size", str(search_kwargs["batch_size"])])
+    return args
+
+
+@pytest.mark.parametrize("search_kwargs", SEARCH_KWARGS, ids=repr)
 def test_correct_call(
-    kwargs: Mapping[str, Any], monkeypatch: MonkeyPatch, capsys: CaptureFixture
+    search_kwargs: Mapping[str, Any], monkeypatch: MonkeyPatch, capsys: CaptureFixture
 ) -> None:
     mock_context: MockContext[Search] = MockContext()
     monkeypatch.setattr(Search, "request", mock_context.mock_request)
 
-    args = ["search", "--query", kwargs["query"]]
-    if "since" in kwargs:
-        args.extend(["--since", kwargs["since"].strftime("%Y-%m-%d")])
-    if "until" in kwargs:
-        args.extend(["--until", kwargs["until"].strftime("%Y-%m-%d")])
-    if "filter_" in kwargs:
-        args.extend(["--filter", kwargs["filter_"].name])
-    if "lang" in kwargs:
-        args.extend(["--lang", kwargs["lang"]])
-    if "max_tweets" in kwargs:
-        args.extend(["--max-tweets", str(kwargs["max_tweets"])])
-    if "batch_size" in kwargs:
-        args.extend(["--batch-size", str(kwargs["batch_size"])])
-
-    main(args)
+    main(_make_args_from_search_kwargs(search_kwargs))
 
     assert mock_context.tweet_stream_next_called
-    assert mock_context.request == Search(**kwargs)
+    assert mock_context.request == Search(**search_kwargs)
     assert capsys.readouterr().out == ""
 
-    assert True
+
+@pytest.mark.parametrize("search_kwargs", SEARCH_KWARGS, ids=repr)
+def test_correct_call_to_executor(
+    search_kwargs: Mapping[str, Any], capsys: CaptureFixture, tmp_path: Path,
+) -> None:
+    executor_file = tmp_path / "jobs.jsonl"
+    args = list(_make_args_from_search_kwargs(search_kwargs))
+    args.extend(["--to-executor", str(executor_file)])
+    main(args)
+
+    assert capsys.readouterr().out == ""
+    with executor_file.open("r", encoding="UTF-8") as fin:
+        job = _Job.from_json(json.load(fin))
+        assert job.request == Search(**search_kwargs)
+        assert job._id
+        assert job.completed_at is None
+        assert job.exception is None
+
+
+def test_correct_call_to_executor_daily(capsys: CaptureFixture, tmp_path: Path) -> None:
+    executor_file = tmp_path / "jobs.jsonl"
+    args = [
+        "search",
+        "--query",
+        "trump",
+        "--since",
+        "2019-01-01",
+        "--until",
+        "2019-02-01",
+        "--to-executor",
+        str(executor_file),
+        "--daily",
+    ]
+    main(args)
+
+    assert capsys.readouterr().out == ""
+    with executor_file.open("r", encoding="UTF-8") as fin:
+        for line, expected_request in zip(
+            fin,
+            Search(
+                "trump", since=date(2019, 1, 1), until=date(2019, 2, 1)
+            ).to_daily_requests(),
+        ):
+            job = _Job.from_json(json.loads(line))
+            assert job.request == expected_request
+            assert job._id
+            assert job.completed_at is None
+            assert job.exception is None
 
 
 @pytest.mark.parametrize(
@@ -81,6 +132,11 @@ def test_correct_call(
         "--query trump --filter latest",
         "--query trump --max-tweets five",
         "--query trump --batch-size 3.0",
+        "--query trump --to-executor",
+        "--query trump --daily",
+        "--query trump --to-executor file --daily",
+        "--query trump --since 2019-03-21 --to-executor file --daily",
+        "--query trump --until 2019-03-21 --to-executor file --daily",
     ],
     ids=repr,
 )
@@ -101,7 +157,3 @@ def test_incorrect_call(args_string: str, capsys: CaptureFixture) -> None:
         logger.debug("  " + line)
     assert captured.startswith("usage: nasty search")
     assert "nasty search: error" in captured
-
-
-# TODO: test to-executor
-# TODO: test daily
