@@ -73,8 +73,9 @@ class _SearchCommand(_RequestCommand[Search]):
             "-f",
             "--filter",
             metavar="<FILTER>",
-            type=SearchFilter.__getitem__,
-            default=DEFAULT_FILTER,
+            type=str,
+            choices=[filter_.name for filter_ in SearchFilter],
+            default=DEFAULT_FILTER.name,
             help=(
                 "Sorting/filtering of Tweets (TOP, LATEST, PHOTOS, VIDEOS). Defaults "
                 "to 'TOP'."
@@ -126,11 +127,12 @@ class _SearchCommand(_RequestCommand[Search]):
 
     @overrides
     def build_request(self) -> Search:
+        filter_ = SearchFilter[self._args.filter]
         return Search(
             self._args.query,
             since=self._args.since,
             until=self._args.until,
-            filter_=self._args.filter,
+            filter_=filter_,
             lang=self._args.lang,
             max_tweets=self._args.max_tweets,
             batch_size=self._args.batch_size,

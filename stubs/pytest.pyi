@@ -60,7 +60,8 @@ class mark:  # noqa: N801
 
 class _pytest:  # noqa: N801
     class _code:  # noqa: N801
-        class ExceptionInfo(Generic[_T_exp]): ...
+        class ExceptionInfo(Generic[_T_exp]):
+            value: _T_exp
 
 class RaisesContext(Generic[_T_exp]):
     def __enter__(self) -> _pytest._code.ExceptionInfo[_T_exp]: ...
