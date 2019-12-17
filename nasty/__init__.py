@@ -16,7 +16,6 @@
 
 import logging
 
-from .cli.main import main
 from .request.conversation_request import ConversationRequest
 from .request.replies import Replies
 from .request.request import DEFAULT_BATCH_SIZE, DEFAULT_MAX_TWEETS, Request
@@ -26,6 +25,9 @@ from .request_executor import RequestExecutor
 from .tweet.conversation_tweet_stream import ConversationTweetStream
 from .tweet.tweet import Tweet, TweetId, User, UserId
 from .tweet.tweet_stream import TweetStream
+
+from .cli import main  # isort:skip  # noqa
+
 
 try:
     # File is auto-generated. See "make build-versionpy".
