@@ -151,13 +151,12 @@ Please feel free to submit
 `bug reports <https://github.com/lschmelzeisen/nasty/issues>`_ and
 `pull requests <https://github.com/lschmelzeisen/nasty/pulls>`_!
 
-`Pipenv <https://pipenv.kennethreitz.org/>`_ is used for managing the Python environment
-and tracking dependencies.
-After its installation you can use the ``Makefile``-helpers to run the plethora of
-axuiliary development tools.
+There are the ``Makefile``-helpers to run the plethora of axuiliary development tools:
 
-* ``make devenv`` to create a new virtual environment for Python and install all
-  development dependencies.
+* ``make venv`` to create a new virtual environment using Python 3.6 in `./.venv`.
+  Activate it with ``. .venv/bin/activate``.
+* ``make devinstall`` to install nasty in editable mode with all test and dev
+  dependencies.
 * ``make test`` to run all tests and report test coverage.
 * ``make test-tox`` to run all tests against all supported Python versions and run
   linters.
