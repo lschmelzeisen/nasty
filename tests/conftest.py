@@ -15,7 +15,6 @@
 #
 
 import logging
-from os import environ
 
 import pytest
 from _pytest.config import Config
@@ -66,6 +65,6 @@ def cache_requests(request: FixtureRequest, monkeypatch: MonkeyPatch) -> None:
     activate_requests_cache(monkeypatch, regenerate)
 
 
-@pytest.fixture(autouse=True, scope="session")
-def disrespect_robotstxt() -> None:
-    environ["NASTY_DISRESPECT_ROBOTSTXT"] = "1"
+@pytest.fixture(autouse=True)
+def disrespect_robotstxt(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("NASTY_DISRESPECT_ROBOTSTXT", "1")

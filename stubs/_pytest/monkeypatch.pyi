@@ -14,7 +14,10 @@
 # limitations under the License.
 #
 
+from typing import Optional
+
 class MonkeyPatch:
     def setattr(
         self, target: object, name: str, value: object = ..., raising: bool = ...
     ) -> None: ...
+    def setenv(self, name: str, value: str, prepend: Optional[str] = ...) -> None: ...
