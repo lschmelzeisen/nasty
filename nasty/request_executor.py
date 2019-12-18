@@ -17,12 +17,12 @@
 import enum
 import json
 import lzma
-import multiprocessing
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from enum import Enum
 from logging import getLogger
-from os import environ
+from os import getenv
 from pathlib import Path
 from typing import List, Mapping, Optional, cast
 from uuid import uuid4
@@ -130,10 +130,13 @@ class RequestExecutor:
         logger.debug("Started executing {:d} requests.".format(len(self._jobs)))
         Path.mkdir(out_dir, exist_ok=True, parents=True)
 
-        num_processes = int(environ.get("NASTY_NUM_PROCESSES", "1"))
-        with multiprocessing.Pool(processes=num_processes) as pool:
+        num_workers = int(getenv("NASTY_NUM_WORKERS", default="1"))
+        with ThreadPoolExecutor(max_workers=num_workers) as pool:
             result_counter = Counter(
-                pool.starmap(self._execute_job, ((job, out_dir) for job in self._jobs))
+                future.result()
+                for future in as_completed(
+                    pool.submit(self._execute_job, job, out_dir) for job in self._jobs
+                )
             )
 
         logger.info(

@@ -18,12 +18,12 @@ import json
 import lzma
 from datetime import date, datetime
 from http import HTTPStatus
-from os import environ
 from pathlib import Path
 from typing import Sequence
 
 import pytest
 import responses
+from _pytest.monkeypatch import MonkeyPatch
 
 from nasty._util.json_ import JsonSerializedException
 from nasty._util.typing_ import checked_cast
@@ -177,8 +177,8 @@ def test_execute_success(tmp_path: Path) -> None:
     assert_out_dir_structure(tmp_path, request_executor._jobs)
 
 
-def test_execute_success_parallel(tmp_path: Path) -> None:
-    environ["NASTY_NUM_PROCESSES"] = "4"
+def test_execute_success_parallel(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("NASTY_NUM_WORKERS", "4")
     request_executor = RequestExecutor()
     for i in range(16):
         request_executor.submit(

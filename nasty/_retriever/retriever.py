@@ -18,7 +18,7 @@ import re
 from abc import ABC, abstractmethod
 from http import HTTPStatus
 from logging import getLogger
-from os import environ
+from os import getenv
 from time import sleep
 from typing import (
     Any,
@@ -348,7 +348,7 @@ class Retriever(Generic[_T_Request], ABC):
 
     @final
     def _session_get(self, url: str, **kwargs: Any) -> requests.Response:
-        if "NASTY_DISRESPECT_ROBOTSTXT" not in environ:
+        if not getenv("NASTY_DISRESPECT_ROBOTSTXT"):
             global crawl_delay
             if crawl_delay is None:
                 response = self._session.get("https://mobile.twitter.com/robots.txt")
