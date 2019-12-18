@@ -34,7 +34,7 @@ logger = getLogger(__name__)
 
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
-    if argv is None:
+    if argv is None:  # pragma: no cover
         argv = sys.argv[1:]
 
     args, command = _load_args(argv)
