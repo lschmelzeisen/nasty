@@ -24,19 +24,27 @@ _T_Request = TypeVar("_T_Request", bound=Request)
 
 
 class MockContext(Generic[_T_Request]):
-    def __init__(self) -> None:
-        self.tweet_stream_next_called = False
+    RESULT_TWEET = Tweet({})
+
+    def __init__(self, *, num_results: int = 0):
         self.request: Optional[_T_Request] = None
+        self.remaining_result_tweets = num_results
 
         outer_self = self
 
         class MockTweetStream(TweetStream):
             def __next__(self) -> Tweet:
-                outer_self.tweet_stream_next_called = True
+                if outer_self.remaining_result_tweets:
+                    outer_self.remaining_result_tweets -= 1
+                    return outer_self.RESULT_TWEET
                 raise StopIteration()
 
         def mock_request(request: _T_Request) -> TweetStream:
             self.request = request
+            if request.max_tweets:
+                self.remaining_result_tweets = min(
+                    self.remaining_result_tweets, request.max_tweets
+                )
             return MockTweetStream()
 
         self.mock_request = mock_request

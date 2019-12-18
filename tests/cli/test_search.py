@@ -25,6 +25,7 @@ from _pytest.capture import CaptureFixture
 from _pytest.monkeypatch import MonkeyPatch
 
 from nasty.cli.main import main
+from nasty.request.request import DEFAULT_BATCH_SIZE
 from nasty.request.search import Search, SearchFilter
 from nasty.request_executor import _Job
 
@@ -39,6 +40,7 @@ SEARCH_KWARGS = [
     {"query": "trump", "filter_": SearchFilter.LATEST},
     {"query": "trump", "lang": "de"},
     {"query": "trump", "max_tweets": 17, "batch_size": 71},
+    {"query": "trump", "max_tweets": None, "batch_size": DEFAULT_BATCH_SIZE},
 ]
 
 
@@ -53,9 +55,15 @@ def _make_args_from_search_kwargs(search_kwargs: Mapping[str, Any]) -> Sequence[
     if "lang" in search_kwargs:
         args.extend(["--lang", search_kwargs["lang"]])
     if "max_tweets" in search_kwargs:
-        args.extend(["--max-tweets", str(search_kwargs["max_tweets"])])
+        if search_kwargs["max_tweets"] is None:
+            args.extend(["--max-tweets", "-1"])
+        else:
+            args.extend(["--max-tweets", str(search_kwargs["max_tweets"])])
     if "batch_size" in search_kwargs:
-        args.extend(["--batch-size", str(search_kwargs["batch_size"])])
+        if search_kwargs["batch_size"] == DEFAULT_BATCH_SIZE:
+            args.extend(["--batch-size", "-1"])
+        else:
+            args.extend(["--batch-size", str(search_kwargs["batch_size"])])
     return args
 
 
@@ -68,9 +76,25 @@ def test_correct_call(
 
     main(_make_args_from_search_kwargs(search_kwargs))
 
-    assert mock_context.tweet_stream_next_called
     assert mock_context.request == Search(**search_kwargs)
+    assert not mock_context.remaining_result_tweets
     assert capsys.readouterr().out == ""
+
+
+@pytest.mark.parametrize("num_results", [5, 10, 20], ids=repr)
+def test_correct_call_results(
+    num_results: int, monkeypatch: MonkeyPatch, capsys: CaptureFixture
+) -> None:
+    mock_context: MockContext[Search] = MockContext(num_results=num_results)
+    monkeypatch.setattr(Search, "request", mock_context.mock_request)
+
+    main(["search", "--query", "trump", "--max-tweets", "10"])
+
+    assert mock_context.request == Search("trump", max_tweets=10)
+    assert not mock_context.remaining_result_tweets
+    assert capsys.readouterr().out == (
+        json.dumps(mock_context.RESULT_TWEET.to_json()) + "\n"
+    ) * min(10, num_results)
 
 
 @pytest.mark.parametrize("search_kwargs", SEARCH_KWARGS, ids=repr)
@@ -93,19 +117,20 @@ def test_correct_call_to_executor(
 
 def test_correct_call_to_executor_daily(capsys: CaptureFixture, tmp_path: Path) -> None:
     executor_file = tmp_path / "jobs.jsonl"
-    args = [
-        "search",
-        "--query",
-        "trump",
-        "--since",
-        "2019-01-01",
-        "--until",
-        "2019-02-01",
-        "--to-executor",
-        str(executor_file),
-        "--daily",
-    ]
-    main(args)
+    main(
+        [
+            "search",
+            "--query",
+            "trump",
+            "--since",
+            "2019-01-01",
+            "--until",
+            "2019-02-01",
+            "--to-executor",
+            str(executor_file),
+            "--daily",
+        ]
+    )
 
     assert capsys.readouterr().out == ""
     with executor_file.open("r", encoding="UTF-8") as fin:
