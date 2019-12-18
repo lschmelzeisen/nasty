@@ -16,20 +16,17 @@
 
 import pickle
 from logging import getLogger
-from multiprocessing import Lock
 from pathlib import Path
-from typing import Any, Callable, Dict, TypeVar
+from threading import Lock
+from types import TracebackType
+from typing import Any, Callable, Dict, Optional, Type
 
 from _pytest.monkeypatch import MonkeyPatch
 from requests import PreparedRequest, Response, Session
 from typing_extensions import Final
 
 logger = getLogger(__name__)
-
-_T_func = TypeVar("_T_func", bound=Callable[..., Any])
-
-_LOCK: Final = Lock()
-_CACHE_FILE: Final = Path(__file__).parent / ".requests_cache.pickle"
+_SESSION_SEND: Final[Callable[..., Response]] = Session.send
 
 
 class _CacheKey:
@@ -51,40 +48,51 @@ class _CacheKey:
         return type(self) == type(other) and self.__dict__ == other.__dict__
 
 
-def activate_requests_cache(monkeypatch: MonkeyPatch, regenerate: bool) -> None:
-    orig_session_send: Final[Callable[..., Response]] = Session.send
+class RequestsCache:
+    def __init__(self) -> None:
+        self._lock = Lock()
+        self._cache: Dict[_CacheKey, Response] = {}
+        self._cache_file = Path(__file__).parent / ".requests_cache.pickle"
+        if self._cache_file.exists():
+            with self._cache_file.open("rb") as fin:
+                self._cache = pickle.load(fin)
 
-    def mock_session_send(
-        self: Session, request: PreparedRequest, **kwargs: Any
-    ) -> Response:
-        # TODO: rewrite caching logic to use pytest's cache, i.e., serialize to JSON.
-        key = _CacheKey(request)
+    def close(self) -> None:
+        with self._cache_file.open("wb") as fout:
+            pickle.dump(self._cache, fout, protocol=4)
 
-        with _LOCK:
-            cache: Dict[_CacheKey, Response] = {}
-            if _CACHE_FILE.exists():
-                with _CACHE_FILE.open("rb") as fin:
-                    cache = pickle.load(fin)
+    def __enter__(self) -> "RequestsCache":
+        return self
 
-            response = cache.get(key)
-            if response is not None:
-                logger.debug(
-                    "Found cache response"
-                    + ("." if not regenerate else " (regenerating).")
-                )
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        self.close()
 
-                if not regenerate:
-                    self.cookies.update(response.cookies)  # type: ignore
-                    return response
+    def activate(self, monkeypatch: MonkeyPatch, regenerate: bool = False) -> None:
+        def mock_session_send(
+            session: Session, request: PreparedRequest, **kwargs: Any
+        ) -> Response:
+            key = _CacheKey(request)
+            with self._lock:
+                response = self._cache.get(key)
+                if response is not None:
+                    logger.debug(
+                        "Found cache response"
+                        + ("." if not regenerate else " (regenerating).")
+                    )
 
-                cache.pop(key)
+                    if not regenerate:
+                        session.cookies.update(response.cookies)  # type: ignore
+                        return response
 
-            response = orig_session_send(self, request, **kwargs)
-            cache[key] = response
+                    self._cache.pop(key)
 
-            with _CACHE_FILE.open("wb") as fout:
-                pickle.dump(cache, fout, protocol=4)
+                response = _SESSION_SEND(session, request, **kwargs)
+                self._cache[key] = response
+                return response
 
-            return response
-
-    monkeypatch.setattr(Session, "send", mock_session_send)
+        monkeypatch.setattr(Session, "send", mock_session_send)

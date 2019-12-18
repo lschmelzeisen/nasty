@@ -15,13 +15,14 @@
 #
 
 import logging
+from typing import Iterator
 
 import pytest
 from _pytest.config import Config
 from _pytest.fixtures import FixtureRequest
 from _pytest.monkeypatch import MonkeyPatch
 
-from .util.requests_cache import activate_requests_cache
+from .util.requests_cache import RequestsCache
 
 
 def pytest_configure(config: Config) -> None:
@@ -57,12 +58,21 @@ def _configure_requests_cache(config: Config) -> None:
     )
 
 
+@pytest.fixture(scope="session")
+def requests_cache() -> Iterator[RequestsCache]:
+    with RequestsCache() as requests_cache:
+        yield requests_cache
+
+
 @pytest.fixture(autouse=True)
-def cache_requests(request: FixtureRequest, monkeypatch: MonkeyPatch) -> None:
-    if request.node.get_closest_marker("requests_cache_disabled"):
-        return
-    regenerate = bool(request.node.get_closest_marker("requests_cache_regenerate"))
-    activate_requests_cache(monkeypatch, regenerate)
+def activate_requests_cache(
+    request: FixtureRequest, monkeypatch: MonkeyPatch, requests_cache: RequestsCache
+) -> None:
+    if not request.node.get_closest_marker("requests_cache_disabled"):
+        requests_cache.activate(
+            monkeypatch,
+            bool(request.node.get_closest_marker("requests_cache_regenerate")),
+        )
 
 
 @pytest.fixture(autouse=True)
