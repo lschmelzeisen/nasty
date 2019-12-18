@@ -27,7 +27,7 @@ from _pytest.monkeypatch import MonkeyPatch
 from nasty.cli.main import main
 from nasty.request.request import DEFAULT_BATCH_SIZE
 from nasty.request.search import Search, SearchFilter
-from nasty.request_executor import _Job
+from nasty.request_executor import RequestExecutor
 
 from .mock_context import MockContext
 
@@ -107,9 +107,32 @@ def test_correct_call_to_executor(
     main(args)
 
     assert capsys.readouterr().out == ""
-    with executor_file.open("r", encoding="UTF-8") as fin:
-        job = _Job.from_json(json.load(fin))
-        assert job.request == Search(**search_kwargs)
+    request_executor = RequestExecutor()
+    request_executor.load_requests(executor_file)
+    assert len(request_executor._jobs) == 1
+    assert request_executor._jobs[0].request == Search(**search_kwargs)
+    assert request_executor._jobs[0]._id
+    assert request_executor._jobs[0].completed_at is None
+    assert request_executor._jobs[0].exception is None
+
+
+def test_correct_call_to_executor_exists(
+    capsys: CaptureFixture, tmp_path: Path
+) -> None:
+    existing_request = Search("donald")
+    executor_file = tmp_path / "jobs.jsonl"
+    request_executor = RequestExecutor()
+    request_executor.submit(existing_request)
+    request_executor.dump_requests(executor_file)
+
+    main(["search", "--query", "trump", "--to-executor", str(executor_file)])
+
+    assert capsys.readouterr().out == ""
+    request_executor = RequestExecutor()
+    request_executor.load_requests(executor_file)
+    assert len(request_executor._jobs) == 2
+    for i, job in enumerate(request_executor._jobs):
+        assert job.request == existing_request if i == 0 else Search("trump")
         assert job._id
         assert job.completed_at is None
         assert job.exception is None
@@ -133,18 +156,19 @@ def test_correct_call_to_executor_daily(capsys: CaptureFixture, tmp_path: Path) 
     )
 
     assert capsys.readouterr().out == ""
-    with executor_file.open("r", encoding="UTF-8") as fin:
-        for line, expected_request in zip(
-            fin,
-            Search(
-                "trump", since=date(2019, 1, 1), until=date(2019, 2, 1)
-            ).to_daily_requests(),
-        ):
-            job = _Job.from_json(json.loads(line))
-            assert job.request == expected_request
-            assert job._id
-            assert job.completed_at is None
-            assert job.exception is None
+    request_executor = RequestExecutor()
+    request_executor.load_requests(executor_file)
+    assert len(request_executor._jobs) == 31
+    for job, expected_request in zip(
+        request_executor._jobs,
+        Search(
+            "trump", since=date(2019, 1, 1), until=date(2019, 2, 1)
+        ).to_daily_requests(),
+    ):
+        assert job.request == expected_request
+        assert job._id
+        assert job.completed_at is None
+        assert job.exception is None
 
 
 @pytest.mark.parametrize(
