@@ -30,6 +30,7 @@ quiet = true
         "except ImportError",
     ]
     omit = ["nasty/__main__.py"]
+    skip_covered = true
     skip_empty = true
 
     [tool.coverage.html]
