@@ -14,52 +14,157 @@
 # limitations under the License.
 #
 
-import pickle
+import base64
+import json
+from datetime import timedelta
+from http.cookiejar import Cookie, DefaultCookiePolicy
 from logging import getLogger
 from pathlib import Path
 from threading import Lock
 from types import TracebackType
-from typing import Any, Callable, Dict, Optional, Type
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    cast,
+)
 
 from _pytest.monkeypatch import MonkeyPatch
 from requests import PreparedRequest, Response, Session
+from requests.cookies import RequestsCookieJar
+from requests.hooks import default_hooks
+from requests.structures import CaseInsensitiveDict
 from typing_extensions import Final
 
 logger = getLogger(__name__)
 _SESSION_SEND: Final[Callable[..., Response]] = Session.send
+_T_Serializable = TypeVar("_T_Serializable")
 
 
-class _CacheKey:
-    def __init__(self, request: PreparedRequest):
-        if any(request.hooks.values()):
-            raise NotImplementedError("Usage of hooks not supported.")
+class Serializable(Generic[_T_Serializable]):
+    def __init__(
+        self,
+        type_: Type[_T_Serializable],
+        encoder: Callable[[_T_Serializable], Dict[str, object]],
+        decoder: Optional[Callable[[Dict[str, object]], Dict[str, object]]] = None,
+    ):
+        self.type = type_
+        self.encoder = encoder
+        self.decoder = decoder
 
-        self._method: Final = request.method
-        self._url: Final = request.url
-        self._headers: Final = frozenset(request.headers.items())
-        self._cookies: Final = frozenset(request._cookies.items())  # type: ignore
-        self._body: Final = request.body
-        self._body_position: Final = request._body_position  # type: ignore
 
-    def __hash__(self) -> int:
-        return hash(frozenset(self.__dict__.items()))
+SERIALIZABLES: Mapping[str, Serializable[Any]] = {
+    bytes.__name__: Serializable(
+        type_=bytes,
+        encoder=lambda obj: {"base64": base64.encodebytes(obj).decode("ascii")},
+    ),
+    timedelta.__name__: Serializable(
+        type_=timedelta,
+        encoder=lambda obj: {
+            "days": obj.days,
+            "seconds": obj.seconds,
+            "microseconds": obj.microseconds,
+        },
+    ),
+    CaseInsensitiveDict.__name__: Serializable(
+        type_=CaseInsensitiveDict,
+        encoder=lambda obj: cast(Dict[str, object], obj.__dict__),
+        decoder=lambda obj: obj,
+    ),
+    Cookie.__name__: Serializable(
+        type_=Cookie,
+        encoder=lambda obj: cast(Dict[str, object], obj.__dict__),
+        decoder=lambda obj: obj,
+    ),
+    RequestsCookieJar.__name__: Serializable(
+        type_=RequestsCookieJar,
+        encoder=lambda obj: dict(obj.__getstate__(), _policy=None),
+        decoder=lambda obj: dict(obj, _policy=DefaultCookiePolicy()),
+    ),
+    PreparedRequest.__name__: Serializable(
+        type_=PreparedRequest,
+        encoder=lambda obj: dict(obj.__dict__, hooks=None),
+        decoder=lambda obj: dict(
+            obj, hooks=cast(Callable[[], Mapping[str, Sequence[Any]]], default_hooks)()
+        ),
+    ),
+    Response.__name__: Serializable(
+        type_=Response,
+        encoder=lambda obj: dict(obj.__getstate__(), history=None),
+        decoder=lambda obj: dict(obj, history=None),
+    ),
+}
 
-    def __eq__(self, other: object) -> bool:
-        return type(self) == type(other) and self.__dict__ == other.__dict__
+
+def encode_json(obj: object) -> object:
+    try:
+        result = SERIALIZABLES[type(obj).__name__].encoder(obj)
+    except KeyError:
+        return obj
+    result["__type__"] = type(obj).__name__
+    return result
+
+
+def decode_json(obj: Dict[str, object]) -> object:
+    if not isinstance(obj, Dict) or "__type__" not in obj:
+        return obj
+
+    serializable = SERIALIZABLES[cast(str, obj.pop("__type__"))]
+    if serializable.decoder is not None:
+        result_dict = serializable.decoder(obj)
+        result = object.__new__(serializable.type)
+        if hasattr(result, "__setstate__"):
+            result.__setstate__(result_dict)
+        else:
+            result.__dict__ = result_dict
+        return result
+    elif serializable.type == bytes:
+        return base64.decodebytes(cast(str, obj["base64"]).encode("ascii"))
+    elif serializable.type == timedelta:
+        return timedelta(
+            days=cast(float, obj["days"]),
+            seconds=cast(float, obj["seconds"]),
+            microseconds=cast(float, obj["microseconds"]),
+        )
+    raise ValueError(
+        "Decoding type {} not implemented.".format(serializable.type.__name__)
+    )
+
+
+def _request_to_cache_key(request: PreparedRequest) -> Tuple[Any, ...]:
+    return (
+        request.method,
+        request.url,
+        tuple(request.headers.items()),
+        tuple(request._cookies.items()),  # type: ignore
+        request.body,
+        request._body_position,  # type: ignore
+    )
 
 
 class RequestsCache:
     def __init__(self) -> None:
         self._lock = Lock()
-        self._cache: Dict[_CacheKey, Response] = {}
-        self._cache_file = Path(__file__).parent / ".requests_cache.pickle"
+        self._cache: Dict[Tuple[Any, ...], Response] = {}
+        self._cache_file = Path(__file__).parent / ".requests_cache.jsonl"
         if self._cache_file.exists():
-            with self._cache_file.open("rb") as fin:
-                self._cache = pickle.load(fin)
+            with self._cache_file.open("rt", encoding="UTF-8") as fin:
+                for line in fin:
+                    response = json.loads(line, object_hook=decode_json)
+                    self._cache[_request_to_cache_key(response.request)] = response
 
     def close(self) -> None:
-        with self._cache_file.open("wb") as fout:
-            pickle.dump(self._cache, fout, protocol=4)
+        with self._cache_file.open("wt", encoding="UTF-8") as fout:
+            for response in self._cache.values():
+                fout.write(json.dumps(response, default=encode_json))
+                fout.write("\n")
 
     def __enter__(self) -> "RequestsCache":
         return self
@@ -76,8 +181,8 @@ class RequestsCache:
         def mock_session_send(
             session: Session, request: PreparedRequest, **kwargs: Any
         ) -> Response:
-            key = _CacheKey(request)
             with self._lock:
+                key = _request_to_cache_key(request)
                 response = self._cache.get(key)
                 if response is not None:
                     logger.debug(
@@ -93,6 +198,7 @@ class RequestsCache:
 
                 response = _SESSION_SEND(session, request, **kwargs)
                 self._cache[key] = response
+
                 return response
 
         monkeypatch.setattr(Session, "send", mock_session_send)

@@ -26,5 +26,5 @@ tests-report.html
 .venv/
 
 # Project specific generated files
-tests/util/.requests_cache.pickle
+tests/util/.requests_cache.jsonl
 nasty/version.py
