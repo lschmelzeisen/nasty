@@ -50,7 +50,7 @@ use_parentheses = true
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py36, py37, py38
+envlist = py36, py37, py38, pypy3
 isolated_builds = true
 
 [testenv]

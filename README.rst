@@ -33,7 +33,7 @@ features:
 Installation
 ========================================================================================
 
-Python **3.6+** is required.
+**Python 3.6**, **3.7**, **3.8** and **PyPy** are currently supported.
 Install via::
 
     pip install nasty
