@@ -144,6 +144,86 @@ The executor functionality is available in the ``nasty.RequestExecutor`` class.
 A comprehensive Python API documentation is coming in the future, but the code should
 be easy to understand.
 
+Legal and Moral Considerations
+========================================================================================
+
+At the time of writing, the
+`Twitter Terms of Service (TOS) <https://twitter.com/en/tos>`_ specify the following of
+relevance to this project:
+
+    You may not do any of the following while accessing or using the Services: [...]
+    access or search or attempt to access or search the Services by any means
+    (automated or otherwise) other than through our currently available, published
+    interfaces that are provided by Twitter (and only pursuant to the applicable terms
+    and conditions), unless you have been specifically allowed to do so in a separate
+    agreement with Twitter (NOTE: crawling the Services is permissible if done in
+    accordance with the provisions of the robots.txt file, however, scraping the
+    Services without the prior consent of Twitter is expressly prohibited)
+
+The text does not detail what separates *crawling* from *scraping* but states that
+obeying the ``robots.txt`` is a necessity.
+These are, for the subdomains we access:
+
+* https://mobile.twitter.com/robots.txt
+* https://api.twitter.com/robots.txt
+
+For ``mobile.twitter.com`` the URLs NASTY accesses are allowed for any user-agent but
+require waiting a delay of one second between successive requests.
+For ``api.twitter.com`` accessing any URL is forbidden for any user-agent, except the
+``Googlebot``, who may access everything.
+No crawl delay is specified here.
+NASTY implements a one second delay between any URL requests (even those to
+``api.twitter.com``), but because it does automatically request URLs from the latter
+subdomain and because it is not the ``Googlebot``, NASTY does technically violate the
+``robots.txt``.
+Therefore, **NASTY does violate the Twitter TOS**.
+
+This of course begs the question of whether it is morally justified to allow one of the
+world's most wealthy companies (here, Google) to automatically retrieve all of your web
+site's user-generated content while simultaneously disallowing anyone else from doing the
+same thing.
+Keep in mind, that Twitter is not any web site, but among other things hosts much of the
+world's political discussion
+(`example <https://twitter.com/realdonaldtrump/status/1213919480574812160>`_) to which,
+naturally, every citizen should have free and unfiltered access.
+
+Luckily, using NASTY is still perfectly legal in many cases:
+
+* It is unclear (and dependent on jurisdiction) to whom the TOS apply.
+  Since using NASTY does not require signing into Twitter or opening it manually in
+  a web browser, a court may decide that the user never agreed to the TOS and is
+  therefore not bound to its conditions.
+* A jurisdiction may guarantee certain rights that can not be overruled by TOS.
+  Especially common are laws that allow to for web scraping in academic and personal
+  contexts.
+  For example, in Germany up to 75% of any publicly accessible database (here, Twitter)
+  may copied for academic research.
+  For more details, see `Klawonn, T. (2019). "Urheberrechtliche Grenzen des Web Scrapings
+  (Web Scraping under German Copyright Law)". Available at SSRN 3491192.
+  <https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3491192>`_
+
+Note, that the above does not imply that it is legal or moral to publicly share a
+dataset that you created using NASTY.
+Specifically, the `Twitter Developer Policy
+<https://developer.twitter.com/en/developer-terms/agreement-and-policy#id8>`_ state:
+
+    If you provide Twitter Content to third parties, including downloadable datasets of
+    Twitter Content or an API that returns Twitter Content, you will only distribute or
+    allow download of Tweet IDs, Direct Message IDs, and/or User IDs.
+
+A feature that automatically removes anything but IDs from crawled output is in the
+works for NASTY.
+
+Last, it should be mentioned that NASTY is a tool specifically created for personal and
+academic contexts, where the funds to pay for enterprise access to the Twitter API are
+usually not available.
+If you operate in a commercial context, you should `pay for the services where possible
+<https://developer.twitter.com/en/products/products-overview>`_.
+
+For more discussion on the topic, see `Perry Stephenson (2018). "Is it okay to scrape
+Twitter?" <https://perrystephenson.me/2018/08/11/is-it-okay-to-scrape-twitter/>`_
+
+
 Contributing
 ========================================================================================
 
