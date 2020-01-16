@@ -75,8 +75,8 @@ SERIALIZABLES: Mapping[str, Serializable[Any]] = {
     ),
     CaseInsensitiveDict.__name__: Serializable(
         type_=CaseInsensitiveDict,
-        encoder=lambda obj: cast(Dict[str, object], obj.__dict__),
-        decoder=lambda obj: obj,
+        encoder=lambda obj: cast(Dict[str, object], obj._store),
+        decoder=lambda obj: {"_store": obj},
     ),
     Cookie.__name__: Serializable(
         type_=Cookie,
