@@ -98,7 +98,7 @@ publish-twine-upload:
 
 
 clean:
-	@rm -rf .coverage* .eggs *.egg-info .mypy_cache .pytest_cache .tox .venv build dist nasty/version.py tests/util/.requests_cache.pickle tests-coverage tests-report.html
+	@rm -rf .coverage* .eggs *.egg-info .mypy_cache .pytest_cache .tox .venv build dist nasty/version.py tests/util/.requests_cache.jsonl tests-coverage tests-report.html
 .PHONY: clean
 
 
