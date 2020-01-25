@@ -17,7 +17,7 @@
 import json
 from logging import getLogger
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Optional, Sequence
 
 import pytest
 from _pytest.capture import CaptureFixture
@@ -25,49 +25,43 @@ from _pytest.monkeypatch import MonkeyPatch
 
 from nasty.cli.main import main
 from nasty.request.replies import Replies
-from nasty.request.request import DEFAULT_BATCH_SIZE
+from nasty.request.request import DEFAULT_BATCH_SIZE, DEFAULT_MAX_TWEETS
 from nasty.request_executor import RequestExecutor
 
 from .mock_context import MockContext
 
 logger = getLogger(__name__)
 
-REPLIES_KWARGS = [
-    {"tweet_id": "332308211321425920"},
-    {"tweet_id": "332308211321425920", "max_tweets": 17, "batch_size": 71},
-    {
-        "tweet_id": "332308211321425920",
-        "max_tweets": None,
-        "batch_size": DEFAULT_BATCH_SIZE,
-    },
+REQUESTS = [
+    Replies("332308211321425920"),
+    Replies("332308211321425920", max_tweets=17, batch_size=71),
+    Replies("332308211321425920", max_tweets=None, batch_size=DEFAULT_BATCH_SIZE),
 ]
 
 
-def _make_args_from_replies_kwargs(replies_kwargs: Mapping[str, Any]) -> Sequence[str]:
-    args = ["replies", "--tweet-id", replies_kwargs["tweet_id"]]
-    if "max_tweets" in replies_kwargs:
-        if replies_kwargs["max_tweets"] is None:
-            args.extend(["--max-tweets", "-1"])
-        else:
-            args.extend(["--max-tweets", str(replies_kwargs["max_tweets"])])
-    if "batch_size" in replies_kwargs:
-        if replies_kwargs["batch_size"] == DEFAULT_BATCH_SIZE:
-            args.extend(["--batch-size", "-1"])
-        else:
-            args.extend(["--batch-size", str(replies_kwargs["batch_size"])])
+def _make_args(request: Replies, to_executor: Optional[Path] = None) -> Sequence[str]:
+    args = ["replies", "--tweet-id", request.tweet_id]
+    if request.max_tweets is None:
+        args += ["--max-tweets", "-1"]
+    elif request.max_tweets != DEFAULT_MAX_TWEETS:
+        args += ["--max-tweets", str(request.max_tweets)]
+    if request.batch_size != DEFAULT_BATCH_SIZE:
+        args += ["--batch-size", str(request.batch_size)]
+    if to_executor is not None:
+        args += ["--to-executor", str(to_executor)]
     return args
 
 
-@pytest.mark.parametrize("replies_kwargs", REPLIES_KWARGS, ids=repr)
+@pytest.mark.parametrize("request_", REQUESTS, ids=repr)
 def test_correct_call(
-    replies_kwargs: Mapping[str, Any], monkeypatch: MonkeyPatch, capsys: CaptureFixture
+    request_: Replies, monkeypatch: MonkeyPatch, capsys: CaptureFixture
 ) -> None:
     mock_context: MockContext[Replies] = MockContext()
     monkeypatch.setattr(Replies, "request", mock_context.mock_request)
 
-    main(_make_args_from_replies_kwargs(replies_kwargs))
+    main(_make_args(request_))
 
-    assert mock_context.request == Replies(**replies_kwargs)
+    assert mock_context.request == request_
     assert not mock_context.remaining_result_tweets
     assert capsys.readouterr().out == ""
 
@@ -78,30 +72,30 @@ def test_correct_call_results(
 ) -> None:
     mock_context: MockContext[Replies] = MockContext(num_results=num_results)
     monkeypatch.setattr(Replies, "request", mock_context.mock_request)
+    request = Replies("332308211321425920", max_tweets=10)
 
-    main(["replies", "--tweet-id", "332308211321425920", "--max-tweets", "10"])
+    main(_make_args(request))
 
-    assert mock_context.request == Replies("332308211321425920", max_tweets=10)
+    assert mock_context.request == request
     assert not mock_context.remaining_result_tweets
     assert capsys.readouterr().out == (
         json.dumps(mock_context.RESULT_TWEET.to_json()) + "\n"
     ) * min(10, num_results)
 
 
-@pytest.mark.parametrize("replies_kwargs", REPLIES_KWARGS, ids=repr)
+@pytest.mark.parametrize("request_", REQUESTS, ids=repr)
 def test_correct_call_to_executor(
-    replies_kwargs: Mapping[str, Any], capsys: CaptureFixture, tmp_path: Path,
+    request_: Replies, capsys: CaptureFixture, tmp_path: Path,
 ) -> None:
     executor_file = tmp_path / "jobs.jsonl"
-    args = list(_make_args_from_replies_kwargs(replies_kwargs))
-    args.extend(["--to-executor", str(executor_file)])
-    main(args)
+
+    main(_make_args(request_, to_executor=executor_file))
 
     assert capsys.readouterr().out == ""
     request_executor = RequestExecutor()
     request_executor.load_requests(executor_file)
     assert len(request_executor._jobs) == 1
-    assert request_executor._jobs[0].request == Replies(**replies_kwargs)
+    assert request_executor._jobs[0].request == request_
     assert request_executor._jobs[0]._id
     assert request_executor._jobs[0].completed_at is None
     assert request_executor._jobs[0].exception is None
@@ -110,30 +104,22 @@ def test_correct_call_to_executor(
 def test_correct_call_to_executor_exists(
     capsys: CaptureFixture, tmp_path: Path
 ) -> None:
-    existing_request = Replies("1024287257975566338")
+    old_request = Replies("1024287257975566338")
+    new_request = Replies("332308211321425920")
+
     executor_file = tmp_path / "jobs.jsonl"
     request_executor = RequestExecutor()
-    request_executor.submit(existing_request)
+    request_executor.submit(old_request)
     request_executor.dump_requests(executor_file)
 
-    main(
-        [
-            "replies",
-            "--tweet-id",
-            "332308211321425920",
-            "--to-executor",
-            str(executor_file),
-        ]
-    )
+    main(_make_args(new_request, to_executor=executor_file))
 
     assert capsys.readouterr().out == ""
     request_executor = RequestExecutor()
     request_executor.load_requests(executor_file)
     assert len(request_executor._jobs) == 2
     for i, job in enumerate(request_executor._jobs):
-        assert (
-            job.request == existing_request if i == 0 else Replies("332308211321425920")
-        )
+        assert job.request == old_request if i == 0 else new_request
         assert job._id
         assert job.completed_at is None
         assert job.exception is None
