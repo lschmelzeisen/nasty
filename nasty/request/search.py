@@ -54,6 +54,7 @@ class SearchFilter(Enum):
 
 
 DEFAULT_FILTER = SearchFilter.TOP
+DEFAULT_LANG = "en"
 
 
 class Search(Request):
@@ -64,7 +65,7 @@ class Search(Request):
         since: Optional[date] = None,
         until: Optional[date] = None,
         filter_: SearchFilter = DEFAULT_FILTER,
-        lang: str = "en",
+        lang: str = DEFAULT_LANG,
         max_tweets: Optional[int] = DEFAULT_MAX_TWEETS,
         batch_size: int = DEFAULT_BATCH_SIZE,
     ):
