@@ -102,10 +102,6 @@ clean:
 .PHONY: clean
 
 
-build-versionpy:
-	@python setup.py --version
-.PHONY:
-
 build-vulture-whitelistpy:
 	@vulture nasty --make-whitelist > vulture-whitelist.py || true
 .PHONY: build-vulture-whitelistpy
