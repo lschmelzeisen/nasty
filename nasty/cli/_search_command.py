@@ -86,7 +86,8 @@ class _SearchCommand(_RequestCommand[Search]):
             "--lang",
             metavar="<LANG>",
             default="en",
-            help="Two-letter language code for Tweets. Defaults to 'en'.",
+            help="Language for Tweets (presumably ISO 3166-1 two or three letter "
+            "codes). Defaults to 'en'.",
         )
         return g
 

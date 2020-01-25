@@ -81,7 +81,9 @@ class Search(Request):
         :param since: Only find Tweets written after this date (inclusive).
         :param until: Only find Tweets written before this date (exclusive).
         :param filter_: Method to sort/filter Tweets.
-        :param lang: Only search Tweets written in this language.
+        :param lang: Only search Tweets written in this language. These are directly
+            passed to Twitter and it's undocumented what arguments they except here.
+            Presumably ISO 3166-1 alpha-2 and alpha-3 codes should work.
         """
 
         if since is not None and until is not None and since >= until:
