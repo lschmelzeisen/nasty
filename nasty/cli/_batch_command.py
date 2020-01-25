@@ -20,43 +20,43 @@ from typing import Sequence
 
 from overrides import overrides
 
-from ..request_executor import RequestExecutor
+from ..batch_executor import BatchExecutor
 from ._command import _Command
 
 
-class _ExecutorCommand(_Command):
+class _BatchCommand(_Command):
     @classmethod
     @overrides
     def command(cls) -> str:
-        return "executor"
+        return "batch"
 
     @classmethod
     @overrides
     def aliases(cls) -> Sequence[str]:
-        return "e"
+        return "b"
 
     @classmethod
     @overrides
     def description(cls) -> str:
-        return "Execute previously submitted requests."
+        return "Execute previously created batch of requests."
 
     @classmethod
     @overrides
     def config_argparser(cls, argparser: ArgumentParser) -> None:
         g = argparser.add_argument_group(
-            "Executor Arguments",
-            "Requests can be submitted to a jobs file by using the -e (--to-executor) "
+            "Batch Arguments",
+            "Requests can be appended to a batch file by using the -b (--to-batch) "
             "options of the other nasty commands and then executed via this command. "
             "This allows to operate in batch mode, track progress, and rerun "
             "uncompleted/failed requests.",
         )
         g.add_argument(
-            "-e",
-            "--executor-file",
+            "-b",
+            "--batch-file",
             metavar="<FILE>",
             type=Path,
             required=True,
-            help="File to which requests have been submitted.",
+            help="Batch file to which requests have been appended.",
         )
         g.add_argument(
             "-o",
@@ -69,6 +69,6 @@ class _ExecutorCommand(_Command):
 
     @overrides
     def run(self) -> None:
-        request_executor = RequestExecutor()
-        request_executor.load_requests(self._args.executor_file)
-        request_executor.execute(self._args.out_dir)
+        batch_executor = BatchExecutor()
+        batch_executor.load_batch(self._args.batch_file)
+        batch_executor.execute(self._args.out_dir)

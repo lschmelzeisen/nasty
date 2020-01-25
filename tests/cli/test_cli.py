@@ -25,12 +25,12 @@ from _pytest.capture import CaptureFixture
 from _pytest.monkeypatch import MonkeyPatch
 from typing_extensions import Final
 
+from nasty.batch_executor import BatchExecutor
 from nasty.cli.main import main
 from nasty.request.replies import Replies
 from nasty.request.request import DEFAULT_BATCH_SIZE, DEFAULT_MAX_TWEETS, Request
 from nasty.request.search import DEFAULT_FILTER, DEFAULT_LANG, Search, SearchFilter
 from nasty.request.thread import Thread
-from nasty.request_executor import RequestExecutor
 
 from .mock_context import MockContext
 
@@ -63,7 +63,7 @@ ALL_REQUESTS: Final[Sequence[Request]] = [
 
 
 def _make_args(  # noqa: C901
-    request: Request, to_executor: Optional[Path] = None, daily: bool = False,
+    request: Request, to_batch: Optional[Path] = None, daily: bool = False,
 ) -> Sequence[str]:
     args: List[str] = []
 
@@ -95,12 +95,12 @@ def _make_args(  # noqa: C901
     if request.batch_size != DEFAULT_BATCH_SIZE:
         args += ["--batch-size", str(request.batch_size)]
 
-    if to_executor is not None:
-        args += ["--to-executor", str(to_executor)]
+    if to_batch is not None:
+        args += ["--to-batch", str(to_batch)]
 
     if daily:
         if not isinstance(request, Search):
-            raise ValueError("daily can only be used together with a Search-request.")
+            raise ValueError("daily can only be used for Search-requests.")
         args += ["--daily"]
 
     return args
@@ -149,21 +149,21 @@ def test_correct_call_results(
 
 
 @pytest.mark.parametrize("request_", ALL_REQUESTS, ids=repr)
-def test_correct_call_to_executor(
+def test_correct_call_to_batch(
     request_: Request, capsys: CaptureFixture, tmp_path: Path,
 ) -> None:
-    executor_file = tmp_path / "jobs.jsonl"
+    batch_file = tmp_path / "batch.jsonl"
 
-    main(_make_args(request_, to_executor=executor_file))
+    main(_make_args(request_, to_batch=batch_file))
 
     assert capsys.readouterr().out == ""
-    request_executor = RequestExecutor()
-    request_executor.load_requests(executor_file)
-    assert len(request_executor._jobs) == 1
-    assert request_executor._jobs[0].request == request_
-    assert request_executor._jobs[0]._id
-    assert request_executor._jobs[0].completed_at is None
-    assert request_executor._jobs[0].exception is None
+    batch_executor = BatchExecutor()
+    batch_executor.load_batch(batch_file)
+    assert len(batch_executor._batch) == 1
+    assert batch_executor._batch[0].request == request_
+    assert batch_executor._batch[0]._id
+    assert batch_executor._batch[0].completed_at is None
+    assert batch_executor._batch[0].exception is None
 
 
 @pytest.mark.parametrize(
@@ -175,42 +175,42 @@ def test_correct_call_to_executor(
     ],
     ids=repr,
 )
-def test_correct_call_to_executor_exists(
+def test_correct_call_to_batch_exists(
     old_request: Request, new_request: Request, capsys: CaptureFixture, tmp_path: Path,
 ) -> None:
-    executor_file = tmp_path / "jobs.jsonl"
-    request_executor = RequestExecutor()
-    request_executor.submit(old_request)
-    request_executor.dump_requests(executor_file)
+    batch_file = tmp_path / "batch.jsonl"
+    batch_executor = BatchExecutor()
+    batch_executor.submit(old_request)
+    batch_executor.dump_batch(batch_file)
 
-    main(_make_args(new_request, to_executor=executor_file))
+    main(_make_args(new_request, to_batch=batch_file))
 
     assert capsys.readouterr().out == ""
-    request_executor = RequestExecutor()
-    request_executor.load_requests(executor_file)
-    assert len(request_executor._jobs) == 2
-    for request, job in zip([old_request, new_request], request_executor._jobs):
-        assert job.request == request
+    batch_executor = BatchExecutor()
+    batch_executor.load_batch(batch_file)
+    assert len(batch_executor._batch) == 2
+    for job, expected_request in zip(batch_executor._batch, [old_request, new_request]):
+        assert job.request == expected_request
         assert job._id
         assert job.completed_at is None
         assert job.exception is None
 
 
-def test_correct_call_to_executor_daily(capsys: CaptureFixture, tmp_path: Path) -> None:
-    executor_file = tmp_path / "jobs.jsonl"
+def test_correct_call_to_batch_daily(capsys: CaptureFixture, tmp_path: Path) -> None:
+    batch_file = tmp_path / "batch.jsonl"
     request = Search("trump", since=date(2019, 1, 1), until=date(2019, 2, 1))
 
     # Needed for type checking.
     assert request.until is not None and request.since is not None
 
-    main(_make_args(request, to_executor=executor_file, daily=True))
+    main(_make_args(request, to_batch=batch_file, daily=True))
 
     assert capsys.readouterr().out == ""
-    request_executor = RequestExecutor()
-    request_executor.load_requests(executor_file)
-    assert len(request_executor._jobs) == (request.until - request.since).days
+    batch_executor = BatchExecutor()
+    batch_executor.load_batch(batch_file)
+    assert len(batch_executor._batch) == (request.until - request.since).days
     for job, expected_request in zip(
-        request_executor._jobs, request.to_daily_requests()
+        batch_executor._batch, request.to_daily_requests()
     ):
         assert job.request == expected_request
         assert job._id
@@ -230,19 +230,19 @@ def test_correct_call_to_executor_daily(capsys: CaptureFixture, tmp_path: Path) 
         "search --query trump --filter latest",
         "search --query trump --max-tweets five",
         "search --query trump --batch-size 3.0",
-        "search --query trump --to-executor",
+        "search --query trump --to-batch",
         "search --query trump --daily",
-        "search --query trump --to-executor file --daily",
-        "search --query trump --since 2019-03-21 --to-executor file --daily",
-        "search --query trump --until 2019-03-21 --to-executor file --daily",
+        "search --query trump --to-batch file --daily",
+        "search --query trump --since 2019-03-21 --to-batch file --daily",
+        "search --query trump --until 2019-03-21 --to-batch file --daily",
         "replies 332308211321425920",
         "replies --tweet-id 332308211321425920 --max-tweets five",
         "replies --tweet-id 332308211321425920 --batch-size 3.0",
-        "replies --tweet-id 332308211321425920 --to-executor",
+        "replies --tweet-id 332308211321425920 --to-batch",
         "thread 332308211321425920",
         "thread --tweet-id 332308211321425920 --max-tweets five",
         "thread --tweet-id 332308211321425920 --batch-size 3.0",
-        "thread --tweet-id 332308211321425920 --to-executor",
+        "thread --tweet-id 332308211321425920 --to-batch",
     ],
     ids=repr,
 )

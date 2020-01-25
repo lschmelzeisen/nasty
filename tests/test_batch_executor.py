@@ -27,11 +27,11 @@ from _pytest.monkeypatch import MonkeyPatch
 
 from nasty._util.json_ import JsonSerializedException
 from nasty._util.typing_ import checked_cast
+from nasty.batch_executor import BatchExecutor, _Job
 from nasty.request.replies import Replies
 from nasty.request.request import Request
 from nasty.request.search import Search, SearchFilter
 from nasty.request.thread import Thread
-from nasty.request_executor import RequestExecutor, _Job
 from nasty.tweet.tweet import Tweet
 
 # -- test_json_conversion_* ------------------------------------------------------------
@@ -90,28 +90,28 @@ def test_json_conversion_eception() -> None:
 def test_dump_load_requests_single(request_: Request, tmp_path: Path) -> None:
     file = tmp_path / "requests.jsonl"
 
-    request_executor = RequestExecutor()
-    request_executor.submit(request_)
-    request_executor.dump_requests(file)
+    batch_executor = BatchExecutor()
+    batch_executor.submit(request_)
+    batch_executor.dump_batch(file)
 
     with file.open("r", encoding="UTF-8") as fin:
         lines = fin.readlines()
     assert 1 == len(lines)
     assert 0 != len(lines[0])
 
-    request_executor2 = RequestExecutor()
-    request_executor2.load_requests(file)
-    assert request_executor._jobs == request_executor2._jobs
+    batch_executor2 = BatchExecutor()
+    batch_executor2.load_batch(file)
+    assert batch_executor._batch == batch_executor2._batch
 
 
 @pytest.mark.parametrize("num_jobs", [10, 505, 1000], ids=repr)
 def test_dump_load_requests_multiple(num_jobs: int, tmp_path: Path) -> None:
     file = tmp_path / "requests.jsonl"
 
-    request_executor = RequestExecutor()
+    batch_executor = BatchExecutor()
     for i in range(1, num_jobs + 1):
-        request_executor.submit(Search(str(i), max_tweets=i, batch_size=i))
-    request_executor.dump_requests(file)
+        batch_executor.submit(Search(str(i), max_tweets=i, batch_size=i))
+    batch_executor.dump_batch(file)
 
     with file.open("r", encoding="UTF-8") as fin:
         lines = fin.readlines()
@@ -119,9 +119,9 @@ def test_dump_load_requests_multiple(num_jobs: int, tmp_path: Path) -> None:
     for line in lines:
         assert 0 != len(line)
 
-    request_executor2 = RequestExecutor()
-    request_executor2.load_requests(file)
-    assert request_executor._jobs == request_executor2._jobs
+    batch_executor2 = BatchExecutor()
+    batch_executor2.load_batch(file)
+    assert batch_executor._batch == batch_executor2._batch
 
 
 # -- test_execute_* --------------------------------------------------------------------
@@ -169,19 +169,19 @@ def assert_out_dir_structure(
 
 
 def test_execute_success(tmp_path: Path) -> None:
-    request_executor = RequestExecutor()
-    request_executor.submit(Search("trump", max_tweets=50))
-    request_executor.submit(Search("hillary", max_tweets=50))
-    request_executor.submit(Search("obama", max_tweets=50))
-    assert request_executor.execute(tmp_path)
-    assert_out_dir_structure(tmp_path, request_executor._jobs)
+    batch_executor = BatchExecutor()
+    batch_executor.submit(Search("trump", max_tweets=50))
+    batch_executor.submit(Search("hillary", max_tweets=50))
+    batch_executor.submit(Search("obama", max_tweets=50))
+    assert batch_executor.execute(tmp_path)
+    assert_out_dir_structure(tmp_path, batch_executor._batch)
 
 
 def test_execute_success_parallel(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("NASTY_NUM_WORKERS", "4")
-    request_executor = RequestExecutor()
+    batch_executor = BatchExecutor()
     for i in range(16):
-        request_executor.submit(
+        batch_executor.submit(
             Search(
                 "trump",
                 since=date(2019, 1, i + 1),
@@ -189,74 +189,74 @@ def test_execute_success_parallel(tmp_path: Path, monkeypatch: MonkeyPatch) -> N
                 max_tweets=50,
             )
         )
-    assert request_executor.execute(tmp_path)
-    assert_out_dir_structure(tmp_path, request_executor._jobs)
+    assert batch_executor.execute(tmp_path)
+    assert_out_dir_structure(tmp_path, batch_executor._batch)
 
 
 def test_execute_success_empty(tmp_path: Path) -> None:
     # Random string that currently does not match any Tweet.
     unknown_word = "c9dde8b5451149e683d4f07e4c4348ef"
-    request_executor = RequestExecutor()
-    request_executor.submit(Search(unknown_word))
-    assert request_executor.execute(tmp_path)
-    assert_out_dir_structure(tmp_path, request_executor._jobs, allow_empty=True)
-    with lzma.open(tmp_path / request_executor._jobs[0].data_file_name, "rb") as fin:
+    batch_executor = BatchExecutor()
+    batch_executor.submit(Search(unknown_word))
+    assert batch_executor.execute(tmp_path)
+    assert_out_dir_structure(tmp_path, batch_executor._batch, allow_empty=True)
+    with lzma.open(tmp_path / batch_executor._batch[0].data_file_name, "rb") as fin:
         assert 0 == len(fin.read())
 
 
 def test_execute_previous_match_stray_meta(tmp_path: Path) -> None:
-    request_executor = RequestExecutor()
-    request_executor.submit(Search("trump", max_tweets=50))
+    batch_executor = BatchExecutor()
+    batch_executor.submit(Search("trump", max_tweets=50))
 
     # Create stray (but matching) meta file
-    job = request_executor._jobs[0]
+    job = batch_executor._batch[0]
     meta_file = tmp_path / job.meta_file_name
     with meta_file.open("w", encoding="UTF-8") as fout:
         json.dump(job.to_json(), fout, indent=2)
     meta_stat1 = meta_file.stat()
 
     # Run and verify that this executes the request without problems.
-    assert request_executor.execute(tmp_path)
-    assert_out_dir_structure(tmp_path, request_executor._jobs)
+    assert batch_executor.execute(tmp_path)
+    assert_out_dir_structure(tmp_path, batch_executor._batch)
     meta_stat2 = meta_file.stat()
     assert meta_stat1.st_mtime_ns < meta_stat2.st_mtime_ns
 
 
 def test_execute_previous_match_stray_data(tmp_path: Path) -> None:
-    request_executor = RequestExecutor()
-    request_executor.submit(Search("trump", max_tweets=50))
+    batch_executor = BatchExecutor()
+    batch_executor.submit(Search("trump", max_tweets=50))
 
     # Create stray data file (with irrelevant data, but this is irrelevant).
-    job = request_executor._jobs[0]
+    job = batch_executor._batch[0]
     data_file = tmp_path / job.data_file_name
     with data_file.open("w", encoding="UTF-8") as fout:
         fout.write('INVALID DATA, NOT A JSON "\'""')
     data_stat1 = data_file.stat()
 
     # Run and verify that this executes the request with problems.
-    assert request_executor.execute(tmp_path)
-    assert_out_dir_structure(tmp_path, request_executor._jobs)
+    assert batch_executor.execute(tmp_path)
+    assert_out_dir_structure(tmp_path, batch_executor._batch)
     data_stat2 = data_file.stat()
     assert data_stat1.st_mtime_ns < data_stat2.st_mtime_ns
 
 
 def test_execute_previous_match_completed(tmp_path: Path) -> None:
-    request_executor = RequestExecutor()
-    request_executor.submit(Search("trump", max_tweets=50))
+    batch_executor = BatchExecutor()
+    batch_executor.submit(Search("trump", max_tweets=50))
 
-    job = request_executor._jobs[0]
+    job = batch_executor._batch[0]
     meta_file = tmp_path / job.meta_file_name
     data_file = tmp_path / job.data_file_name
 
     # Execute request for the first time.
-    assert request_executor.execute(tmp_path)
-    assert_out_dir_structure(tmp_path, request_executor._jobs)
+    assert batch_executor.execute(tmp_path)
+    assert_out_dir_structure(tmp_path, batch_executor._batch)
     meta_stat1 = meta_file.stat()
     data_stat1 = data_file.stat()
 
     # Execute same request again (should be skipped).
-    assert request_executor.execute(tmp_path)
-    assert_out_dir_structure(tmp_path, request_executor._jobs)
+    assert batch_executor.execute(tmp_path)
+    assert_out_dir_structure(tmp_path, batch_executor._batch)
     meta_stat2 = meta_file.stat()
     data_stat2 = data_file.stat()
 
@@ -268,18 +268,18 @@ def test_execute_previous_match_completed(tmp_path: Path) -> None:
 
 
 def test_execute_no_match(tmp_path: Path) -> None:
-    request_executor = RequestExecutor()
-    request_executor.submit(Search("trump", max_tweets=50))
+    batch_executor = BatchExecutor()
+    batch_executor.submit(Search("trump", max_tweets=50))
 
     # Execute successful search request with "trump".
-    assert request_executor.execute(tmp_path)
-    assert_out_dir_structure(tmp_path, request_executor._jobs)
+    assert batch_executor.execute(tmp_path)
+    assert_out_dir_structure(tmp_path, batch_executor._batch)
 
     # Change request to instead search for "obama".
-    meta_file = tmp_path / request_executor._jobs[0].meta_file_name
+    meta_file = tmp_path / batch_executor._batch[0].meta_file_name
     with meta_file.open("r", encoding="UTF-8") as fin:
         job = _Job.from_json(json.load(fin))
-    request_executor._jobs[0] = _Job(
+    batch_executor._batch[0] = _Job(
         Search("obama"),
         id_=job._id,
         completed_at=job.completed_at,
@@ -287,12 +287,12 @@ def test_execute_no_match(tmp_path: Path) -> None:
     )
 
     # Verify that this fails because of job description mismatch.
-    assert not request_executor.execute(tmp_path)
+    assert not batch_executor.execute(tmp_path)
 
     # Delete offending meta file, run again, and verify that it works now.
     meta_file.unlink()
-    assert request_executor.execute(tmp_path)
-    assert_out_dir_structure(tmp_path, request_executor._jobs)
+    assert batch_executor.execute(tmp_path)
+    assert_out_dir_structure(tmp_path, batch_executor._batch)
 
 
 @pytest.mark.requests_cache_disabled
@@ -309,10 +309,10 @@ def test_execute_exception_internal_server_error(tmp_path: Path) -> None:
         status=HTTPStatus.INTERNAL_SERVER_ERROR.value,
     )
 
-    request_executor = RequestExecutor()
-    request_executor.submit(Search("trump", max_tweets=50))
-    assert not request_executor.execute(tmp_path)
-    job = request_executor._jobs[0]
+    batch_executor = BatchExecutor()
+    batch_executor.submit(Search("trump", max_tweets=50))
+    assert not batch_executor.execute(tmp_path)
+    job = batch_executor._batch[0]
     with (tmp_path / job.meta_file_name).open("r", encoding="UTF-8") as fin:
         job = _Job.from_json(json.load(fin))
     assert job.exception is not None

@@ -44,7 +44,7 @@ Command Line Interface
 To get help for the command line interface use the ``--help`` option::
 
     $ nasty --help
-    usage: nasty [-h] [-v] [search|replies|thread|executor] ...
+    usage: nasty [-h] [-v] [search|replies|thread|batch] ...
 
     NASTY Advanced Search Tweet Yielder.
 
@@ -53,7 +53,7 @@ To get help for the command line interface use the ``--help`` option::
         search (s)         Retrieve Tweets using the Twitter advanced search.
         replies (r)        Retrieve all directly replying Tweets to a Tweet.
         thread (t)         Retrieve all Tweets threaded under a Tweet.
-        executor (e)       Execute previously submitted requests.
+        batch (b)          Execute previously created batch of requests.
 
     General Arguments:
       -h, --help           Show this help message and exit.
@@ -103,23 +103,22 @@ You can fetch all Tweets threaded under the `Tweet with ID 332308211321425920
 
     $ nasty thread --tweet-id 332308211321425920
 
-Executor
+Batch Executor
 ----------------------------------------------------------------------------------------
 
-NASTY further supports writing requests to a jobs file to be executed in batch mode
-later.
+NASTY further supports appending requests to a batch file instead of executing them
+immediately, so that they can executed in batch mode later.
 The benefits of this include being able to track the progress of a large set of
 requests, aborting at any time, and rerunning both completed and failed requests.
-The mechanism for this is called the executor in NASTY.
 
-To write down a request to a jobs file, use the ``--to-executor`` argument on any of
+To append a request to a batch file, use the ``--to-batch`` argument on any of
 the above requests, for example::
 
-    $ nasty search --query "climate change" --to-executor jobs.jsonl
+    $ nasty search --query "climate change" --to-batch batch.jsonl
 
 To run all files stored in a jobs file and write the output to directory ``out``::
 
-    $ nasty executor --executor-file jobs.jsonl --out-dir out/
+    $ nasty batch --batch-file batch.jsonl --out-dir out/
 
 Python API
 ========================================================================================
@@ -139,7 +138,7 @@ Similar functionality is available in the ``nasty.Replies`` and ``nasty.Thread``
 classes.
 The returned ``tweet_stream`` is an `Iterable
 <https://docs.python.org/3/library/typing.html#typing.Iterable>`_ of ``nasty.Tweet``\ s.
-The executor functionality is available in the ``nasty.RequestExecutor`` class.
+The batch functionality is available in the ``nasty.BatchExecutor`` class.
 
 A comprehensive Python API documentation is coming in the future, but the code should
 be easy to understand.

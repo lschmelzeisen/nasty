@@ -16,12 +16,12 @@
 
 import logging
 
+from .batch_executor import BatchExecutor
 from .request.conversation_request import ConversationRequest
 from .request.replies import Replies
 from .request.request import DEFAULT_BATCH_SIZE, DEFAULT_MAX_TWEETS, Request
 from .request.search import DEFAULT_FILTER, Search, SearchFilter
 from .request.thread import Thread
-from .request_executor import RequestExecutor
 from .tweet.conversation_tweet_stream import ConversationTweetStream
 from .tweet.tweet import Tweet, TweetId, User, UserId
 from .tweet.tweet_stream import TweetStream
@@ -50,7 +50,7 @@ __all__ = [
     "Search",
     "SearchFilter",
     "Thread",
-    "RequestExecutor",
+    "BatchExecutor",
     "ConversationTweetStream",
     "Tweet",
     "TweetId",

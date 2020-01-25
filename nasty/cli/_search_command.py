@@ -20,8 +20,8 @@ from typing import Sequence
 from overrides import overrides
 
 from .._util.time_ import yyyy_mm_dd_date
+from ..batch_executor import BatchExecutor
 from ..request.search import DEFAULT_FILTER, Search, SearchFilter
-from ..request_executor import RequestExecutor
 from ._request_command import _RequestCommand
 
 
@@ -86,21 +86,21 @@ class _SearchCommand(_RequestCommand[Search]):
             "--lang",
             metavar="<LANG>",
             default="en",
-            help="Language for Tweets (presumably ISO 3166-1 two or three letter "
-            "codes). Defaults to 'en'.",
+            help="Language for Tweets, presumably as ISO 3166-1 two or three letter "
+            "codes. Defaults to 'en'.",
         )
         return g
 
     @classmethod
     @overrides
-    def _config_executor_args(cls, argparser: ArgumentParser) -> _ArgumentGroup:
-        g = super()._config_executor_args(argparser)
+    def _config_batch_args(cls, argparser: ArgumentParser) -> _ArgumentGroup:
+        g = super()._config_batch_args(argparser)
         g.add_argument(
             "-d",
             "--daily",
             action="store_true",
             help=(
-                "For a request with since and until date, submit one search request "
+                "For a request with since and until date, append one search request "
                 "per day in the date-range with identical settings otherwise."
             ),
         )
@@ -110,21 +110,21 @@ class _SearchCommand(_RequestCommand[Search]):
     def validate_arguments(self, argparser: ArgumentParser) -> None:
         super().validate_arguments(argparser)
         if self._args.daily:
-            if not self._args.to_executor:
-                argparser.error("-d (--daily) requires -e (--to-executor).")
+            if not self._args.to_batch:
+                argparser.error("-d (--daily) requires -b (--to-batch).")
 
             if self._args.since is None or self._args.until is None:
                 argparser.error("-d (--daily) requires -s (--since) and -u (--until).")
 
     @overrides
-    def _request_executor_submit(
-        self, request_executor: RequestExecutor, request: Search
+    def _batch_executor_submit(
+        self, batch_executor: BatchExecutor, request: Search
     ) -> None:
         if self._args.daily:
-            for daiy_request in request.to_daily_requests():
-                request_executor.submit(daiy_request)
+            for daily_request in request.to_daily_requests():
+                batch_executor.submit(daily_request)
         else:
-            request_executor.submit(request)
+            batch_executor.submit(request)
 
     @overrides
     def build_request(self) -> Search:

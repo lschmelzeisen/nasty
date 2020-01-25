@@ -104,30 +104,32 @@ class _JobResult(Enum):
     FAIL = enum.auto()
 
 
-class RequestExecutor:
+class BatchExecutor:
     def __init__(self) -> None:
-        self._jobs: List[_Job] = []
+        self._batch: List[_Job] = []
 
     def submit(self, request: Request) -> None:
-        self._jobs.append(
+        self._batch.append(
             _Job(request, id_=uuid4().hex, completed_at=None, exception=None)
         )
 
-    def dump_requests(self, file: Path) -> None:
-        logger.debug("Saving requests to file '{}'.".format(file))
+    def dump_batch(self, file: Path) -> None:
+        logger.debug("Dumping batch to file '{}'.".format(file))
         with file.open("w", encoding="UTF-8") as fout:
-            for job in self._jobs:
+            for job in self._batch:
                 json.dump(job.to_json(), fout)
                 fout.write("\n")
 
-    def load_requests(self, file: Path) -> None:
-        logger.debug("Loading requests from file '{}'.".format(file))
+    def load_batch(self, file: Path) -> None:
+        logger.debug("Loading batch from file '{}'.".format(file))
         with file.open("r", encoding="UTF-8") as fin:
             for line in fin:
-                self._jobs.append(_Job.from_json(json.loads(line)))
+                self._batch.append(_Job.from_json(json.loads(line)))
 
     def execute(self, out_dir: Path) -> bool:
-        logger.debug("Started executing {:d} requests.".format(len(self._jobs)))
+        logger.debug(
+            "Started executing batch of {:d} requests.".format(len(self._batch))
+        )
         Path.mkdir(out_dir, exist_ok=True, parents=True)
 
         num_workers = int(getenv("NASTY_NUM_WORKERS", default="1"))
@@ -135,7 +137,7 @@ class RequestExecutor:
             result_counter = Counter(
                 future.result()
                 for future in as_completed(
-                    pool.submit(self._execute_job, job, out_dir) for job in self._jobs
+                    pool.submit(self._execute_job, job, out_dir) for job in self._batch
                 )
             )
 
@@ -160,17 +162,17 @@ class RequestExecutor:
         data_file = out_dir / job.data_file_name
 
         if meta_file.exists():
-            logger.debug("  Loading meta information from previous execution")
+            logger.debug("  Loading meta information from previous batch execution.")
 
             with meta_file.open("r", encoding="UTF-8") as fin:
                 previous_job = _Job.from_json(json.load(fin))
 
             if job.request != previous_job.request:
                 logger.error(
-                    "  Request from previous execution does not match current one, "
-                    "manual intervention required! If the already stored data is "
+                    "  Request from previous batch execution does not match current "
+                    "one, manual intervention required! If the already stored data is "
                     "erroneous, delete the meta and data files of this request and "
-                    "rerun the executor."
+                    "restart batch execution."
                 )
                 logger.error("    Meta file: {}".format(meta_file))
                 logger.error("    Data file: {}".format(data_file))
@@ -185,7 +187,7 @@ class RequestExecutor:
                 return _JobResult.SKIP
 
             job = previous_job
-            # Don't save previous exceptions back to file
+            # Don't save previous exception back to file
             job.exception = None
 
         if data_file.exists():
