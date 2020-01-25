@@ -56,7 +56,7 @@ def _make_args(request: Replies, to_executor: Optional[Path] = None) -> Sequence
 def test_correct_call(
     request_: Replies, monkeypatch: MonkeyPatch, capsys: CaptureFixture
 ) -> None:
-    mock_context: MockContext[Replies] = MockContext()
+    mock_context: MockContext = MockContext()
     monkeypatch.setattr(Replies, "request", mock_context.mock_request)
 
     main(_make_args(request_))
@@ -70,7 +70,7 @@ def test_correct_call(
 def test_correct_call_results(
     num_results: int, monkeypatch: MonkeyPatch, capsys: CaptureFixture
 ) -> None:
-    mock_context: MockContext[Replies] = MockContext(num_results=num_results)
+    mock_context: MockContext = MockContext(num_results=num_results)
     monkeypatch.setattr(Replies, "request", mock_context.mock_request)
     request = Replies("332308211321425920", max_tweets=10)
 

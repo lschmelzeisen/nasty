@@ -14,20 +14,18 @@
 # limitations under the License.
 #
 
-from typing import Generic, Optional, TypeVar
+from typing import Optional
 
 from nasty.request.request import Request
 from nasty.tweet.tweet import Tweet
 from nasty.tweet.tweet_stream import TweetStream
 
-_T_Request = TypeVar("_T_Request", bound=Request)
 
-
-class MockContext(Generic[_T_Request]):
+class MockContext:
     RESULT_TWEET = Tweet({})
 
     def __init__(self, *, num_results: int = 0):
-        self.request: Optional[_T_Request] = None
+        self.request: Optional[Request] = None
         self.remaining_result_tweets = num_results
 
         outer_self = self
@@ -39,7 +37,7 @@ class MockContext(Generic[_T_Request]):
                     return outer_self.RESULT_TWEET
                 raise StopIteration()
 
-        def mock_request(request: _T_Request) -> TweetStream:
+        def mock_request(request: Request) -> TweetStream:
             self.request = request
             if request.max_tweets:
                 self.remaining_result_tweets = min(

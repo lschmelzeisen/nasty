@@ -74,7 +74,7 @@ def _make_args(
 def test_correct_call(
     request_: Search, monkeypatch: MonkeyPatch, capsys: CaptureFixture
 ) -> None:
-    mock_context: MockContext[Search] = MockContext()
+    mock_context: MockContext = MockContext()
     monkeypatch.setattr(Search, "request", mock_context.mock_request)
 
     main(_make_args(request_))
@@ -88,7 +88,7 @@ def test_correct_call(
 def test_correct_call_results(
     num_results: int, monkeypatch: MonkeyPatch, capsys: CaptureFixture
 ) -> None:
-    mock_context: MockContext[Search] = MockContext(num_results=num_results)
+    mock_context: MockContext = MockContext(num_results=num_results)
     monkeypatch.setattr(Search, "request", mock_context.mock_request)
     request = Search("trump", max_tweets=10)
 
