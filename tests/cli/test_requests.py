@@ -25,7 +25,7 @@ from _pytest.capture import CaptureFixture
 from _pytest.monkeypatch import MonkeyPatch
 from typing_extensions import Final
 
-from nasty.batch_executor import BatchExecutor
+from nasty.batch.batch_executor import BatchExecutor
 from nasty.cli.main import main
 from nasty.request.replies import Replies
 from nasty.request.request import DEFAULT_BATCH_SIZE, DEFAULT_MAX_TWEETS, Request
@@ -159,11 +159,11 @@ def test_correct_call_to_batch(
     assert capsys.readouterr().out == ""
     batch_executor = BatchExecutor()
     batch_executor.load_batch(batch_file)
-    assert len(batch_executor._batch) == 1
-    assert batch_executor._batch[0].request == request_
-    assert batch_executor._batch[0]._id
-    assert batch_executor._batch[0].completed_at is None
-    assert batch_executor._batch[0].exception is None
+    assert len(batch_executor.entries) == 1
+    assert batch_executor.entries[0].request == request_
+    assert batch_executor.entries[0]._id
+    assert batch_executor.entries[0].completed_at is None
+    assert batch_executor.entries[0].exception is None
 
 
 @pytest.mark.parametrize(
@@ -188,12 +188,14 @@ def test_correct_call_to_batch_exists(
     assert capsys.readouterr().out == ""
     batch_executor = BatchExecutor()
     batch_executor.load_batch(batch_file)
-    assert len(batch_executor._batch) == 2
-    for job, expected_request in zip(batch_executor._batch, [old_request, new_request]):
-        assert job.request == expected_request
-        assert job._id
-        assert job.completed_at is None
-        assert job.exception is None
+    assert len(batch_executor.entries) == 2
+    for batch_entry, expected_request in zip(
+        batch_executor.entries, [old_request, new_request]
+    ):
+        assert batch_entry.request == expected_request
+        assert batch_entry._id
+        assert batch_entry.completed_at is None
+        assert batch_entry.exception is None
 
 
 def test_correct_call_to_batch_daily(capsys: CaptureFixture, tmp_path: Path) -> None:
@@ -208,14 +210,14 @@ def test_correct_call_to_batch_daily(capsys: CaptureFixture, tmp_path: Path) -> 
     assert capsys.readouterr().out == ""
     batch_executor = BatchExecutor()
     batch_executor.load_batch(batch_file)
-    assert len(batch_executor._batch) == (request.until - request.since).days
-    for job, expected_request in zip(
-        batch_executor._batch, request.to_daily_requests()
+    assert len(batch_executor.entries) == (request.until - request.since).days
+    for batch_entry, expected_request in zip(
+        batch_executor.entries, request.to_daily_requests()
     ):
-        assert job.request == expected_request
-        assert job._id
-        assert job.completed_at is None
-        assert job.exception is None
+        assert batch_entry.request == expected_request
+        assert batch_entry._id
+        assert batch_entry.completed_at is None
+        assert batch_entry.exception is None
 
 
 @pytest.mark.parametrize(

@@ -20,7 +20,7 @@ from typing import Sequence
 from overrides import overrides
 
 from .._util.time_ import yyyy_mm_dd_date
-from ..batch_executor import BatchExecutor
+from ..batch.batch_executor import BatchExecutor
 from ..request.search import DEFAULT_FILTER, Search, SearchFilter
 from ._request_command import _RequestCommand
 

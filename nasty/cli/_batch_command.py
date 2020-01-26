@@ -20,7 +20,7 @@ from typing import Sequence
 
 from overrides import overrides
 
-from ..batch_executor import BatchExecutor
+from ..batch.batch_executor import BatchExecutor
 from ._command import _Command
 
 

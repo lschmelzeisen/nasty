@@ -85,9 +85,9 @@ class Request(ABC, JsonSerializable):
     @abstractmethod
     @overrides
     def from_json(cls, obj: Mapping[str, object]) -> "Request":
-        from nasty.request.search import Search
-        from nasty.request.replies import Replies
-        from nasty.request.thread import Thread
+        from .search import Search
+        from .replies import Replies
+        from .thread import Thread
 
         if obj["type"] == Search.__name__:
             return Search.from_json(obj)

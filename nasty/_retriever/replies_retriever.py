@@ -19,10 +19,9 @@ from typing import Any, Iterable, Optional, Sequence, Type, cast
 from overrides import overrides
 from typing_extensions import Final
 
-from nasty.tweet.tweet import TweetId
-
 from .._util.typing_ import checked_cast
 from ..request.replies import Replies
+from ..tweet.tweet import TweetId
 from .conversation_retriever import ConversationRetriever, ConversationRetrieverBatch
 
 

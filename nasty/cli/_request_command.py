@@ -22,7 +22,7 @@ from typing import Generic, TypeVar
 
 from overrides import overrides
 
-from ..batch_executor import BatchExecutor
+from ..batch.batch_executor import BatchExecutor
 from ..request.request import DEFAULT_BATCH_SIZE, Request
 from ._command import _Command
 
