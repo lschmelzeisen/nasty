@@ -16,7 +16,7 @@
 
 from datetime import datetime, timezone
 
-from nasty.tweet.tweet import Tweet
+from nasty.tweet.tweet import Tweet, User
 
 tweet_json = {
     # Tweet accessed via Search API on 2019-09-27
@@ -221,7 +221,6 @@ tweet_json = {
 
 def test_1142944425502543875() -> None:
     tweet = Tweet(tweet_json["1142944425502543875"])
-
     assert (
         datetime(
             year=2019,
@@ -242,9 +241,11 @@ def test_1142944425502543875() -> None:
         "standards should not be our standards. https://t.co/CHuQqFs5EX" == tweet.text
     )
     assert "https://twitter.com/TomSteyer/status/1142944425502543875" == tweet.url
-    assert "949934436" == tweet.user.id
-    assert "Tom Steyer" == tweet.user.name
-    assert "TomSteyer" == tweet.user.screen_name
-    assert "https://twitter.com/TomSteyer" == tweet.user.url
-
     assert tweet == Tweet.from_json(tweet.to_json())
+
+    user = tweet.user
+    assert "949934436" == user.id
+    assert "Tom Steyer" == user.name
+    assert "TomSteyer" == user.screen_name
+    assert "https://twitter.com/TomSteyer" == user.url
+    assert user == User.from_json(user.to_json())
