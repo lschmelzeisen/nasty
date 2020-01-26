@@ -32,7 +32,7 @@ from nasty.request.request import DEFAULT_BATCH_SIZE, DEFAULT_MAX_TWEETS, Reques
 from nasty.request.search import DEFAULT_FILTER, DEFAULT_LANG, Search, SearchFilter
 from nasty.request.thread import Thread
 
-from .mock_context import MockContext
+from .mock_context import MockRequestContext
 
 logger = getLogger(__name__)
 
@@ -110,7 +110,7 @@ def _make_args(  # noqa: C901
 def test_correct_call(
     request_: Request, monkeypatch: MonkeyPatch, capsys: CaptureFixture
 ) -> None:
-    mock_context: MockContext = MockContext()
+    mock_context: MockRequestContext = MockRequestContext()
     monkeypatch.setattr(type(request_), "request", mock_context.mock_request)
 
     main(_make_args(request_))
@@ -136,7 +136,7 @@ def test_correct_call_results(
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
 ) -> None:
-    mock_context: MockContext = MockContext(num_results=num_results)
+    mock_context: MockRequestContext = MockRequestContext(num_results=num_results)
     monkeypatch.setattr(type(request_), "request", mock_context.mock_request)
 
     main(_make_args(request_))

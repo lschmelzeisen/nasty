@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+from pathlib import Path
 from typing import Optional
 
 from nasty.request.request import Request
@@ -21,7 +22,7 @@ from nasty.tweet.tweet import Tweet
 from nasty.tweet.tweet_stream import TweetStream
 
 
-class MockContext:
+class MockRequestContext:
     RESULT_TWEET = Tweet({})
 
     def __init__(self, *, num_results: int = 0):
@@ -46,3 +47,20 @@ class MockContext:
             return MockTweetStream()
 
         self.mock_request = mock_request
+
+
+class MockBackExecutorContext:
+    def __init__(self) -> None:
+        self.load_batch_args = None
+        self.execute_args = None
+
+        class MockBatchExecutor:
+            @staticmethod
+            def load_batch(file: Path) -> None:
+                self.load_batch_args = (file,)
+
+            @staticmethod
+            def execute(out_dir: Path) -> None:
+                self.execute_args = (out_dir,)
+
+        self.MockBatchExecutor = MockBatchExecutor
