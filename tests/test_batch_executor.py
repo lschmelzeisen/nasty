@@ -34,22 +34,20 @@ from nasty.request.search import Search, SearchFilter
 from nasty.request.thread import Thread
 from nasty.tweet.tweet import Tweet
 
+REQUESTS: Sequence[Request] = [
+    Search("q"),
+    Search("q", filter_=SearchFilter.PHOTOS, lang="de"),
+    Search("q", since=date(2009, 1, 20), until=date(2017, 1, 20)),
+    Replies("332308211321425920"),
+    Replies("332308211321425920", max_tweets=50),
+    Thread("332308211321425920"),
+    Thread("332308211321425920", batch_size=100),
+]
+
 # -- test_json_conversion_* ------------------------------------------------------------
 
 
-@pytest.mark.parametrize(
-    "request_",
-    [
-        Search("q"),
-        Search("q", filter_=SearchFilter.PHOTOS, lang="de"),
-        Search("q", since=date(2009, 1, 20), until=date(2017, 1, 20)),
-        Replies("332308211321425920"),
-        Replies("332308211321425920", max_tweets=50),
-        Thread("332308211321425920"),
-        Thread("332308211321425920", batch_size=100),
-    ],
-    ids=repr,
-)
+@pytest.mark.parametrize("request_", REQUESTS, ids=repr)
 def test_json_conversion_request(request_: Request) -> None:
     job = _Job(request_, id_="id", completed_at=None, exception=None)
     assert job == job.from_json(job.to_json())
@@ -60,7 +58,7 @@ def test_json_conversion_completed_at() -> None:
     assert job == job.from_json(job.to_json())
 
 
-def test_json_conversion_eception() -> None:
+def test_json_conversion_exception() -> None:
     # Collect exception with trace.
     try:
         raise ValueError("Test Error.")
@@ -74,19 +72,7 @@ def test_json_conversion_eception() -> None:
 # -- test_dump_load_requests_* ---------------------------------------------------------
 
 
-@pytest.mark.parametrize(
-    "request_",
-    [
-        Search("q"),
-        Search("q", filter_=SearchFilter.PHOTOS, lang="de"),
-        Search("q", since=date(2009, 1, 20), until=date(2017, 1, 20)),
-        Replies("332308211321425920"),
-        Replies("332308211321425920", max_tweets=50),
-        Thread("332308211321425920"),
-        Thread("332308211321425920", batch_size=100),
-    ],
-    ids=repr,
-)
+@pytest.mark.parametrize("request_", REQUESTS, ids=repr)
 def test_dump_load_requests_single(request_: Request, tmp_path: Path) -> None:
     file = tmp_path / "requests.jsonl"
 
