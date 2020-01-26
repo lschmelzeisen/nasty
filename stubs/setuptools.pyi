@@ -14,6 +14,4 @@
 # limitations under the License.
 #
 
-from typing import Mapping
-
-def setup(use_scm_version: Mapping[str, str]) -> None: ...
+def setup() -> None: ...
