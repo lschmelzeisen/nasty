@@ -23,6 +23,7 @@ quiet = true
         "raise AssertionError",
         "raise NotImplementedError",
         "raise RuntimeError",
+        "raise ValueError",
 
         # Do not complain if non-runnable code is not run.
         'if __name__ == "__main__":',
