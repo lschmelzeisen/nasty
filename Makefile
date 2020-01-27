@@ -3,6 +3,7 @@ venv:
 .PHONY: devvenv
 
 devinstall:
+	@pip install --upgrade pip setuptools wheel
 	@pip install -e .[test,dev]
 .PHONY: devinstall
 
