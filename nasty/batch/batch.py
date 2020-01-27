@@ -24,13 +24,15 @@ from enum import Enum
 from logging import getLogger
 from os import getenv
 from pathlib import Path
-from typing import List
+from tempfile import mkdtemp
+from typing import List, Optional
 from uuid import uuid4
 
 from .._util.consts import NASTY_DATE_TIME_FORMAT
 from .._util.json_ import JsonSerializedException
 from ..request.request import Request
 from .batch_entry import BatchEntry
+from .batch_results import BatchResults
 
 logger = getLogger(__name__)
 
@@ -41,42 +43,46 @@ class _ExecuteResult(Enum):
     FAIL = enum.auto()
 
 
-class BatchExecutor:
+class Batch:
     def __init__(self) -> None:
         self.entries: List[BatchEntry] = []
 
-    def submit(self, request: Request) -> None:
+    def append(self, request: Request) -> None:
         self.entries.append(
             BatchEntry(request, id_=uuid4().hex, completed_at=None, exception=None)
         )
 
-    def dump_batch(self, file: Path) -> None:
+    def dump(self, file: Path) -> None:
         logger.debug("Dumping batch to file '{}'.".format(file))
         with file.open("w", encoding="UTF-8") as fout:
             for entry in self.entries:
                 json.dump(entry.to_json(), fout)
                 fout.write("\n")
 
-    def load_batch(self, file: Path) -> None:
+    def load(self, file: Path) -> None:
         logger.debug("Loading batch from file '{}'.".format(file))
         with file.open("r", encoding="UTF-8") as fin:
             for line in fin:
                 self.entries.append(BatchEntry.from_json(json.loads(line)))
 
-    def execute(self, out_dir: Path) -> bool:
+    def execute(self, results_dir: Optional[Path] = None) -> Optional[BatchResults]:
         logger.debug(
             "Started executing batch of {:d} requests.".format(len(self.entries))
         )
-        Path.mkdir(out_dir, exist_ok=True, parents=True)
+
+        if not results_dir:
+            results_dir = Path(mkdtemp())
+        logger.debug("Saving results to '{}'.".format(results_dir))
+        Path.mkdir(results_dir, exist_ok=True, parents=True)
 
         num_workers = int(getenv("NASTY_NUM_WORKERS", default="1"))
         with ThreadPoolExecutor(max_workers=num_workers) as pool:
+            futures = (
+                pool.submit(self._execute_entry, entry, results_dir)
+                for entry in self.entries
+            )
             result_counter = Counter(
-                future.result()
-                for future in as_completed(
-                    pool.submit(self._execute_entry, entry, out_dir)
-                    for entry in self.entries
-                )
+                future.result() for future in as_completed(futures)
             )
 
         logger.info(
@@ -89,15 +95,15 @@ class BatchExecutor:
         )
         if result_counter[_ExecuteResult.FAIL]:
             logger.error("Some requests failed!")
-            return False
-        return True
+            return None
+        return BatchResults(results_dir)
 
     @classmethod
-    def _execute_entry(cls, entry: BatchEntry, out_dir: Path) -> _ExecuteResult:
+    def _execute_entry(cls, entry: BatchEntry, results_dir: Path) -> _ExecuteResult:
         logger.debug("Executing request: {}".format(entry.request.to_json()))
 
-        meta_file = out_dir / entry.meta_file_name
-        data_file = out_dir / entry.data_file_name
+        meta_file = results_dir / entry.meta_file_name
+        data_file = results_dir / entry.data_file_name
 
         if meta_file.exists():
             logger.debug("  Loading meta information from previous batch execution.")
@@ -124,11 +130,8 @@ class BatchExecutor:
                         )
                     )
                 )
+                entry.completed_at = prev_execution_entry.completed_at
                 return _ExecuteResult.SKIP
-
-            entry = prev_execution_entry
-            # Don't save previous execution's exception back to file
-            entry.exception = None
 
         if data_file.exists():
             logger.info(

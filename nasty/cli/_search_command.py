@@ -20,7 +20,7 @@ from typing import Sequence
 from overrides import overrides
 
 from .._util.time_ import yyyy_mm_dd_date
-from ..batch.batch_executor import BatchExecutor
+from ..batch.batch import Batch
 from ..request.search import DEFAULT_FILTER, Search, SearchFilter
 from ._request_command import _RequestCommand
 
@@ -117,14 +117,12 @@ class _SearchCommand(_RequestCommand[Search]):
                 argparser.error("-d (--daily) requires -s (--since) and -u (--until).")
 
     @overrides
-    def _batch_executor_submit(
-        self, batch_executor: BatchExecutor, request: Search
-    ) -> None:
+    def _batch_executor_submit(self, batch_executor: Batch, request: Search) -> None:
         if self._args.daily:
             for daily_request in request.to_daily_requests():
-                batch_executor.submit(daily_request)
+                super()._batch_executor_submit(batch_executor, daily_request)
         else:
-            batch_executor.submit(request)
+            super()._batch_executor_submit(batch_executor, request)
 
     @overrides
     def build_request(self) -> Search:

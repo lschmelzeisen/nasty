@@ -22,7 +22,7 @@ from typing import Generic, TypeVar
 
 from overrides import overrides
 
-from ..batch.batch_executor import BatchExecutor
+from ..batch.batch import Batch
 from ..request.request import DEFAULT_BATCH_SIZE, Request
 from ._command import _Command
 
@@ -96,19 +96,19 @@ class _RequestCommand(_Command, ABC, Generic[_T_Request]):
 
         request = self.build_request()
         if self._args.to_batch:
-            batch_executor = BatchExecutor()
+            batch_executor = Batch()
             if self._args.to_batch.exists():
-                batch_executor.load_batch(self._args.to_batch)
+                batch_executor.load(self._args.to_batch)
             self._batch_executor_submit(batch_executor, request)
-            batch_executor.dump_batch(self._args.to_batch)
+            batch_executor.dump(self._args.to_batch)
         else:
             for tweet in request.request():
                 print(json.dumps(tweet.to_json()))  # noqa T001
 
     def _batch_executor_submit(
-        self, batch_executor: BatchExecutor, request: _T_Request
+        self, batch_executor: Batch, request: _T_Request
     ) -> None:
-        batch_executor.submit(request)
+        batch_executor.append(request)
 
     @abstractmethod
     def build_request(self) -> _T_Request:

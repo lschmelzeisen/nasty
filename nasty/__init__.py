@@ -16,8 +16,9 @@
 
 import logging
 
+from .batch.batch import Batch
 from .batch.batch_entry import BatchEntry
-from .batch.batch_executor import BatchExecutor
+from .batch.batch_results import BatchResults
 from .request.conversation_request import ConversationRequest
 from .request.replies import Replies
 from .request.request import DEFAULT_BATCH_SIZE, DEFAULT_MAX_TWEETS, Request
@@ -43,7 +44,8 @@ __version_info__ = tuple(
 
 __all__ = [
     "BatchEntry",
-    "BatchExecutor",
+    "Batch",
+    "BatchResults",
     "ConversationRequest",
     "Replies",
     "DEFAULT_BATCH_SIZE",

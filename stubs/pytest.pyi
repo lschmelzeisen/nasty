@@ -14,10 +14,10 @@
 # limitations under the License.
 #
 
-from types import TracebackType
 from typing import (
     Any,
     Callable,
+    ContextManager,
     Generic,
     Iterable,
     NoReturn,
@@ -63,18 +63,9 @@ class _pytest:  # noqa: N801
         class ExceptionInfo(Generic[_T_exp]):
             value: _T_exp
 
-class RaisesContext(Generic[_T_exp]):
-    def __enter__(self) -> _pytest._code.ExceptionInfo[_T_exp]: ...
-    def __exit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
-    ) -> bool: ...
-
 def raises(  # noqa: F811
     expected_exception: Union[Type[_T_exp], Tuple[Type[_T_exp], ...]],
     *args: Any,
     match: Optional[Union[str, Pattern[Any]]] = ...,
     **kwargs: Any,
-) -> RaisesContext[_T_exp]: ...
+) -> ContextManager[_pytest._code.ExceptionInfo[_T_exp]]: ...

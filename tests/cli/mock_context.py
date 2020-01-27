@@ -49,18 +49,18 @@ class MockRequestContext:
         self.mock_request = mock_request
 
 
-class MockBackExecutorContext:
+class MockBatchContext:
     def __init__(self) -> None:
-        self.load_batch_args = None
+        self.load_args = None
         self.execute_args = None
 
-        class MockBatchExecutor:
+        class MockBatch:
             @staticmethod
-            def load_batch(file: Path) -> None:
-                self.load_batch_args = (file,)
+            def load(file: Path) -> None:
+                self.load_args = (file,)
 
             @staticmethod
-            def execute(out_dir: Path) -> None:
-                self.execute_args = (out_dir,)
+            def execute(results_dir: Optional[Path]) -> None:
+                self.execute_args = (results_dir,)
 
-        self.MockBatchExecutor = MockBatchExecutor
+        self.MockBatch = MockBatch

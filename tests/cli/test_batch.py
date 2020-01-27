@@ -23,29 +23,35 @@ from _pytest.monkeypatch import MonkeyPatch
 import nasty.cli._batch_command
 from nasty.cli.main import main
 
-from .mock_context import MockBackExecutorContext
+from .mock_context import MockBatchContext
 
 
 def test_correct_call(
     monkeypatch: MonkeyPatch, capsys: CaptureFixture, tmp_path: Path,
 ) -> None:
-    mock_context = MockBackExecutorContext()
-    monkeypatch.setattr(
-        nasty.cli._batch_command, "BatchExecutor", mock_context.MockBatchExecutor
-    )
+    mock_context = MockBatchContext()
+    monkeypatch.setattr(nasty.cli._batch_command, "Batch", mock_context.MockBatch)
 
     batch_file = tmp_path / "batch.jsonl"
-    out_dir = tmp_path / "out"
-    main(["batch", "--batch-file", str(batch_file), "--out-dir", str(out_dir)])
+    results_dir = tmp_path / "out"
+    main(["batch", "--batch-file", str(batch_file), "--results-dir", str(results_dir)])
 
-    assert mock_context.load_batch_args == (batch_file,)
-    assert mock_context.execute_args == (out_dir,)
+    assert mock_context.load_args == (batch_file,)
+    assert mock_context.execute_args == (results_dir,)
     assert capsys.readouterr().out == ""
 
 
 def test_no_batch_file(tmp_path: Path) -> None:
     batch_file = tmp_path / "batch.jsonl"
-    out_dir = tmp_path / "out"
+    results_dir = tmp_path / "out"
 
     with pytest.raises(FileNotFoundError):
-        main(["batch", "--batch-file", str(batch_file), "--out-dir", str(out_dir)])
+        main(
+            [
+                "batch",
+                "--batch-file",
+                str(batch_file),
+                "--results-dir",
+                str(results_dir),
+            ]
+        )

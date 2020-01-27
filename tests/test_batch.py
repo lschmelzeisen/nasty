@@ -15,6 +15,7 @@
 #
 
 import json
+import logging
 import lzma
 from datetime import date, datetime
 from http import HTTPStatus
@@ -23,16 +24,18 @@ from typing import Sequence
 
 import pytest
 import responses
+from _pytest.logging import LogCaptureFixture
 from _pytest.monkeypatch import MonkeyPatch
 
 from nasty._util.json_ import JsonSerializedException
 from nasty._util.typing_ import checked_cast
-from nasty.batch.batch_executor import BatchEntry, BatchExecutor
+from nasty.batch.batch import Batch
+from nasty.batch.batch_entry import BatchEntry
+from nasty.batch.batch_results import BatchResults
 from nasty.request.replies import Replies
 from nasty.request.request import Request
 from nasty.request.search import Search, SearchFilter
 from nasty.request.thread import Thread
-from nasty.tweet.tweet import Tweet
 
 REQUESTS: Sequence[Request] = [
     Search("q"),
@@ -77,31 +80,31 @@ def test_json_conversion_exception() -> None:
 
 
 @pytest.mark.parametrize("request_", REQUESTS, ids=repr)
-def test_dump_load_requests_single(request_: Request, tmp_path: Path) -> None:
+def test_dump_load_single(request_: Request, tmp_path: Path) -> None:
     batch_file = tmp_path / "batch.jsonl"
 
-    batch_executor = BatchExecutor()
-    batch_executor.submit(request_)
-    batch_executor.dump_batch(batch_file)
+    batch_executor = Batch()
+    batch_executor.append(request_)
+    batch_executor.dump(batch_file)
 
     with batch_file.open("r", encoding="UTF-8") as fin:
         lines = fin.readlines()
     assert 1 == len(lines)
     assert 0 != len(lines[0])
 
-    batch_executor2 = BatchExecutor()
-    batch_executor2.load_batch(batch_file)
+    batch_executor2 = Batch()
+    batch_executor2.load(batch_file)
     assert batch_executor.entries == batch_executor2.entries
 
 
 @pytest.mark.parametrize("num_batch_entries", [10, 505, 1000], ids=repr)
-def test_dump_load_requests_multiple(num_batch_entries: int, tmp_path: Path) -> None:
+def test_dump_load_multiple(num_batch_entries: int, tmp_path: Path) -> None:
     batch_file = tmp_path / "batch.jsonl"
 
-    batch_executor = BatchExecutor()
+    batch_executor = Batch()
     for i in range(1, num_batch_entries + 1):
-        batch_executor.submit(Search(str(i), max_tweets=i, batch_size=i))
-    batch_executor.dump_batch(batch_file)
+        batch_executor.append(Search(str(i), max_tweets=i, batch_size=i))
+    batch_executor.dump(batch_file)
 
     with batch_file.open("r", encoding="UTF-8") as fin:
         lines = fin.readlines()
@@ -109,72 +112,68 @@ def test_dump_load_requests_multiple(num_batch_entries: int, tmp_path: Path) -> 
     for line in lines:
         assert 0 != len(line)
 
-    batch_executor2 = BatchExecutor()
-    batch_executor2.load_batch(batch_file)
+    batch_executor2 = Batch()
+    batch_executor2.load(batch_file)
     assert batch_executor.entries == batch_executor2.entries
 
 
 # -- test_execute_* --------------------------------------------------------------------
 
 
-def _assert_out_dir_structure(
-    out_dir: Path, batch_entries: Sequence[BatchEntry], *, allow_empty: bool = False
+def _assert_results_dir_structure(
+    results_dir: Path,
+    batch_entries: Sequence[BatchEntry],
+    caplog: LogCaptureFixture,
+    *,
+    allow_empty: bool = False,
 ) -> None:
-    assert out_dir.exists()
-
-    files = list(out_dir.iterdir())
-    assert 0 != len(files)
+    assert results_dir.exists()
     assert 0 != len(batch_entries)
 
-    for batch_entry in batch_entries:
-        meta_file = out_dir / batch_entry.meta_file_name
-        assert meta_file.exists()
-        files.remove(meta_file)
+    # Check that BatchResults does not log warnings about unknown files in results_dir.
+    with caplog.at_level(logging.WARNING):
+        caplog.clear()
+        batch_results = BatchResults(results_dir)
+        assert not caplog.records
 
-        with meta_file.open("r", encoding="UTF-8") as fin:
-            completed_batch_entry = BatchEntry.from_json(json.load(fin))
+    # Can't create sets, because BatchEntry is not hashable, thus compare maps.
+    assert {batch_entry._id: batch_entry for batch_entry in batch_entries} == {
+        batch_entry._id: batch_entry for batch_entry in batch_results.entries
+    }
 
-        assert batch_entry.request == completed_batch_entry.request
-        assert completed_batch_entry.completed_at is not None
-        assert datetime.now() > completed_batch_entry.completed_at
-        assert completed_batch_entry.exception is None
+    for batch_entry in batch_results.entries:
+        assert batch_entry.completed_at is not None
+        assert datetime.now() > batch_entry.completed_at
+        assert batch_entry.exception is None
 
-        data_file = out_dir / batch_entry.data_file_name
-        assert data_file.exists()
-        files.remove(data_file)
+        tweets = list(batch_results.tweets(batch_entry))
+        if not allow_empty:
+            assert 0 != len(tweets)
 
-        with lzma.open(data_file, "rt", encoding="UTF-8") as fin:
-            tweets = []
-            for line in fin:
-                assert (
-                    checked_cast(Search, batch_entry.request).query.lower()
-                    in line.lower()
-                )
-                tweets.append(Tweet.from_json(json.loads(line)))
-
-        if allow_empty:
-            continue
-
-        assert 0 != len(tweets)
         assert checked_cast(int, batch_entry.request.max_tweets) >= len(tweets)
-
-    assert 0 == len(files)
-
-
-def test_execute_success(tmp_path: Path) -> None:
-    batch_executor = BatchExecutor()
-    batch_executor.submit(Search("trump", max_tweets=50))
-    batch_executor.submit(Search("hillary", max_tweets=50))
-    batch_executor.submit(Search("obama", max_tweets=50))
-    assert batch_executor.execute(tmp_path)
-    _assert_out_dir_structure(tmp_path, batch_executor.entries)
+        for tweet in tweets:
+            assert (
+                checked_cast(Search, batch_entry.request).query.lower()
+                in json.dumps(tweet.to_json()).lower()
+            )
 
 
-def test_execute_success_parallel(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+def test_execute_success(tmp_path: Path, caplog: LogCaptureFixture) -> None:
+    batch = Batch()
+    batch.append(Search("trump", max_tweets=50))
+    batch.append(Search("hillary", max_tweets=50))
+    batch.append(Search("obama", max_tweets=50))
+    assert batch.execute(tmp_path)
+    _assert_results_dir_structure(tmp_path, batch.entries, caplog)
+
+
+def test_execute_success_parallel(
+    tmp_path: Path, monkeypatch: MonkeyPatch, caplog: LogCaptureFixture
+) -> None:
     monkeypatch.setenv("NASTY_NUM_WORKERS", "4")
-    batch_executor = BatchExecutor()
+    batch = Batch()
     for i in range(16):
-        batch_executor.submit(
+        batch.append(
             Search(
                 "trump",
                 since=date(2019, 1, i + 1),
@@ -182,74 +181,85 @@ def test_execute_success_parallel(tmp_path: Path, monkeypatch: MonkeyPatch) -> N
                 max_tweets=50,
             )
         )
-    assert batch_executor.execute(tmp_path)
-    _assert_out_dir_structure(tmp_path, batch_executor.entries)
+    assert batch.execute(tmp_path)
+    _assert_results_dir_structure(tmp_path, batch.entries, caplog)
 
 
-def test_execute_success_empty(tmp_path: Path) -> None:
+def test_execute_success_empty(tmp_path: Path, caplog: LogCaptureFixture) -> None:
     # Random string that currently does not match any Tweet.
     unknown_word = "c9dde8b5451149e683d4f07e4c4348ef"
-    batch_executor = BatchExecutor()
-    batch_executor.submit(Search(unknown_word))
-    assert batch_executor.execute(tmp_path)
-    _assert_out_dir_structure(tmp_path, batch_executor.entries, allow_empty=True)
-    with lzma.open(tmp_path / batch_executor.entries[0].data_file_name, "rb") as fin:
+    batch = Batch()
+    batch.append(Search(unknown_word))
+    assert batch.execute(tmp_path)
+    _assert_results_dir_structure(tmp_path, batch.entries, caplog, allow_empty=True)
+    with lzma.open(tmp_path / batch.entries[0].data_file_name, "rb") as fin:
         assert 0 == len(fin.read())
 
 
-def test_execute_previous_match_stray_meta(tmp_path: Path) -> None:
-    batch_executor = BatchExecutor()
-    batch_executor.submit(Search("trump", max_tweets=50))
+def test_execute_previous_match_stray_meta(
+    tmp_path: Path, caplog: LogCaptureFixture
+) -> None:
+    batch = Batch()
+    batch.append(Search("trump", max_tweets=50))
 
-    # Create stray (but matching) meta file
-    batch_entry = batch_executor.entries[0]
+    # Create stray (but matching) meta file.
+    batch_entry = batch.entries[0]
     meta_file = tmp_path / batch_entry.meta_file_name
     with meta_file.open("w", encoding="UTF-8") as fout:
         json.dump(batch_entry.to_json(), fout, indent=2)
     meta_stat1 = meta_file.stat()
 
     # Run and verify that this executes the request without problems.
-    assert batch_executor.execute(tmp_path)
-    _assert_out_dir_structure(tmp_path, batch_executor.entries)
+    assert batch.execute(tmp_path)
+    _assert_results_dir_structure(tmp_path, batch.entries, caplog)
     meta_stat2 = meta_file.stat()
     assert meta_stat1.st_mtime_ns < meta_stat2.st_mtime_ns
 
 
-def test_execute_previous_match_stray_data(tmp_path: Path) -> None:
-    batch_executor = BatchExecutor()
-    batch_executor.submit(Search("trump", max_tweets=50))
+def test_execute_previous_match_stray_data(
+    tmp_path: Path, caplog: LogCaptureFixture
+) -> None:
+    batch = Batch()
+    batch.append(Search("trump", max_tweets=50))
 
-    # Create stray data file (with irrelevant data, but this is irrelevant).
-    batch_entry = batch_executor.entries[0]
+    # Create stray data file (with non-matching data).
+    batch_entry = batch.entries[0]
     data_file = tmp_path / batch_entry.data_file_name
     with data_file.open("w", encoding="UTF-8") as fout:
         fout.write('INVALID DATA, NOT A JSON "\'""')
     data_stat1 = data_file.stat()
 
     # Run and verify that this executes the request with problems.
-    assert batch_executor.execute(tmp_path)
-    _assert_out_dir_structure(tmp_path, batch_executor.entries)
+    assert batch.execute(tmp_path)
+    _assert_results_dir_structure(tmp_path, batch.entries, caplog)
     data_stat2 = data_file.stat()
     assert data_stat1.st_mtime_ns < data_stat2.st_mtime_ns
 
 
-def test_execute_previous_match_completed(tmp_path: Path) -> None:
-    batch_executor = BatchExecutor()
-    batch_executor.submit(Search("trump", max_tweets=50))
-
-    batch_entry = batch_executor.entries[0]
-    meta_file = tmp_path / batch_entry.meta_file_name
-    data_file = tmp_path / batch_entry.data_file_name
+def test_execute_previous_match_completed(
+    tmp_path: Path, caplog: LogCaptureFixture
+) -> None:
+    batch_file = tmp_path / "batch.jsonl"
+    results_dir = tmp_path / "out"
 
     # Execute request for the first time.
-    assert batch_executor.execute(tmp_path)
-    _assert_out_dir_structure(tmp_path, batch_executor.entries)
+    batch = Batch()
+    batch.append(Search("trump", max_tweets=50))
+    batch.dump(batch_file)
+    assert batch.execute(results_dir)
+    _assert_results_dir_structure(results_dir, batch.entries, caplog)
+
+    batch_entry = batch.entries[0]
+    meta_file = results_dir / batch_entry.meta_file_name
+    data_file = results_dir / batch_entry.data_file_name
     meta_stat1 = meta_file.stat()
     data_stat1 = data_file.stat()
 
     # Execute same request again (should be skipped).
-    assert batch_executor.execute(tmp_path)
-    _assert_out_dir_structure(tmp_path, batch_executor.entries)
+    batch = Batch()  # Recreate from dumped batch file so that batch entry IDs match.
+    batch.load(batch_file)
+    assert batch.execute(results_dir)
+    _assert_results_dir_structure(results_dir, batch.entries, caplog)
     meta_stat2 = meta_file.stat()
     data_stat2 = data_file.stat()
 
@@ -260,19 +270,19 @@ def test_execute_previous_match_completed(tmp_path: Path) -> None:
     assert data_stat1.st_mtime_ns == data_stat2.st_mtime_ns
 
 
-def test_execute_no_match(tmp_path: Path) -> None:
-    batch_executor = BatchExecutor()
-    batch_executor.submit(Search("trump", max_tweets=50))
+def test_execute_no_match(tmp_path: Path, caplog: LogCaptureFixture) -> None:
+    batch = Batch()
+    batch.append(Search("trump", max_tweets=50))
 
     # Execute successful search request with "trump".
-    assert batch_executor.execute(tmp_path)
-    _assert_out_dir_structure(tmp_path, batch_executor.entries)
+    assert batch.execute(tmp_path)
+    _assert_results_dir_structure(tmp_path, batch.entries, caplog)
 
     # Change request to instead search for "obama".
-    meta_file = tmp_path / batch_executor.entries[0].meta_file_name
+    meta_file = tmp_path / batch.entries[0].meta_file_name
     with meta_file.open("r", encoding="UTF-8") as fin:
         batch_entry = BatchEntry.from_json(json.load(fin))
-    batch_executor.entries[0] = BatchEntry(
+    batch.entries[0] = BatchEntry(
         Search("obama"),
         id_=batch_entry._id,
         completed_at=batch_entry.completed_at,
@@ -280,12 +290,12 @@ def test_execute_no_match(tmp_path: Path) -> None:
     )
 
     # Verify that this fails because of batch_entry description mismatch.
-    assert not batch_executor.execute(tmp_path)
+    assert not batch.execute(tmp_path)
 
     # Delete offending meta file, run again, and verify that it works now.
     meta_file.unlink()
-    assert batch_executor.execute(tmp_path)
-    _assert_out_dir_structure(tmp_path, batch_executor.entries)
+    assert batch.execute(tmp_path)
+    _assert_results_dir_structure(tmp_path, batch.entries, caplog)
 
 
 @pytest.mark.requests_cache_disabled
@@ -302,10 +312,10 @@ def test_execute_exception_internal_server_error(tmp_path: Path) -> None:
         status=HTTPStatus.INTERNAL_SERVER_ERROR.value,
     )
 
-    batch_executor = BatchExecutor()
-    batch_executor.submit(Search("trump", max_tweets=50))
-    assert not batch_executor.execute(tmp_path)
-    batch_entry = batch_executor.entries[0]
+    batch = Batch()
+    batch.append(Search("trump", max_tweets=50))
+    assert not batch.execute(tmp_path)
+    batch_entry = batch.entries[0]
     with (tmp_path / batch_entry.meta_file_name).open("r", encoding="UTF-8") as fin:
         batch_entry = BatchEntry.from_json(json.load(fin))
     assert batch_entry.exception is not None

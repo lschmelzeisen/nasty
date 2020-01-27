@@ -20,7 +20,7 @@ from typing import Sequence
 
 from overrides import overrides
 
-from ..batch.batch_executor import BatchExecutor
+from ..batch.batch import Batch
 from ._command import _Command
 
 
@@ -59,8 +59,8 @@ class _BatchCommand(_Command):
             help="Batch file to which requests have been appended.",
         )
         g.add_argument(
-            "-o",
-            "--out-dir",
+            "-r",
+            "--results-dir",
             metavar="<DIR>",
             type=Path,
             required=True,
@@ -69,6 +69,6 @@ class _BatchCommand(_Command):
 
     @overrides
     def run(self) -> None:
-        batch_executor = BatchExecutor()
-        batch_executor.load_batch(self._args.batch_file)
-        batch_executor.execute(self._args.out_dir)
+        batch_executor = Batch()
+        batch_executor.load(self._args.batch_file)
+        batch_executor.execute(self._args.results_dir)

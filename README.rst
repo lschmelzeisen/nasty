@@ -116,9 +116,9 @@ the above requests, for example::
 
     $ nasty search --query "climate change" --to-batch batch.jsonl
 
-To run all files stored in a jobs file and write the output to directory ``out``::
+To run all files stored in a jobs file and write the output to directory ``out/``::
 
-    $ nasty batch --batch-file batch.jsonl --out-dir out/
+    $ nasty batch --batch-file batch.jsonl --results-dir out/
 
 Python API
 ========================================================================================

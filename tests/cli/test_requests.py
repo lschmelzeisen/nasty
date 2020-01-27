@@ -25,7 +25,7 @@ from _pytest.capture import CaptureFixture
 from _pytest.monkeypatch import MonkeyPatch
 from typing_extensions import Final
 
-from nasty.batch.batch_executor import BatchExecutor
+from nasty.batch.batch import Batch
 from nasty.cli.main import main
 from nasty.request.replies import Replies
 from nasty.request.request import DEFAULT_BATCH_SIZE, DEFAULT_MAX_TWEETS, Request
@@ -157,8 +157,8 @@ def test_correct_call_to_batch(
     main(_make_args(request_, to_batch=batch_file))
 
     assert capsys.readouterr().out == ""
-    batch_executor = BatchExecutor()
-    batch_executor.load_batch(batch_file)
+    batch_executor = Batch()
+    batch_executor.load(batch_file)
     assert len(batch_executor.entries) == 1
     assert batch_executor.entries[0].request == request_
     assert batch_executor.entries[0]._id
@@ -179,15 +179,15 @@ def test_correct_call_to_batch_exists(
     old_request: Request, new_request: Request, capsys: CaptureFixture, tmp_path: Path,
 ) -> None:
     batch_file = tmp_path / "batch.jsonl"
-    batch_executor = BatchExecutor()
-    batch_executor.submit(old_request)
-    batch_executor.dump_batch(batch_file)
+    batch_executor = Batch()
+    batch_executor.append(old_request)
+    batch_executor.dump(batch_file)
 
     main(_make_args(new_request, to_batch=batch_file))
 
     assert capsys.readouterr().out == ""
-    batch_executor = BatchExecutor()
-    batch_executor.load_batch(batch_file)
+    batch_executor = Batch()
+    batch_executor.load(batch_file)
     assert len(batch_executor.entries) == 2
     for batch_entry, expected_request in zip(
         batch_executor.entries, [old_request, new_request]
@@ -208,8 +208,8 @@ def test_correct_call_to_batch_daily(capsys: CaptureFixture, tmp_path: Path) -> 
     main(_make_args(request, to_batch=batch_file, daily=True))
 
     assert capsys.readouterr().out == ""
-    batch_executor = BatchExecutor()
-    batch_executor.load_batch(batch_file)
+    batch_executor = Batch()
+    batch_executor.load(batch_file)
     assert len(batch_executor.entries) == (request.until - request.since).days
     for batch_entry, expected_request in zip(
         batch_executor.entries, request.to_daily_requests()
