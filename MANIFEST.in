@@ -2,10 +2,9 @@ include LICENSE
 include LICENSE.header
 include Makefile
 include MANIFEST.in
-include Pipfile
-include Pipefile.lock
 include pyproject.toml
 include README.rst
+include setup.cfg
 include setup.py
 include vulture-whitelist.py
 recursive-include assets *.svg *.png
