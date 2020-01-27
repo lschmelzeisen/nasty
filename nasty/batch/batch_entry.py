@@ -52,6 +52,10 @@ class BatchEntry(JsonSerializable):
     def data_file_name(self) -> Path:
         return Path("{:s}.data.jsonl.xz".format(self._id))
 
+    @property
+    def ids_file_name(self) -> Path:
+        return Path("{:s}.ids".format(self._id))
+
     @overrides
     def to_json(self) -> Mapping[str, object]:
         obj = {
