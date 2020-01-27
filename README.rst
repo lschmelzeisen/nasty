@@ -256,7 +256,7 @@ Acknowledgements
 License
 ========================================================================================
 
-Copyright 2019 Lukas Schmelzeisen.
+Copyright 2019-2020 Lukas Schmelzeisen.
 Licensed under the
 `Apache License, Version 2.0 <https://www.apache.org/licenses/LICENSE-2.0>`_.
 
