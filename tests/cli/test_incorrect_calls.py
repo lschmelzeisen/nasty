@@ -53,6 +53,12 @@ logger = getLogger(__name__)
         "batch --batch-file batch.jsonl --results-dir",
         "batch --results-dir",
         "batch --batch-file --results-dir out/",
+        "idify --in-dir",
+        "idify --out-dir",
+        "idify --out-dir out/",
+        "unidify --in-dir",
+        "unidify --out-dir",
+        "unidify --out-dir out/",
     ],
     ids=repr,
 )

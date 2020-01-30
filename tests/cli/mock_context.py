@@ -64,3 +64,25 @@ class MockBatchContext:
                 self.execute_args = (results_dir,)
 
         self.MockBatch = MockBatch
+
+
+class MockBatchResultsContext:
+    def __init__(self) -> None:
+        self.init_args = None
+        self.idify_args = None
+        self.unidify_args = None
+
+        class MockBatchResults:
+            @staticmethod
+            def __init__(results_dir: Path):
+                self.init_args = (results_dir,)
+
+            @staticmethod
+            def idify(results_dir: Path) -> None:
+                self.idify_args = (results_dir,)
+
+            @staticmethod
+            def unidify(results_dir: Path) -> None:
+                self.unidify_args = (results_dir,)
+
+        self.MockBatchResults = MockBatchResults

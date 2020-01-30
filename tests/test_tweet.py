@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 
 from nasty.tweet.tweet import Tweet, User
 
-tweet_json = {
+tweet_jsons = {
     # Tweet accessed via Search API on 2019-09-27
     "1142944425502543875": {
         "created_at": "Sun Jun 23 23:56:00 +0000 2019",
@@ -220,7 +220,7 @@ tweet_json = {
 
 
 def test_1142944425502543875() -> None:
-    tweet = Tweet(tweet_json["1142944425502543875"])
+    tweet = Tweet(tweet_jsons["1142944425502543875"])
     assert (
         datetime(
             year=2019,
