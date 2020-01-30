@@ -96,19 +96,17 @@ class _RequestCommand(_Command, ABC, Generic[_T_Request]):
 
         request = self.build_request()
         if self._args.to_batch:
-            batch_executor = Batch()
+            batch = Batch()
             if self._args.to_batch.exists():
-                batch_executor.load(self._args.to_batch)
-            self._batch_executor_submit(batch_executor, request)
-            batch_executor.dump(self._args.to_batch)
+                batch.load(self._args.to_batch)
+            self._batch_submit(batch, request)
+            batch.dump(self._args.to_batch)
         else:
             for tweet in request.request():
                 print(json.dumps(tweet.to_json()))  # noqa T001
 
-    def _batch_executor_submit(
-        self, batch_executor: Batch, request: _T_Request
-    ) -> None:
-        batch_executor.append(request)
+    def _batch_submit(self, batch: Batch, request: _T_Request) -> None:
+        batch.append(request)
 
     @abstractmethod
     def build_request(self) -> _T_Request:

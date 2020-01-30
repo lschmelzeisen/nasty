@@ -117,12 +117,12 @@ class _SearchCommand(_RequestCommand[Search]):
                 argparser.error("-d (--daily) requires -s (--since) and -u (--until).")
 
     @overrides
-    def _batch_executor_submit(self, batch_executor: Batch, request: Search) -> None:
+    def _batch_submit(self, batch: Batch, request: Search) -> None:
         if self._args.daily:
             for daily_request in request.to_daily_requests():
-                super()._batch_executor_submit(batch_executor, daily_request)
+                super()._batch_submit(batch, daily_request)
         else:
-            super()._batch_executor_submit(batch_executor, request)
+            super()._batch_submit(batch, request)
 
     @overrides
     def build_request(self) -> Search:

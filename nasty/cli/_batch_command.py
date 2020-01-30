@@ -33,7 +33,7 @@ class _BatchCommand(_Command):
     @classmethod
     @overrides
     def aliases(cls) -> Sequence[str]:
-        return "b"
+        return ["b"]
 
     @classmethod
     @overrides
@@ -69,6 +69,6 @@ class _BatchCommand(_Command):
 
     @overrides
     def run(self) -> None:
-        batch_executor = Batch()
-        batch_executor.load(self._args.batch_file)
-        batch_executor.execute(self._args.results_dir)
+        batch = Batch()
+        batch.load(self._args.batch_file)
+        batch.execute(self._args.results_dir)

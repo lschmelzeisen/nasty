@@ -37,7 +37,7 @@ class BatchEntry(JsonSerializable):
         exception: Optional[JsonSerializedException],
     ):
         self.request: Final = request
-        self._id: Final = id_
+        self.id: Final = id_
         self.completed_at = completed_at
         self.exception = exception
 
@@ -46,20 +46,20 @@ class BatchEntry(JsonSerializable):
 
     @property
     def meta_file_name(self) -> Path:
-        return Path("{:s}.meta.json".format(self._id))
+        return Path("{:s}.meta.json".format(self.id))
 
     @property
     def data_file_name(self) -> Path:
-        return Path("{:s}.data.jsonl.xz".format(self._id))
+        return Path("{:s}.data.jsonl.xz".format(self.id))
 
     @property
     def ids_file_name(self) -> Path:
-        return Path("{:s}.ids".format(self._id))
+        return Path("{:s}.ids".format(self.id))
 
     @overrides
     def to_json(self) -> Mapping[str, object]:
         obj = {
-            "id": self._id,
+            "id": self.id,
             "request": self.request.to_json(),
         }
         if self.completed_at:

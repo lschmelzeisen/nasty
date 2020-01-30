@@ -26,9 +26,11 @@ from .._util.logging_ import setup_logging
 from ..version import __version__
 from ._batch_command import _BatchCommand
 from ._command import _Command
+from ._idify_command import _IdifyCommand
 from ._replies_command import _RepliesCommand
 from ._search_command import _SearchCommand
 from ._thread_command import _ThreadCommand
+from ._unidify_command import _UnidifyCommand
 
 logger = getLogger(__name__)
 
@@ -57,6 +59,8 @@ def _load_args(argv: Sequence[str]) -> Tuple[argparse.Namespace, _Command]:
         _RepliesCommand,
         _ThreadCommand,
         _BatchCommand,
+        _IdifyCommand,
+        _UnidifyCommand,
     ]
 
     argparser = ArgumentParser(

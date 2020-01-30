@@ -28,3 +28,6 @@ tests-report.html
 # Project specific generated files
 tests/util/.requests_cache.jsonl
 nasty/version.py
+
+# Config file with secrets
+config.sh

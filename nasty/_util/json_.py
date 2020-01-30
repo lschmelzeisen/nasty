@@ -14,15 +14,18 @@
 # limitations under the License.
 #
 
+import json
 import traceback
 from abc import abstractmethod
 from datetime import datetime
+from pathlib import Path
 from typing import Iterable, Mapping, Type, TypeVar, cast
 
 from overrides import overrides
 from typing_extensions import Final
 
 from .consts import NASTY_DATE_TIME_FORMAT
+from .io_ import read_file, read_lines_file, write_file, write_lines_file
 from .typing_ import checked_cast
 
 _T_JsonSerializable = TypeVar("_T_JsonSerializable", bound="JsonSerializable")
@@ -90,3 +93,46 @@ class JsonSerializedException(JsonSerializable):
                 for frame in traceback.format_tb(exception.__traceback__)
             ],
         )
+
+
+def read_json(
+    file: Path, type_: Type[_T_JsonSerializable], *, use_lzma: bool = False
+) -> _T_JsonSerializable:
+    return type_.from_json(json.loads(read_file(file, use_lzma=use_lzma)))
+
+
+def write_json(
+    file: Path,
+    value: _T_JsonSerializable,
+    *,
+    overwrite_existing: bool = False,
+    use_lzma: bool = False,
+) -> None:
+    write_file(
+        file,
+        json.dumps(value.to_json(), indent=2),
+        overwrite_existing=overwrite_existing,
+        use_lzma=use_lzma,
+    )
+
+
+def read_json_lines(
+    file: Path, type_: Type[_T_JsonSerializable], *, use_lzma: bool = False
+) -> Iterable[_T_JsonSerializable]:
+    for line in read_lines_file(file, use_lzma=use_lzma):
+        yield type_.from_json(json.loads(line))
+
+
+def write_jsonl_lines(
+    file: Path,
+    values: Iterable[_T_JsonSerializable],
+    *,
+    overwrite_existing: bool = False,
+    use_lzma: bool = False,
+) -> None:
+    write_lines_file(
+        file,
+        (json.dumps(value.to_json()) for value in values),
+        overwrite_existing=overwrite_existing,
+        use_lzma=use_lzma,
+    )

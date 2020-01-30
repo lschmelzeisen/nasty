@@ -157,13 +157,13 @@ def test_correct_call_to_batch(
     main(_make_args(request_, to_batch=batch_file))
 
     assert capsys.readouterr().out == ""
-    batch_executor = Batch()
-    batch_executor.load(batch_file)
-    assert len(batch_executor.entries) == 1
-    assert batch_executor.entries[0].request == request_
-    assert batch_executor.entries[0]._id
-    assert batch_executor.entries[0].completed_at is None
-    assert batch_executor.entries[0].exception is None
+    batch = Batch()
+    batch.load(batch_file)
+    assert len(batch.entries) == 1
+    assert batch.entries[0].request == request_
+    assert batch.entries[0].id
+    assert batch.entries[0].completed_at is None
+    assert batch.entries[0].exception is None
 
 
 @pytest.mark.parametrize(
@@ -179,21 +179,19 @@ def test_correct_call_to_batch_exists(
     old_request: Request, new_request: Request, capsys: CaptureFixture, tmp_path: Path,
 ) -> None:
     batch_file = tmp_path / "batch.jsonl"
-    batch_executor = Batch()
-    batch_executor.append(old_request)
-    batch_executor.dump(batch_file)
+    batch = Batch()
+    batch.append(old_request)
+    batch.dump(batch_file)
 
     main(_make_args(new_request, to_batch=batch_file))
 
     assert capsys.readouterr().out == ""
-    batch_executor = Batch()
-    batch_executor.load(batch_file)
-    assert len(batch_executor.entries) == 2
-    for batch_entry, expected_request in zip(
-        batch_executor.entries, [old_request, new_request]
-    ):
+    batch = Batch()
+    batch.load(batch_file)
+    assert len(batch.entries) == 2
+    for batch_entry, expected_request in zip(batch.entries, [old_request, new_request]):
         assert batch_entry.request == expected_request
-        assert batch_entry._id
+        assert batch_entry.id
         assert batch_entry.completed_at is None
         assert batch_entry.exception is None
 
@@ -208,13 +206,13 @@ def test_correct_call_to_batch_daily(capsys: CaptureFixture, tmp_path: Path) -> 
     main(_make_args(request, to_batch=batch_file, daily=True))
 
     assert capsys.readouterr().out == ""
-    batch_executor = Batch()
-    batch_executor.load(batch_file)
-    assert len(batch_executor.entries) == (request.until - request.since).days
+    batch = Batch()
+    batch.load(batch_file)
+    assert len(batch.entries) == (request.until - request.since).days
     for batch_entry, expected_request in zip(
-        batch_executor.entries, request.to_daily_requests()
+        batch.entries, request.to_daily_requests()
     ):
         assert batch_entry.request == expected_request
-        assert batch_entry._id
+        assert batch_entry.id
         assert batch_entry.completed_at is None
         assert batch_entry.exception is None

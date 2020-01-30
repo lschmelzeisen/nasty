@@ -15,8 +15,6 @@
 #
 
 import enum
-import json
-import lzma
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -28,8 +26,13 @@ from tempfile import mkdtemp
 from typing import List, Optional
 from uuid import uuid4
 
-from .._util.consts import NASTY_DATE_TIME_FORMAT
-from .._util.json_ import JsonSerializedException
+from .._util.json_ import (
+    JsonSerializedException,
+    read_json,
+    read_json_lines,
+    write_json,
+    write_jsonl_lines,
+)
 from ..request.request import Request
 from .batch_entry import BatchEntry
 from .batch_results import BatchResults
@@ -54,16 +57,11 @@ class Batch:
 
     def dump(self, file: Path) -> None:
         logger.debug("Dumping batch to file '{}'.".format(file))
-        with file.open("w", encoding="UTF-8") as fout:
-            for entry in self.entries:
-                json.dump(entry.to_json(), fout)
-                fout.write("\n")
+        write_jsonl_lines(file, self.entries, overwrite_existing=True)
 
     def load(self, file: Path) -> None:
         logger.debug("Loading batch from file '{}'.".format(file))
-        with file.open("r", encoding="UTF-8") as fin:
-            for line in fin:
-                self.entries.append(BatchEntry.from_json(json.loads(line)))
+        self.entries += read_json_lines(file, BatchEntry)
 
     def execute(self, results_dir: Optional[Path] = None) -> Optional[BatchResults]:
         logger.debug(
@@ -72,7 +70,7 @@ class Batch:
 
         if not results_dir:
             results_dir = Path(mkdtemp())
-        logger.debug("Saving results to '{}'.".format(results_dir))
+        logger.debug("  Saving results to '{}'.".format(results_dir))
         Path.mkdir(results_dir, exist_ok=True, parents=True)
 
         num_workers = int(getenv("NASTY_NUM_WORKERS", default="1"))
@@ -106,55 +104,27 @@ class Batch:
         data_file = results_dir / entry.data_file_name
 
         if meta_file.exists():
-            logger.debug("  Loading meta information from previous batch execution.")
+            prev_execution_entry = read_json(meta_file, BatchEntry)
 
-            with meta_file.open("r", encoding="UTF-8") as fin:
-                prev_execution_entry = BatchEntry.from_json(json.load(fin))
-
-            if entry.request != prev_execution_entry.request:
-                logger.error(
-                    "  Request from previous batch execution does not match current "
-                    "one, manual intervention required! If the already stored data is "
-                    "erroneous, delete the meta and data files of this request and "
-                    "restart batch execution."
-                )
-                logger.error("    Meta file: {}".format(meta_file))
-                logger.error("    Data file: {}".format(data_file))
-                return _ExecuteResult.FAIL
-
-            if prev_execution_entry.completed_at:
-                logger.debug(
-                    "  Skipping request, because marked as completed at {}.".format(
-                        prev_execution_entry.completed_at.strftime(
-                            NASTY_DATE_TIME_FORMAT
-                        )
-                    )
-                )
+            if data_file.exists():
+                logger.debug("  Skipping request, because files already exist.")
                 entry.completed_at = prev_execution_entry.completed_at
                 return _ExecuteResult.SKIP
 
-        if data_file.exists():
-            logger.info(
-                "  Deleting previously created data file '{}' because request "
-                "execution did not succeed.".format(data_file)
+            logger.debug(
+                "  Retrying request that has stray files from previous "
+                "execution: {}".format(prev_execution_entry.exception)
             )
-            data_file.unlink()
+            meta_file.unlink()
 
         result = _ExecuteResult.SUCCESS
         try:
-            tweets = list(entry.request.request())
-            with lzma.open(data_file, "wt", encoding="UTF-8") as fout:
-                for tweet in tweets:
-                    json.dump(tweet.to_json(), fout)
-                    fout.write("\n")
-
+            write_jsonl_lines(data_file, entry.request.request(), use_lzma=True)
             entry.completed_at = datetime.now()
         except Exception as e:
             logger.exception("  Request execution failed with exception.")
             entry.exception = JsonSerializedException.from_exception(e)
             result = _ExecuteResult.FAIL
 
-        with meta_file.open("w", encoding="UTF-8") as fout:
-            json.dump(entry.to_json(), fout, indent=2)
-
+        write_json(meta_file, entry)
         return result
