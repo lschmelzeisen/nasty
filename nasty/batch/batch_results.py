@@ -47,7 +47,7 @@ class BatchResults:
         yield from read_json_lines(data_file, Tweet, use_lzma=True)
 
     def tweet_ids(self, entry: BatchEntry) -> Iterable[TweetId]:
-        data_file = self._results_dir / entry.ids_file_name
+        data_file = self._results_dir / entry.data_file_name
         ids_file = self._results_dir / entry.ids_file_name
         if ids_file.exists():
             yield from read_lines_file(ids_file)
