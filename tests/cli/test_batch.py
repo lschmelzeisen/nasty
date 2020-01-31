@@ -30,7 +30,11 @@ def test_correct_call(
     monkeypatch: MonkeyPatch, capsys: CaptureFixture, tmp_path: Path,
 ) -> None:
     mock_context = MockBatchContext()
-    monkeypatch.setattr(nasty.cli._batch_command, "Batch", mock_context.MockBatch)
+    monkeypatch.setattr(
+        nasty.cli._batch_command,
+        nasty.cli._batch_command.Batch.__name__,  # type: ignore
+        mock_context.MockBatch,
+    )
 
     batch_file = tmp_path / "batch.jsonl"
     results_dir = tmp_path / "out"

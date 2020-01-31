@@ -201,4 +201,4 @@ class RequestsCache:
 
                 return response
 
-        monkeypatch.setattr(Session, "send", mock_session_send)
+        monkeypatch.setattr(Session, Session.send.__name__, mock_session_send)

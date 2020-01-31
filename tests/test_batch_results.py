@@ -143,7 +143,9 @@ def test_unidify_fail_and_restart(monkeypatch: MonkeyPatch, tmp_path: Path) -> N
     idified = results.idify(idify_dir)
 
     monkeypatch.setattr(
-        nasty.batch.batch_results, "statuses_lookup", _mock_statuses_lookup(tweets)
+        nasty.batch.batch_results,
+        nasty.batch.batch_results.statuses_lookup.__name__,  # type: ignore
+        _mock_statuses_lookup(tweets),
     )
 
     with pytest.raises(ValueError):

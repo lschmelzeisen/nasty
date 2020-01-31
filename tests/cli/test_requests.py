@@ -111,7 +111,9 @@ def test_correct_call(
     request_: Request, monkeypatch: MonkeyPatch, capsys: CaptureFixture
 ) -> None:
     mock_context: MockRequestContext = MockRequestContext()
-    monkeypatch.setattr(type(request_), "request", mock_context.mock_request)
+    monkeypatch.setattr(
+        type(request_), request_.request.__name__, mock_context.mock_request
+    )
 
     main(_make_args(request_))
 
@@ -137,7 +139,9 @@ def test_correct_call_results(
     capsys: CaptureFixture,
 ) -> None:
     mock_context: MockRequestContext = MockRequestContext(num_results=num_results)
-    monkeypatch.setattr(type(request_), "request", mock_context.mock_request)
+    monkeypatch.setattr(
+        type(request_), request_.request.__name__, mock_context.mock_request
+    )
 
     main(_make_args(request_))
 

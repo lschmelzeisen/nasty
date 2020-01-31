@@ -65,7 +65,9 @@ def test_idify_stdin(capsys: CaptureFixture) -> None:
 def test_idify_indir(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     mock_context = MockBatchResultsContext()
     monkeypatch.setattr(
-        nasty.cli._idify_command, "BatchResults", mock_context.MockBatchResults
+        nasty.cli._idify_command,
+        nasty.cli._idify_command.BatchResults.__name__,  # type: ignore
+        mock_context.MockBatchResults,
     )
 
     main(["idify", "--in-dir", str(tmp_path)])
@@ -81,7 +83,9 @@ def test_idify_indir_outdir(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
 
     mock_context = MockBatchResultsContext()
     monkeypatch.setattr(
-        nasty.cli._idify_command, "BatchResults", mock_context.MockBatchResults
+        nasty.cli._idify_command,
+        nasty.cli._idify_command.BatchResults.__name__,  # type: ignore
+        mock_context.MockBatchResults,
     )
 
     main(["idify", "--in-dir", str(in_dir), "--out-dir", str(out_dir)])
@@ -120,7 +124,9 @@ def test_unidify_std(capsys: CaptureFixture) -> None:
 def test_unidify_indir(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     mock_context = MockBatchResultsContext()
     monkeypatch.setattr(
-        nasty.cli._unidify_command, "BatchResults", mock_context.MockBatchResults
+        nasty.cli._unidify_command,
+        nasty.cli._unidify_command.BatchResults.__name__,  # type: ignore
+        mock_context.MockBatchResults,
     )
 
     main(["unidify", "--in-dir", str(tmp_path)])
@@ -136,7 +142,9 @@ def test_unidify_indir_outdir(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
 
     mock_context = MockBatchResultsContext()
     monkeypatch.setattr(
-        nasty.cli._unidify_command, "BatchResults", mock_context.MockBatchResults
+        nasty.cli._unidify_command,
+        nasty.cli._unidify_command.BatchResults.__name__,  # type: ignore
+        mock_context.MockBatchResults,
     )
 
     main(["unidify", "--in-dir", str(in_dir), "--out-dir", str(out_dir)])
