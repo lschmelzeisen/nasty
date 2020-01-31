@@ -71,10 +71,12 @@ class BatchResults:
 
         for entry in self.entries:
             ids_file = results_dir / entry.ids_file_name
-            write_lines_file(ids_file, (tweet.id for tweet in self.tweets(entry)))
+            meta_file = results_dir / entry.meta_file_name
 
-            if not same_dir:
-                meta_file = results_dir / entry.meta_file_name
+            if not ids_file.exists():
+                write_lines_file(ids_file, self.tweet_ids(entry))
+
+            if not meta_file.exists():
                 write_json(meta_file, entry)
 
         if not same_dir:
@@ -96,18 +98,20 @@ class BatchResults:
 
         for entry in self.entries:
             data_file = results_dir / entry.data_file_name
-            write_jsonl_lines(
-                data_file,
-                (
-                    tweet
-                    for tweet in statuses_lookup(self.tweet_ids(entry))
-                    if tweet is not None
-                ),
-                use_lzma=True,
-            )
+            meta_file = results_dir / entry.meta_file_name
 
-            if not same_dir:
-                meta_file = results_dir / entry.meta_file_name
+            if not data_file.exists():
+                write_jsonl_lines(
+                    data_file,
+                    (
+                        tweet
+                        for tweet in statuses_lookup(self.tweet_ids(entry))
+                        if tweet is not None
+                    ),
+                    use_lzma=True,
+                )
+
+            if not meta_file.exists():
                 write_json(meta_file, entry)
 
         if not same_dir:
