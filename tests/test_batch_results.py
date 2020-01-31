@@ -49,7 +49,7 @@ def _assert_tweet_texts(results: BatchResults) -> None:
         "and consider joining us for what should be a fun day of listening to "
         "stimulating talks, mingling with like-minded people, exchanging ideas, and "
         "maybe even striking up a collaboration.",
-    ] == [tweet.text for tweet in results.tweets(results.entries[0])]
+    ] == [tweet.text for tweet in results.tweets(results[0])]
 
 
 def _assert_tweet_ids(results: BatchResults) -> None:
@@ -57,7 +57,7 @@ def _assert_tweet_ids(results: BatchResults) -> None:
         TweetId("1115690002233556993"),
         TweetId("1115690615612825601"),
         TweetId("1115691710657499137"),
-    ] == list(results.tweet_ids(results.entries[0]))
+    ] == list(results.tweet_ids(results[0]))
 
 
 def test_tweets_from_exectue() -> None:
@@ -69,7 +69,7 @@ def test_tweets_from_exectue() -> None:
 def test_tweets_from_idify(tmp_path: Path) -> None:
     results = _make_batch_results().idify(tmp_path)
     with pytest.raises(Exception):
-        list(results.tweets(results.entries[0]))
+        list(results.tweets(results[0]))
     _assert_tweet_ids(results)
 
 
@@ -93,7 +93,7 @@ def test_double_idify(tmp_path: Path) -> None:
     results.idify(tmp_path)
     results = results.idify(tmp_path)
     with pytest.raises(Exception):
-        list(results.tweets(results.entries[0]))
+        list(results.tweets(results[0]))
     _assert_tweet_ids(results)
 
 
@@ -137,7 +137,7 @@ def test_unidify_fail_and_restart(monkeypatch: MonkeyPatch, tmp_path: Path) -> N
     assert results is not None
     tweets = {
         tuple(results.tweet_ids(entry)): list(results.tweets(entry))
-        for entry in results.entries
+        for entry in results
     }
 
     idified = results.idify(idify_dir)
@@ -151,12 +151,12 @@ def test_unidify_fail_and_restart(monkeypatch: MonkeyPatch, tmp_path: Path) -> N
     with pytest.raises(ValueError):
         idified.unidify(unidify_dir)
 
-    assert 1 == len(BatchResults(unidify_dir).entries)
+    assert 1 == len(BatchResults(unidify_dir))
 
     unidified = idified.unidify(tmp_path / "unidify")
-    assert 3 == len(unidified.entries)
+    assert 3 == len(unidified)
     assert [(tweet.id, tweet.text) for tweet in flatten(tweets.values())] == [
         (tweet.id, tweet.text)
-        for entry in unidified.entries
+        for entry in unidified
         for tweet in unidified.tweets(entry)
     ]

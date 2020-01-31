@@ -98,7 +98,7 @@ def test_dump_load_single(request_: Request, tmp_path: Path) -> None:
 
     batch2 = Batch()
     batch2.load(batch_file)
-    assert batch.entries == batch2.entries
+    assert list(batch) == list(batch2)
 
 
 @pytest.mark.parametrize("num_batch_entries", [10, 505, 1000], ids=repr)
@@ -117,7 +117,7 @@ def test_dump_load_multiple(num_batch_entries: int, tmp_path: Path) -> None:
 
     batch2 = Batch()
     batch2.load(batch_file)
-    assert batch.entries == batch2.entries
+    assert list(batch) == list(batch2)
 
 
 # -- test_execute_* --------------------------------------------------------------------
@@ -136,10 +136,10 @@ def _assert_results_dir_structure(
 
     # Can't create sets, because BatchEntry is not hashable, thus compare maps.
     assert {batch_entry.id: batch_entry for batch_entry in batch_entries} == {
-        batch_entry.id: batch_entry for batch_entry in batch_results.entries
+        batch_entry.id: batch_entry for batch_entry in batch_results
     }
 
-    for batch_entry in batch_results.entries:
+    for batch_entry in batch_results:
         assert batch_entry.completed_at is not None
         assert batch_entry.completed_at < datetime.now()
         assert batch_entry.exception is None
@@ -162,7 +162,7 @@ def test_execute_success(tmp_path: Path) -> None:
     batch.append(Search("hillary", max_tweets=50))
     batch.append(Search("obama", max_tweets=50))
     assert batch.execute(tmp_path)
-    _assert_results_dir_structure(tmp_path, batch.entries)
+    _assert_results_dir_structure(tmp_path, list(batch))
 
 
 def test_execute_success_parallel(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
@@ -178,7 +178,7 @@ def test_execute_success_parallel(tmp_path: Path, monkeypatch: MonkeyPatch) -> N
             )
         )
     assert batch.execute(tmp_path)
-    _assert_results_dir_structure(tmp_path, batch.entries)
+    _assert_results_dir_structure(tmp_path, list(batch))
 
 
 def test_execute_success_empty(tmp_path: Path) -> None:
@@ -188,8 +188,8 @@ def test_execute_success_empty(tmp_path: Path) -> None:
     batch.append(Search(unknown_word))
     results = batch.execute(tmp_path)
     assert results
-    assert not list(results.tweets(results.entries[0]))
-    _assert_results_dir_structure(tmp_path, batch.entries, allow_empty=True)
+    assert not list(results.tweets(results[0]))
+    _assert_results_dir_structure(tmp_path, list(batch), allow_empty=True)
 
 
 def test_execute_retrying_after_exception(
@@ -198,7 +198,7 @@ def test_execute_retrying_after_exception(
     batch = Batch()
     batch.append(Search("trump", max_tweets=50))
 
-    batch_entry = batch.entries[0]
+    batch_entry = batch[0]
     exception = _make_json_serialized_exception()
     batch_entry.exception = exception
     meta_file = tmp_path / batch_entry.meta_file_name
@@ -216,7 +216,7 @@ def test_execute_retrying_after_exception(
         ]
     )
 
-    _assert_results_dir_structure(tmp_path, batch.entries)
+    _assert_results_dir_structure(tmp_path, list(batch))
     meta_stat2 = meta_file.stat()
     assert meta_stat1.st_mtime_ns < meta_stat2.st_mtime_ns
 
@@ -225,7 +225,7 @@ def test_execute_stray_data_file(tmp_path: Path, caplog: LogCaptureFixture) -> N
     batch = Batch()
     batch.append(Search("trump", max_tweets=50))
 
-    batch_entry = batch.entries[0]
+    batch_entry = batch[0]
     data = "Just some stray data."
     data_file = tmp_path / batch_entry.data_file_name
     write_file(data_file, data)
@@ -249,7 +249,7 @@ def test_execute_stray_data_file(tmp_path: Path, caplog: LogCaptureFixture) -> N
     caplog.clear()
     assert batch.execute(tmp_path)
     assert 1 == len([record for record in caplog.records if "Retrying" in record.msg])
-    _assert_results_dir_structure(tmp_path, batch.entries)
+    _assert_results_dir_structure(tmp_path, list(batch))
 
 
 def test_execute_skipping(tmp_path: Path, caplog: LogCaptureFixture) -> None:
@@ -261,9 +261,9 @@ def test_execute_skipping(tmp_path: Path, caplog: LogCaptureFixture) -> None:
     batch.append(Search("trump", max_tweets=50))
     batch.dump(batch_file)
     assert batch.execute(results_dir)
-    _assert_results_dir_structure(results_dir, batch.entries)
+    _assert_results_dir_structure(results_dir, list(batch))
 
-    batch_entry = batch.entries[0]
+    batch_entry = batch[0]
     meta_file = results_dir / batch_entry.meta_file_name
     data_file = results_dir / batch_entry.data_file_name
     meta_stat1 = meta_file.stat()
@@ -275,7 +275,7 @@ def test_execute_skipping(tmp_path: Path, caplog: LogCaptureFixture) -> None:
     caplog.clear()
     assert batch.execute(results_dir)
     assert 1 == len([record for record in caplog.records if "Skipping" in record.msg])
-    _assert_results_dir_structure(results_dir, batch.entries)
+    _assert_results_dir_structure(results_dir, list(batch))
     meta_stat2 = meta_file.stat()
     data_stat2 = data_file.stat()
 
@@ -301,7 +301,7 @@ def test_execute_exception_internal_server_error(tmp_path: Path) -> None:
     batch = Batch()
     batch.append(Search("trump", max_tweets=50))
     assert not batch.execute(tmp_path)
-    batch_entry = batch.entries[0]
+    batch_entry = batch[0]
     assert batch_entry == read_json(tmp_path / batch_entry.meta_file_name, BatchEntry)
     assert batch_entry.exception is not None
     assert batch_entry.exception.type == "UnexpectedStatusCodeException"

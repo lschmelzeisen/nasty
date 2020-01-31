@@ -16,7 +16,7 @@
 
 from logging import getLogger
 from pathlib import Path
-from typing import Iterable, Optional, Sequence
+from typing import Iterable, Iterator, Optional, Sequence, Union, overload
 
 from .._util.io_ import read_lines_file, write_lines_file
 from .._util.json_ import read_json, read_json_lines, write_json, write_jsonl_lines
@@ -27,16 +27,14 @@ from .batch_entry import BatchEntry
 logger = getLogger(__name__)
 
 
-class BatchResults:
+class BatchResults(Sequence[BatchEntry]):
     def __init__(self, results_dir: Path):
         self._results_dir = results_dir
-
-        entries = []
-        for meta_file in self._results_dir.iterdir():
-            if meta_file.name.endswith(".meta.json"):
-                entries.append(read_json(meta_file, BatchEntry))
-
-        self.entries: Sequence[BatchEntry] = entries
+        self._entries: Sequence[BatchEntry] = [
+            read_json(meta_file, BatchEntry)
+            for meta_file in self._results_dir.iterdir()
+            if meta_file.name.endswith(".meta.json")
+        ]
 
     def tweets(self, entry: BatchEntry) -> Iterable[Tweet]:
         data_file = self._results_dir / entry.data_file_name
@@ -69,7 +67,7 @@ class BatchResults:
         if not same_dir:
             Path.mkdir(results_dir, exist_ok=True, parents=True)
 
-        for entry in self.entries:
+        for entry in self._entries:
             ids_file = results_dir / entry.ids_file_name
             meta_file = results_dir / entry.meta_file_name
 
@@ -96,7 +94,7 @@ class BatchResults:
         if not same_dir:
             Path.mkdir(results_dir, exist_ok=True, parents=True)
 
-        for entry in self.entries:
+        for entry in self._entries:
             data_file = results_dir / entry.data_file_name
             meta_file = results_dir / entry.meta_file_name
 
@@ -117,3 +115,28 @@ class BatchResults:
         if not same_dir:
             return BatchResults(results_dir)
         return self
+
+    def __len__(self) -> int:
+        return len(self._entries)
+
+    def __contains__(self, item: object) -> bool:
+        return item in self._entries
+
+    @overload
+    def __getitem__(self, _index: int) -> BatchEntry:
+        ...
+
+    @overload  # noqa: F811
+    def __getitem__(self, _slice: slice) -> Sequence[BatchEntry]:
+        ...
+
+    def __getitem__(  # noqa: F811
+        self, index_or_slice: Union[int, slice]
+    ) -> Union[BatchEntry, Sequence[BatchEntry]]:
+        return self._entries[index_or_slice]
+
+    def __iter__(self) -> Iterator[BatchEntry]:
+        return iter(self._entries)
+
+    def __repr__(self) -> str:
+        return repr(self._entries)

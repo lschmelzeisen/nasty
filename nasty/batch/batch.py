@@ -23,7 +23,7 @@ from logging import getLogger
 from os import getenv
 from pathlib import Path
 from tempfile import mkdtemp
-from typing import List, Optional
+from typing import Iterator, List, Optional, Sequence, Union, overload
 from uuid import uuid4
 
 from .._util.json_ import (
@@ -48,24 +48,24 @@ class _ExecuteResult(Enum):
 
 class Batch:
     def __init__(self) -> None:
-        self.entries: List[BatchEntry] = []
+        self._entries: List[BatchEntry] = []
 
     def append(self, request: Request) -> None:
-        self.entries.append(
+        self._entries.append(
             BatchEntry(request, id_=uuid4().hex, completed_at=None, exception=None)
         )
 
     def dump(self, file: Path) -> None:
         logger.debug("Dumping batch to file '{}'.".format(file))
-        write_jsonl_lines(file, self.entries, overwrite_existing=True)
+        write_jsonl_lines(file, self._entries, overwrite_existing=True)
 
     def load(self, file: Path) -> None:
         logger.debug("Loading batch from file '{}'.".format(file))
-        self.entries += read_json_lines(file, BatchEntry)
+        self._entries += read_json_lines(file, BatchEntry)
 
     def execute(self, results_dir: Optional[Path] = None) -> Optional[BatchResults]:
         logger.debug(
-            "Started executing batch of {:d} requests.".format(len(self.entries))
+            "Started executing batch of {:d} requests.".format(len(self._entries))
         )
 
         if not results_dir:
@@ -77,7 +77,7 @@ class Batch:
         with ThreadPoolExecutor(max_workers=num_workers) as pool:
             futures = (
                 pool.submit(self._execute_entry, entry, results_dir)
-                for entry in self.entries
+                for entry in self._entries
             )
             result_counter = Counter(
                 future.result() for future in as_completed(futures)
@@ -128,3 +128,28 @@ class Batch:
 
         write_json(meta_file, entry)
         return result
+
+    def __len__(self) -> int:
+        return len(self._entries)
+
+    def __contains__(self, item: object) -> bool:
+        return item in self._entries
+
+    @overload
+    def __getitem__(self, _index: int) -> BatchEntry:
+        ...
+
+    @overload  # noqa: F811
+    def __getitem__(self, _slice: slice) -> Sequence[BatchEntry]:
+        ...
+
+    def __getitem__(  # noqa: F811
+        self, index_or_slice: Union[int, slice]
+    ) -> Union[BatchEntry, Sequence[BatchEntry]]:
+        return self._entries[index_or_slice]
+
+    def __iter__(self) -> Iterator[BatchEntry]:
+        return iter(self._entries)
+
+    def __repr__(self) -> str:
+        return repr(self._entries)
