@@ -21,9 +21,10 @@ from argparse import ArgumentParser
 from logging import getLogger
 from typing import Optional, Sequence, Tuple, Type
 
+import nasty
+
 from .._util.argparse_ import SingleMetavarHelpFormatter
 from .._util.logging_ import setup_logging
-from ..version import __version__
 from ._batch_command import _BatchCommand
 from ._command import _Command
 from ._idify_command import _IdifyCommand
@@ -44,6 +45,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     numeric_log_level = getattr(logging, args.log_level)
     setup_logging(numeric_log_level)
 
+    logger.debug("NASTY version: {}".format(nasty.__version__))
     logger.debug("Raw arguments: {}".format(argv))
     logger.debug("Parsed arguments: {}".format(vars(args)))
     logger.debug(
@@ -126,7 +128,7 @@ def _config_general_args(argparser: ArgumentParser) -> None:
         "-v",
         "--version",
         action="version",
-        version="%(prog)s " + __version__,
+        version="%(prog)s " + nasty.__version__,
         help="Show program's version number and exit.",
     )
 
