@@ -40,7 +40,7 @@ def statuses_lookup(tweet_ids: Iterable[TweetId]) -> Iterable[Optional[Tweet]]:
     tweepy_auth = tweepy.AppAuthHandler(consumer_key, consumer_secret)
     tweepy_api = tweepy.API(tweepy_auth, parser=tweepy.parsers.JSONParser())
 
-    for tweet_ids_chunk in chunked(tweet_ids, 900):
+    for tweet_ids_chunk in chunked(tweet_ids, 100):
         num_retries = 0
         while True:
             try:
