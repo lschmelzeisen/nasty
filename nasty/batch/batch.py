@@ -14,11 +14,9 @@
 # limitations under the License.
 #
 
-import enum
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-from enum import Enum
 from logging import getLogger
 from os import getenv
 from pathlib import Path
@@ -34,16 +32,11 @@ from .._util.json_ import (
     write_jsonl_lines,
 )
 from ..request.request import Request
+from ._execute_result import _ExecuteResult
 from .batch_entry import BatchEntry
 from .batch_results import BatchResults
 
 logger = getLogger(__name__)
-
-
-class _ExecuteResult(Enum):
-    SUCCESS = enum.auto()
-    SKIP = enum.auto()
-    FAIL = enum.auto()
 
 
 class Batch:

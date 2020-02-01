@@ -29,11 +29,22 @@ from nasty.request.thread import Thread
 from nasty.tweet.tweet import Tweet, TweetId
 
 
-def _make_batch_results() -> BatchResults:
+def _make_batch_results(
+    *, idify_dir: Optional[Path] = None, unidify_dir: Optional[Path] = None
+) -> BatchResults:
     batch = Batch()
     batch.append(Thread("1115689254271819777"))
     results = batch.execute()
     assert results is not None
+
+    if idify_dir is not None:
+        results = results.idify(idify_dir)
+        assert results is not None
+
+    if unidify_dir is not None:
+        results = results.unidify(unidify_dir)
+        assert results is not None
+
     return results
 
 
@@ -67,31 +78,33 @@ def test_tweets_from_exectue() -> None:
 
 
 def test_tweets_from_idify(tmp_path: Path) -> None:
-    results = _make_batch_results().idify(tmp_path)
+    results = _make_batch_results(idify_dir=tmp_path)
     with pytest.raises(Exception):
         list(results.tweets(results[0]))
     _assert_tweet_ids(results)
 
 
 def test_tweets_from_unidify(tmp_path: Path) -> None:
-    results = (
-        _make_batch_results().idify(tmp_path / "idify").unidify(tmp_path / "unidify")
-    )
+    idify_dir = tmp_path / "idify"
+    unidify_dir = tmp_path / "unidify"
+    results = _make_batch_results(idify_dir=idify_dir, unidify_dir=unidify_dir)
     _assert_tweet_texts(results)
     _assert_tweet_ids(results)
 
 
 def test_samedir(tmp_path: Path) -> None:
-    _assert_tweet_ids(_make_batch_results().idify())
-    results = _make_batch_results().idify(tmp_path).unidify()
+    idify_dir = tmp_path / "idify"
+    unidify_dir = tmp_path / "unidify"
+    results = _make_batch_results(idify_dir=idify_dir)
+    _assert_tweet_ids(results)
+    results = _make_batch_results(idify_dir=idify_dir, unidify_dir=unidify_dir)
     _assert_tweet_ids(results)
     _assert_tweet_texts(results)
 
 
 def test_double_idify(tmp_path: Path) -> None:
-    results = _make_batch_results()
-    results.idify(tmp_path)
-    results = results.idify(tmp_path)
+    results = _make_batch_results(idify_dir=tmp_path).idify(tmp_path)
+    assert results is not None
     with pytest.raises(Exception):
         list(results.tweets(results[0]))
     _assert_tweet_ids(results)
@@ -101,9 +114,9 @@ def test_double_unidify(tmp_path: Path) -> None:
     idify_dir = tmp_path / "idify"
     unidify_dir = tmp_path / "unidify"
 
-    results = _make_batch_results().idify(idify_dir)
-    results.unidify(unidify_dir)
-    results = results.idify(unidify_dir)
+    results = _make_batch_results(idify_dir=idify_dir, unidify_dir=unidify_dir)
+    results = results.unidify(unidify_dir)
+    assert results is not None
     _assert_tweet_ids(results)
     _assert_tweet_texts(results)
 
@@ -141,6 +154,7 @@ def test_unidify_fail_and_restart(monkeypatch: MonkeyPatch, tmp_path: Path) -> N
     }
 
     idified = results.idify(idify_dir)
+    assert idified is not None
 
     monkeypatch.setattr(
         nasty.batch.batch_results,
@@ -148,12 +162,11 @@ def test_unidify_fail_and_restart(monkeypatch: MonkeyPatch, tmp_path: Path) -> N
         _mock_statuses_lookup(tweets),
     )
 
-    with pytest.raises(ValueError):
-        idified.unidify(unidify_dir)
+    assert idified.unidify(unidify_dir) is None
+    assert 2 == len(BatchResults(unidify_dir))
 
-    assert 1 == len(BatchResults(unidify_dir))
-
-    unidified = idified.unidify(tmp_path / "unidify")
+    unidified = idified.unidify(unidify_dir)
+    assert unidified is not None
     assert 3 == len(unidified)
     assert [(tweet.id, tweet.text) for tweet in flatten(tweets.values())] == [
         (tweet.id, tweet.text)
