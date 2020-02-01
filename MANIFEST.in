@@ -1,3 +1,4 @@
+include config.example.sh
 include LICENSE
 include LICENSE.header
 include Makefile

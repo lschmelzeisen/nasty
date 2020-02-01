@@ -43,8 +43,8 @@ __version_info__ = tuple(
 )
 
 __all__ = [
-    "BatchEntry",
     "Batch",
+    "BatchEntry",
     "BatchResults",
     "ConversationRequest",
     "Replies",

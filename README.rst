@@ -20,15 +20,17 @@ This approach makes it substantially different from the
 `crawlers <https://github.com/jonbakerfish/TweetScraper>`_ and allows for the following
 features:
 
-* Search for tweets by keyword (and filter by latest/top/photos/videos, date of
+* Search for Tweets by keyword (and filter by latest/top/photos/videos, date of
   authorship, and language).
 * Retrieve all direct replies to a Tweet.
 * Retrieve all Tweets threaded under a Tweet.
 * Return fully-hydrated JSON-objects of Tweets that exactly match the `extended mode of
   the developer API <https://developer.twitter.com/en/docs/tweets/tweet-updates>`_
-* Operate in batch mode to run a large set of requests, abort at any time, and rerun
+* Operate in batch mode to execute a large set of requests, abort at any time, and rerun
   both uncompleted and failed requests.
-* Written in tested and fully type-checked Python code.
+* Transform collected Tweets into sets of Tweet-IDs for publishing datasets.
+  Automatically download full Tweet information from sets of Tweet-IDs.
+* Written in tested, linted, and fully type-checked Python code.
 
 Installation
 ========================================================================================
@@ -44,40 +46,69 @@ Command Line Interface
 To get help for the command line interface use the ``--help`` option::
 
     $ nasty --help
-    usage: nasty [-h] [-v] [search|replies|thread|batch] ...
+    usage: nasty [-h] [-v] [search|replies|thread|batch|idify|unidify] ...
 
     NASTY Advanced Search Tweet Yielder.
 
     Commands:
+      The following commands (and abbreviations) are available, each supporting
+      the help option. For example, try out `nasty search --help`.
+
       <COMMAND>
         search (s)         Retrieve Tweets using the Twitter advanced search.
         replies (r)        Retrieve all directly replying Tweets to a Tweet.
         thread (t)         Retrieve all Tweets threaded under a Tweet.
         batch (b)          Execute previously created batch of requests.
+        idify (i, id)      Reduce Tweet-collection to Tweet-IDs (for publishing).
+        unidify (u, unid)  Collect full Tweet information from Tweet-IDs (via
+                           official Twitter API).
 
     General Arguments:
       -h, --help           Show this help message and exit.
       -v, --version        Show program's version number and exit.
       --log-level <LEVEL>  Logging level (DEBUG, INFO, WARN, ERROR.)
 
-You can also get help for the individual sub commands, that is via ``nasty search
---help``, etc.
+You can also get help for the individual sub commands.
+For example, try out ``nasty search --help``.
 
-Search
+search
 ----------------------------------------------------------------------------------------
 
 You can search for Tweets about "climate change"::
 
     $ nasty search --query "climate change"
 
-By default this returns ``TOP`` tweets according to Twitter's own ranking rules.
+NASTY's output are lines of JSON objects, one per retrieved Tweet.
+Each Tweet-JSON has the following format (pretty-printed and abbreviated for clarity,
+many other interesting features are also available, such as referenced entities, etc.)::
+
+    {
+        "created_at": "Wed Jan 11 04:52:08 +0000 2017",
+        "id_str": "8190441963...",
+        "full_text": Thank you for everything..."
+        "retweet_count": 795...,
+        "favorite_count": 1744...,
+        "reply_count": 22...,
+        "lang": "en",
+        "user": {
+            "id_str": "15367...",
+            "name": "Presi...",
+            "screen_name": "POTUS...",
+            "location": "Washing...",
+            "description": "This is an archive...",
+            ...
+        },
+        ...
+    }
+
+By default this returns ``TOP`` Tweets according to Twitter's own ranking rules.
 Alternatively you can also request the very ``LATEST`` Tweets via::
 
     $ nasty search --query "climate change" --filter LATEST
 
 Other possible values for ``--filter`` are ``PHOTOS`` and ``VIDEOS``.
 
-By default only English tweets are found.
+By default only English Tweets are found.
 For example, to instead search for German Tweets::
 
     $ nasty search --query "climate change" --lang "de"
@@ -87,7 +118,7 @@ specific dates::
 
     $ nasty search --query "climate change" --since 2019-01-01 --until 2019-01-31
 
-Replies
+replies
 ----------------------------------------------------------------------------------------
 
 You can fetch all direct replies to the `Tweet with ID 332308211321425920
@@ -95,7 +126,7 @@ You can fetch all direct replies to the `Tweet with ID 332308211321425920
 
     $ nasty replies --tweet-id 332308211321425920
 
-Thread
+thread
 ----------------------------------------------------------------------------------------
 
 You can fetch all Tweets threaded under the `Tweet with ID 332308211321425920
@@ -103,10 +134,10 @@ You can fetch all Tweets threaded under the `Tweet with ID 332308211321425920
 
     $ nasty thread --tweet-id 332308211321425920
 
-Batch Executor
+batch
 ----------------------------------------------------------------------------------------
 
-NASTY further supports appending requests to a batch file instead of executing them
+NASTY supports appending requests to a batch file instead of executing them
 immediately, so that they can executed in batch mode later.
 The benefits of this include being able to track the progress of a large set of
 requests, aborting at any time, and rerunning both completed and failed requests.
@@ -119,6 +150,57 @@ the above requests, for example::
 To run all files stored in a jobs file and write the output to directory ``out/``::
 
     $ nasty batch --batch-file batch.jsonl --results-dir out/
+
+When this command finished a tally of successful, skippend, and failed requests is
+printed.
+If any request failed, you may retry execution with the same command.
+Requests that succeeded will automatically be skipped.
+
+idify / unidify
+----------------------------------------------------------------------------------------
+
+The `Twitter Developer Policy
+<https://developer.twitter.com/en/developer-terms/agreement-and-policy#id8>`_ states
+that for sharing collected Tweets with others, only Tweet-IDs may be (publicly)
+distributed (see `Legal and Moral Considerations`_ for more information).
+
+To transform lines of Tweet-JSON-objects into lines of Tweet-IDs, use ``nasty idify``.
+For example::
+
+    nasty search --query "climate change" | nasty idify > climate-change-tweet-ids.txt
+
+To perform the reverse, that is getting full Tweet information from just Tweet-IDs, use
+``nasty unidify``::
+
+    cat climate-change-tweet-ids.txt | nasty unidify
+
+Note that ``unidify`` is implemented using the `Twitter Developer API
+<https://developer.twitter.com/>`_, since for this specific case, the available free API
+covers all needed functionality and rate-limits are not to limiting.
+Additionally, this means, that this specific functionality is officially supported by
+Twitter, meaning the API should be stable over time (thus making it ideal for
+reproducing shared datasets of Tweets).
+
+The downside is that you need to apply for API keys from Twitter (see `Twitter
+Developers: Getting Started
+<https://developer.twitter.com/en/docs/basics/getting-started>`_).
+After you have optained your keys, provide them to NASTY via the environment variables
+``NASTY_CONSUMER_KEY`` and ``NASTY_CONSUMER_SECRET``.
+For convenience, you may use the ``config.example.sh`` shell script to do this::
+
+    cp config.example.sh config.sh
+    # Edit config.sh to contain your consumer key and secret
+    source config.sh
+
+Idify/unidify also support operating on batch results (and keep meta information, that
+is which Tweets were the results of which requests).
+To idify batch results in directory ``out/``::
+
+    nasty idify --in-dir out/ --out-dir out-idified/
+
+To do the reverse::
+
+    nasty unidify --in-dir out-idified/ --out-dir out/
 
 Python API
 ========================================================================================
@@ -138,10 +220,23 @@ Similar functionality is available in the ``nasty.Replies`` and ``nasty.Thread``
 classes.
 The returned ``tweet_stream`` is an `Iterable
 <https://docs.python.org/3/library/typing.html#typing.Iterable>`_ of ``nasty.Tweet``\ s.
-The batch functionality is available in the ``nasty.BatchExecutor`` class.
 
-A comprehensive Python API documentation is coming in the future, but the code should
-be easy to understand.
+The batch functionality is available in the ``nasty.Batch`` class.
+To read the output of a batch execution (for example, from ``nasty batch``) written
+to directory ``out/``::
+
+    import nasty
+    from pathlib import Path
+
+    results = nasty.BatchResults(Path("out/"))
+    for entry in results:
+        print("Tweets that matched query '{}' (completed at {}):"
+              .format(entry.request.query, entry.completed_at))
+        for tweet in results.tweets(entry):
+            print("-", tweet)
+
+A comprehensive Python API documentation is coming in the future.
+For now, the existing code should be relatively easy to understand.
 
 Legal and Moral Considerations
 ========================================================================================
@@ -210,8 +305,7 @@ Specifically, the `Twitter Developer Policy
     Twitter Content or an API that returns Twitter Content, you will only distribute or
     allow download of Tweet IDs, Direct Message IDs, and/or User IDs.
 
-A feature that automatically removes anything but IDs from crawled output is in the
-works for NASTY.
+Use the ``nasty idify`` command on retrieved Tweets, before sharing them publicly.
 
 Last, it should be mentioned that NASTY is a tool specifically created for personal and
 academic contexts, where the funds to pay for enterprise access to the Twitter API are
