@@ -26,13 +26,15 @@ from .._util.json_ import JsonSerializable, JsonSerializedException
 from .._util.typing_ import checked_cast
 from ..request.request import Request
 
+BatchEntryId = str
+
 
 class BatchEntry(JsonSerializable):
     def __init__(
         self,
         request: Request,
         *,
-        id_: str,
+        id_: BatchEntryId,
         completed_at: Optional[datetime],
         exception: Optional[JsonSerializedException],
     ):
