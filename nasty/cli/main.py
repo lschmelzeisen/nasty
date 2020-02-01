@@ -76,7 +76,11 @@ def _load_args(argv: Sequence[str]) -> Tuple[argparse.Namespace, _Command]:
     )
 
     subparsers = argparser.add_subparsers(
-        title="Commands", metavar="<COMMAND>", prog="nasty"
+        title="Commands",
+        description="The following commands (and abbreviations) are available, each "
+        "supporting the help option. For example, try out `nasty search --help`.",
+        metavar="<COMMAND>",
+        prog="nasty",
     )
     subparsers.required = True
 
