@@ -17,6 +17,8 @@
 import logging
 from logging import getLogger
 
+import oauthlib  # type: ignore
+import requests_oauthlib  # type: ignore
 import tweepy
 import urllib3
 
@@ -27,6 +29,8 @@ def setup_logging(level: int) -> None:
     )
 
     # Reduce log spam from urllib3 depending on own log level.
+    getLogger(oauthlib.__name__).setLevel(logging.INFO)
+    getLogger(requests_oauthlib.__name__).setLevel(logging.INFO)
     getLogger(tweepy.binder.__name__).setLevel(logging.INFO)
     if level <= logging.DEBUG:
         getLogger(urllib3.__name__).setLevel(logging.INFO)

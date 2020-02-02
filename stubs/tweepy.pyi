@@ -22,13 +22,20 @@ class parsers:  # noqa: N801
     class JSONParser:
         def __init__(self) -> None: ...
 
-class AppAuthHandler:
+class auth:  # noqa: N801
+    class AuthHandler: ...
+
+class OAuthHandler(auth.AuthHandler):
+    def __init__(self, consumer_key: str, consumer_secret: str): ...
+    def set_access_token(self, key: str, secret: str) -> None: ...
+
+class AppAuthHandler(auth.AuthHandler):
     def __init__(self, consumer_key: str, consumer_secret: str): ...
 
 class API:
     def __init__(
         self,
-        auth_handler: Optional[AppAuthHandler] = ...,
+        auth_handler: Optional[auth.AuthHandler] = ...,
         parser: Optional[parsers.JSONParser] = ...,
     ): ...
     def statuses_lookup(
