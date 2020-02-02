@@ -27,9 +27,12 @@ from ..tweet.tweet import Tweet, TweetId
 logger = getLogger(__name__)
 
 STATUSES_LOOKUP_CHUNK_SIZE = 100
+CHUNK_LOOKUPS_SINCE_LAST_RATE_LIMIT_ERROR = 0
 
 
 def statuses_lookup(tweet_ids: Iterable[TweetId]) -> Iterable[Optional[Tweet]]:
+    global CHUNK_LOOKUPS_SINCE_LAST_RATE_LIMIT_ERROR
+
     consumer_key = getenv("NASTY_CONSUMER_KEY")
     consumer_secret = getenv("NASTY_CONSUMER_SECRET")
     if consumer_key is None or consumer_secret is None:
@@ -56,6 +59,7 @@ def statuses_lookup(tweet_ids: Iterable[TweetId]) -> Iterable[Optional[Tweet]]:
                         tweet_mode="extended",
                     ),
                 )["id"]
+                CHUNK_LOOKUPS_SINCE_LAST_RATE_LIMIT_ERROR += 1
                 for tweet_id in tweet_ids_chunk:
                     tweet_json = tweets_chunk[tweet_id]
                     if tweet_json is not None:
@@ -63,8 +67,14 @@ def statuses_lookup(tweet_ids: Iterable[TweetId]) -> Iterable[Optional[Tweet]]:
                 break
 
             except tweepy.RateLimitError as e:
-                logger.info("Hit rate limit error")
-                logger.info("Sleeping for 15mins...")
+                logger.debug(
+                    "Chunk lookups since last rate limit error: {}.".format(
+                        CHUNK_LOOKUPS_SINCE_LAST_RATE_LIMIT_ERROR
+                    )
+                )
+                CHUNK_LOOKUPS_SINCE_LAST_RATE_LIMIT_ERROR = 0
+
+                logger.info("Hit rate limit error. Sleeping for 15mins...")
                 sleep(15 * 60)
                 logger.info("Retrying...")
                 exception = e
