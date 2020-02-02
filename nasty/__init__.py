@@ -30,12 +30,11 @@ from .tweet.tweet_stream import TweetStream
 
 from .cli import main  # isort:skip  # noqa
 
-
+__version__ = "dev"
 try:
-    # File is auto-generated. See "make build-versionpy".
-    from .version import __version__  # type: ignore
+    from .version import __version__
 except ImportError:
-    __version__ = "dev"
+    pass
 
 __version_info__ = tuple(
     (int(part) if part.isdigit() else part)
