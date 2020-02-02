@@ -38,7 +38,7 @@ Installation
 **Python 3.6**, **3.7**, **3.8** and **PyPy** are currently supported.
 Install via::
 
-    pip install nasty
+    $ pip install nasty
 
 Command Line Interface
 ========================================================================================
@@ -167,12 +167,12 @@ distributed (see `Legal and Moral Considerations`_ for more information).
 To transform lines of Tweet-JSON-objects into lines of Tweet-IDs, use ``nasty idify``.
 For example::
 
-    nasty search --query "climate change" | nasty idify > climate-change-tweet-ids.txt
+    $ nasty search --query "climate change" | nasty idify > climate-change-tweet-ids.txt
 
 To perform the reverse, that is getting full Tweet information from just Tweet-IDs, use
 ``nasty unidify``::
 
-    cat climate-change-tweet-ids.txt | nasty unidify
+    $ cat climate-change-tweet-ids.txt | nasty unidify
 
 Note that ``unidify`` is implemented using the `Twitter Developer API
 <https://developer.twitter.com/>`_, since for this specific case, the available free API
@@ -188,19 +188,19 @@ After you have optained your keys, provide them to NASTY via the environment var
 ``NASTY_CONSUMER_KEY`` and ``NASTY_CONSUMER_SECRET``.
 For convenience, you may use the ``config.example.sh`` shell script to do this::
 
-    cp config.example.sh config.sh
-    # Edit config.sh to contain your consumer key and secret
-    source config.sh
+    $ cp config.example.sh config.sh
+    $ # Edit config.sh to contain your consumer key and secret
+    $ source config.sh
 
 Idify/unidify also support operating on batch results (and keep meta information, that
 is which Tweets were the results of which requests).
 To idify batch results in directory ``out/``::
 
-    nasty idify --in-dir out/ --out-dir out-idified/
+    $ nasty idify --in-dir out/ --out-dir out-idified/
 
 To do the reverse::
 
-    nasty unidify --in-dir out-idified/ --out-dir out/
+    $ nasty unidify --in-dir out-idified/ --out-dir out/
 
 Python API
 ========================================================================================
