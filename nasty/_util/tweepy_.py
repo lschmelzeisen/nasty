@@ -26,6 +26,8 @@ from ..tweet.tweet import Tweet, TweetId
 
 logger = getLogger(__name__)
 
+STATUSES_LOOKUP_CHUNK_SIZE = 100
+
 
 def statuses_lookup(tweet_ids: Iterable[TweetId]) -> Iterable[Optional[Tweet]]:
     consumer_key = getenv("NASTY_CONSUMER_KEY")
@@ -40,9 +42,10 @@ def statuses_lookup(tweet_ids: Iterable[TweetId]) -> Iterable[Optional[Tweet]]:
     tweepy_auth = tweepy.AppAuthHandler(consumer_key, consumer_secret)
     tweepy_api = tweepy.API(tweepy_auth, parser=tweepy.parsers.JSONParser())
 
-    for tweet_ids_chunk in chunked(tweet_ids, 100):
+    for tweet_ids_chunk in chunked(tweet_ids, STATUSES_LOOKUP_CHUNK_SIZE):
         num_retries = 0
         while True:
+            exception: Exception
             try:
                 tweets_chunk = cast(
                     Mapping[str, Mapping[str, Optional[Mapping[str, object]]]],
@@ -60,15 +63,18 @@ def statuses_lookup(tweet_ids: Iterable[TweetId]) -> Iterable[Optional[Tweet]]:
                 break
 
             except tweepy.RateLimitError as e:
-                logger.info("Hit rate limit error: {}".format(e))
+                logger.info("Hit rate limit error")
                 logger.info("Sleeping for 15mins...")
                 sleep(15 * 60)
                 logger.info("Retrying...")
+                exception = e
 
-            except Exception:
+            except Exception as e:
                 logger.exception("Exception occurred.")
-                logger.info("Retrying...")
+                logger.info("Retrying (retry {})...".format(num_retries))
+                exception = e
 
             num_retries += 1
             if num_retries == 3:
-                raise ValueError("Exceeded maximum number of retries.")
+                logger.error("Maximum number of retries exceeded.")
+                raise exception
