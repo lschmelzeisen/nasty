@@ -14,12 +14,20 @@
 # limitations under the License.
 #
 
-from collections import Counter
+from itertools import groupby, tee
 from logging import getLogger
 from pathlib import Path
-from typing import Callable
-from typing import Counter as Counter_t
-from typing import Iterable, Iterator, Optional, Sequence, Union, overload
+from typing import (
+    Callable,
+    Counter,
+    Iterable,
+    Iterator,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    overload,
+)
 
 from .._util.io_ import read_lines_file, write_lines_file
 from .._util.json_ import read_json, read_json_lines, write_json, write_jsonl_lines
@@ -60,9 +68,9 @@ class BatchResults(Sequence[BatchEntry]):
 
     def _transform(
         self,
-        transform_name: str,
         new_results_dir: Optional[Path],
-        transform_entry_func: Callable[[Path, BatchEntry], _ExecuteResult],
+        transform_name: str,
+        transform_func: Callable[[Path], Counter[_ExecuteResult]],
     ) -> Optional["BatchResults"]:
         results_dir = self._results_dir
         if new_results_dir is not None:
@@ -78,14 +86,7 @@ class BatchResults(Sequence[BatchEntry]):
         if not same_dir:
             Path.mkdir(results_dir, exist_ok=True, parents=True)
 
-        result_counter: Counter_t[_ExecuteResult] = Counter()
-        for entry in self:
-            try:
-                result_counter[transform_entry_func(results_dir, entry)] += 1
-            except Exception:
-                logger.exception("  Entry '{}' failed with exception.".format(entry.id))
-                result_counter[_ExecuteResult.FAIL] += 1
-
+        result_counter = transform_func(results_dir)
         logger.info(
             "  {} batch results completed. {:d} successful, {:d} skipped, {:d} "
             "failed.".format(
@@ -104,23 +105,78 @@ class BatchResults(Sequence[BatchEntry]):
         return self
 
     def idify(self, new_results_dir: Optional[Path] = None) -> Optional["BatchResults"]:
-        return self._transform("Idifying", new_results_dir, self._idify_entry)
+        return self._transform(new_results_dir, "Idifying", self._transform_idify)
 
-    def _idify_entry(self, results_dir: Path, entry: BatchEntry) -> _ExecuteResult:
-        ids_file = results_dir / entry.ids_file_name
-        meta_file = results_dir / entry.meta_file_name
+    def _transform_idify(self, results_dir: Path) -> Counter[_ExecuteResult]:
+        result_counter = Counter[_ExecuteResult]()
+        for entry in self:
+            try:
+                ids_file = results_dir / entry.ids_file_name
+                meta_file = results_dir / entry.meta_file_name
 
-        if ids_file.exists() and meta_file.exists():
-            return _ExecuteResult.SKIP
+                if ids_file.exists() and meta_file.exists():
+                    result_counter[_ExecuteResult.SKIP] += 1
+                    continue
 
-        write_lines_file(ids_file, self.tweet_ids(entry))
-        write_json(meta_file, entry, overwrite_existing=True)
-        return _ExecuteResult.SUCCESS
+                write_lines_file(ids_file, self.tweet_ids(entry))
+                write_json(meta_file, entry, overwrite_existing=True)
+                result_counter[_ExecuteResult.SUCCESS] += 1
+            except Exception:
+                logger.exception("  Entry '{}' failed with exception.".format(entry.id))
+                result_counter[_ExecuteResult.FAIL] += 1
+        return result_counter
 
     def unidify(
         self, new_results_dir: Optional[Path] = None
     ) -> Optional["BatchResults"]:
-        return self._transform("Unidifying", new_results_dir, self._unidify_entry)
+        return self._transform(new_results_dir, "Unidifying", self._transform_unidify)
+
+    def _transform_unidify(self, results_dir: Path) -> Counter[_ExecuteResult]:
+        result_counter = Counter[_ExecuteResult]()
+
+        entries, tweet_ids = tee(
+            self._iter_entries_tweet_ids(results_dir, result_counter)
+        )
+        entries = (entry for entry, _tweet_id in entries)
+        tweet_ids = (tweet_id for _entry, tweet_id in tweet_ids)
+
+        for entry, entries_and_tweets in groupby(
+            zip(entries, statuses_lookup(tweet_ids)),
+            key=lambda entry_tweet: entry_tweet[0],
+        ):
+            write_jsonl_lines(
+                results_dir / entry.data_file_name,
+                (tweet for _entry, tweet in entries_and_tweets if tweet is not None),
+                use_lzma=True,
+            )
+            write_json(
+                results_dir / entry.meta_file_name, entry, overwrite_existing=True
+            )
+            result_counter[_ExecuteResult.SUCCESS] += 1
+
+        return result_counter
+
+    def _iter_entries_tweet_ids(
+        self, results_dir: Path, result_counter: Counter[_ExecuteResult]
+    ) -> Iterable[Tuple[BatchEntry, TweetId]]:
+        for entry in self:
+            meta_file = results_dir / entry.meta_file_name
+            data_file = results_dir / entry.data_file_name
+            if data_file.exists() and meta_file.exists():
+                result_counter[_ExecuteResult.SKIP] += 1
+                continue
+
+            is_entry_empty = True
+            for tweet in self.tweet_ids(entry):
+                is_entry_empty = False
+                yield entry, tweet
+
+            if is_entry_empty:
+                write_jsonl_lines(results_dir / entry.data_file_name, [], use_lzma=True)
+                write_json(
+                    results_dir / entry.meta_file_name, entry, overwrite_existing=True
+                )
+                result_counter[_ExecuteResult.SUCCESS] += 1
 
     def _unidify_entry(self, results_dir: Path, entry: BatchEntry) -> _ExecuteResult:
         data_file = results_dir / entry.data_file_name

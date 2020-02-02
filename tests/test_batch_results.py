@@ -15,11 +15,10 @@
 #
 
 from pathlib import Path
-from typing import Callable, Iterable, Mapping, Optional, Tuple
+from typing import Callable, Iterable, Mapping, Optional
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
-from more_itertools import flatten
 
 import nasty.batch.batch_results
 from nasty.batch.batch import Batch
@@ -122,20 +121,13 @@ def test_double_unidify(tmp_path: Path) -> None:
 
 
 def _mock_statuses_lookup(
-    tweets: Mapping[Tuple[TweetId, ...], Iterable[Tweet]],
+    tweets: Mapping[TweetId, Tweet]
 ) -> Callable[[Iterable[TweetId]], Iterable[Optional[Tweet]]]:
-    already_failed = False
+    def statuses_lookup(tweet_ids: Iterable[TweetId]) -> Iterable[Optional[Tweet]]:
+        for tweet_id in tweet_ids:
+            yield tweets[tweet_id]
 
-    def f(tweet_ids: Iterable[TweetId]) -> Iterable[Optional[Tweet]]:
-        nonlocal already_failed
-        tweet_ids = tuple(tweet_ids)
-        if len(tweet_ids) == 2 and not already_failed:
-            already_failed = True
-            raise ValueError("Test error")
-
-        yield from tweets[tweet_ids]
-
-    return f
+    return statuses_lookup
 
 
 def test_unidify_fail_and_restart(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
@@ -148,10 +140,10 @@ def test_unidify_fail_and_restart(monkeypatch: MonkeyPatch, tmp_path: Path) -> N
     batch.append(Replies(TweetId("1115691710657499137")))
     results = batch.execute()
     assert results is not None
-    tweets = {
-        tuple(results.tweet_ids(entry)): list(results.tweets(entry))
-        for entry in results
-    }
+
+    tweets = {tweet.id: tweet for entry in results for tweet in results.tweets(entry)}
+    tweets_truncated = dict(tweets)
+    del tweets_truncated[TweetId("1115690615612825601")]
 
     idified = results.idify(idify_dir)
     assert idified is not None
@@ -159,17 +151,23 @@ def test_unidify_fail_and_restart(monkeypatch: MonkeyPatch, tmp_path: Path) -> N
     monkeypatch.setattr(
         nasty.batch.batch_results,
         nasty.batch.batch_results.statuses_lookup.__name__,  # type: ignore
+        _mock_statuses_lookup(tweets_truncated),
+    )
+
+    # Assert KeyError is propagated, because a Tweet is missing from tweets_truncated.
+    with pytest.raises(KeyError):
+        idified.unidify(unidify_dir)
+    assert len(batch) > len(BatchResults(unidify_dir))
+
+    monkeypatch.setattr(
+        nasty.batch.batch_results,
+        nasty.batch.batch_results.statuses_lookup.__name__,  # type: ignore
         _mock_statuses_lookup(tweets),
     )
 
-    assert idified.unidify(unidify_dir) is None
-    assert 2 == len(BatchResults(unidify_dir))
-
     unidified = idified.unidify(unidify_dir)
     assert unidified is not None
-    assert 3 == len(unidified)
-    assert [(tweet.id, tweet.text) for tweet in flatten(tweets.values())] == [
-        (tweet.id, tweet.text)
-        for entry in unidified
-        for tweet in unidified.tweets(entry)
-    ]
+    assert len(batch) == len(unidified)
+    assert tweets == {
+        tweet.id: tweet for entry in unidified for tweet in unidified.tweets(entry)
+    }
