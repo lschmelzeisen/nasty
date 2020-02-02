@@ -14,8 +14,8 @@
 # limitations under the License.
 #
 
-from itertools import groupby, tee
 from logging import getLogger
+from operator import itemgetter
 from pathlib import Path
 from typing import (
     Callable,
@@ -26,8 +26,11 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    cast,
     overload,
 )
+
+from more_itertools import groupby_transform, spy, unzip
 
 from .._util.io_ import read_lines_file, write_lines_file
 from .._util.json_ import read_json, read_json_lines, write_json, write_jsonl_lines
@@ -134,19 +137,23 @@ class BatchResults(Sequence[BatchEntry]):
     def _transform_unidify(self, results_dir: Path) -> Counter[_ExecuteResult]:
         result_counter = Counter[_ExecuteResult]()
 
-        entries, tweet_ids = tee(
+        head, entries_tweet_ids = spy(
             self._iter_entries_tweet_ids(results_dir, result_counter)
         )
-        entries = (entry for entry, _tweet_id in entries)
-        tweet_ids = (tweet_id for _entry, tweet_id in tweet_ids)
+        if not head:  # Check if any entries with Tweet-IDs exist (else unzip fails).
+            return result_counter
 
-        for entry, entries_and_tweets in groupby(
+        entries, tweet_ids = cast(
+            Tuple[Iterator[BatchEntry], Iterator[TweetId]], unzip(entries_tweet_ids)
+        )
+        for entry, tweets in groupby_transform(
             zip(entries, statuses_lookup(tweet_ids)),
-            key=lambda entry_tweet: entry_tweet[0],
+            keyfunc=itemgetter(0),
+            valuefunc=itemgetter(1),
         ):
             write_jsonl_lines(
                 results_dir / entry.data_file_name,
-                (tweet for _entry, tweet in entries_and_tweets if tweet is not None),
+                (tweet for tweet in tweets if tweet is not None),
                 use_lzma=True,
             )
             write_json(
@@ -177,25 +184,6 @@ class BatchResults(Sequence[BatchEntry]):
                     results_dir / entry.meta_file_name, entry, overwrite_existing=True
                 )
                 result_counter[_ExecuteResult.SUCCESS] += 1
-
-    def _unidify_entry(self, results_dir: Path, entry: BatchEntry) -> _ExecuteResult:
-        data_file = results_dir / entry.data_file_name
-        meta_file = results_dir / entry.meta_file_name
-
-        if data_file.exists() and meta_file.exists():
-            return _ExecuteResult.SKIP
-
-        write_jsonl_lines(
-            data_file,
-            (
-                tweet
-                for tweet in statuses_lookup(self.tweet_ids(entry))
-                if tweet is not None
-            ),
-            use_lzma=True,
-        )
-        write_json(meta_file, entry, overwrite_existing=True)
-        return _ExecuteResult.SUCCESS
 
     def __len__(self) -> int:
         return len(self._entries)
