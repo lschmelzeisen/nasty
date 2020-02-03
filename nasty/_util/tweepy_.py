@@ -85,6 +85,8 @@ def statuses_lookup(tweet_ids: Iterable[TweetId]) -> Iterable[Optional[Tweet]]:
                     tweet_json = tweets_chunk[tweet_id]
                     if tweet_json is not None:
                         yield Tweet(tweet_json)
+                    else:
+                        yield None
                 break
 
             except tweepy.RateLimitError as e:
