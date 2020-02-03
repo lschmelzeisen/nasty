@@ -61,5 +61,5 @@ isolated_builds = true
 [testenv]
 commands = pytest --cov --cov-report= --cov-context test --cov-append --html {envdir}/tests-report.html --self-contained-html
 extras = test
-passenv = NASTY_CONSUMER_KEY NASTY_CONSUMER_SECRET
+passenv = NASTY_CONSUMER_API_KEY NASTY_CONSUMER_API_SECRET NASTY_ACCESS_TOKEN NASTY_ACCESS_TOKEN_SECRET
 """
