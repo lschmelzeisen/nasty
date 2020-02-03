@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+from itertools import permutations
 from pathlib import Path
 from typing import Callable, Iterable, Mapping, Optional
 
@@ -24,6 +25,7 @@ import nasty.batch.batch_results
 from nasty.batch.batch import Batch
 from nasty.batch.batch_results import BatchResults
 from nasty.request.replies import Replies
+from nasty.request.request import Request
 from nasty.request.thread import Thread
 from nasty.tweet.tweet import Tweet, TweetId
 
@@ -123,21 +125,34 @@ def test_double_unidify(tmp_path: Path) -> None:
 def _mock_statuses_lookup(
     tweets: Mapping[TweetId, Tweet]
 ) -> Callable[[Iterable[TweetId]], Iterable[Optional[Tweet]]]:
-    def statuses_lookup(tweet_ids: Iterable[TweetId]) -> Iterable[Optional[Tweet]]:
-        for tweet_id in tweet_ids:
-            yield tweets[tweet_id]
+    def statuses_lookup(tweet_ids: Iterable[TweetId]) -> Iterable[Tweet]:
+        return (tweets[tweet_id] for tweet_id in tweet_ids)
 
     return statuses_lookup
 
 
-def test_unidify_fail_and_restart(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "requests",
+    list(
+        permutations(
+            [
+                Replies(TweetId("1115690002233556993")),
+                Replies(TweetId("1115690615612825601")),
+                Replies(TweetId("1115691710657499137")),
+            ]
+        )
+    ),
+    ids=repr,
+)
+def test_unidify_fail_and_restart(
+    requests: Iterable[Request], monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
     idify_dir = tmp_path / "idify"
     unidify_dir = tmp_path / "unidify"
 
     batch = Batch()
-    batch.append(Replies(TweetId("1115690002233556993")))
-    batch.append(Replies(TweetId("1115690615612825601")))
-    batch.append(Replies(TweetId("1115691710657499137")))
+    for request in requests:
+        batch.append(request)
     results = batch.execute()
     assert results is not None
 
@@ -157,7 +172,8 @@ def test_unidify_fail_and_restart(monkeypatch: MonkeyPatch, tmp_path: Path) -> N
     # Assert KeyError is propagated, because a Tweet is missing from tweets_truncated.
     with pytest.raises(KeyError):
         idified.unidify(unidify_dir)
-    assert len(batch) > len(BatchResults(unidify_dir))
+    unidified = BatchResults(unidify_dir)
+    assert len(batch) > len(unidified)
 
     monkeypatch.setattr(
         nasty.batch.batch_results,
