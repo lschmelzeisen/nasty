@@ -59,7 +59,7 @@ def test_exact(args: Tuple[TweetId, Sequence[TweetId]]) -> None:
     "args",
     [
         (TweetId("1155486497451184128"), 35, None),
-        (TweetId("1180505950613958658"), 8, None),
+        (TweetId("1180505950613958658"), 7, None),
     ],
     ids=repr,
 )
