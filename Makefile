@@ -94,7 +94,7 @@ publish-twine-upload-testpypi:
 .PHONY: publish-twine-upload-testpypi
 
 publish-twine-upload:
-	@tine upload dist/*
+	@twine upload dist/*
 .PHONY: publish-twine-upload
 
 
