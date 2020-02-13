@@ -316,7 +316,6 @@ If you operate in a commercial context, you should `pay for the services where p
 For more discussion on the topic, see `Perry Stephenson (2018). "Is it okay to scrape
 Twitter?" <https://perrystephenson.me/2018/08/11/is-it-okay-to-scrape-twitter/>`_
 
-
 Contributing
 ========================================================================================
 
@@ -324,20 +323,20 @@ Please feel free to submit
 `bug reports <https://github.com/lschmelzeisen/nasty/issues>`_ and
 `pull requests <https://github.com/lschmelzeisen/nasty/pulls>`_!
 
-There are the ``Makefile``-helpers to run the plethora of axuiliary development tools:
+There are the ``Makefile``-helpers to run the plethora of axuiliary development tools.
+See ``make help`` for detailed descriptions.
+The most important commands are::
 
-* ``make venv`` to create a new virtual environment using Python 3.6 in `./.venv`.
-  Activate it with ``. .venv/bin/activate``.
-* ``make devinstall`` to install nasty in editable mode with all test and dev
-  dependencies.
-* ``make test`` to run all tests and report test coverage.
-* ``make test-tox`` to run all tests against all supported Python versions and run
-  linters.
-* ``make check`` to run linters and perform static type-checking.
-* ``make format`` to format all source code according to the project guidelines.
-* ``make publish`` to build the source and binary distributions and upload to `TestPyPI
-  <https://test.pypi.org/>`_.
-* ``make clean`` to remove all generated files.
+    usage: make <target>
+
+    Targets:
+      help        Show this help message.
+      devinstall  Install Nasty in editable mode with all test and dev dependencies (in the currently active environment).
+      test        Run all tests and report test coverage.
+      check       Run linters and perform static type-checking.
+      format      Auto format all code.
+      publish     Build and check source and binary distributions.
+      clean       Remove all created cache/build files, test/coverage reports, and virtual environments.
 
 Acknowledgements
 ========================================================================================
