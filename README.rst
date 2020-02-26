@@ -287,14 +287,19 @@ Luckily, using NASTY is still perfectly legal in many cases:
   Since using NASTY does not require signing into Twitter or opening it manually in
   a web browser, a court may decide that the user never agreed to the TOS and is
   therefore not bound to its conditions.
+
 * A jurisdiction may guarantee certain rights that can not be overruled by TOS.
   Especially common are laws that allow to for web scraping in academic and personal
   contexts.
+
   For example, in Germany up to 75% of any publicly accessible database (here, Twitter)
   may copied for academic research.
   For more details, see `Klawonn, T. (2019). "Urheberrechtliche Grenzen des Web Scrapings
   (Web Scraping under German Copyright Law)". Available at SSRN 3491192.
   <https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3491192>`_
+
+  Also in the United States, [some courts have affirmed the right to scrape publicly
+  available information](http://cdn.ca9.uscourts.gov/datastore/opinions/2019/09/09/17-16783.pdf).
 
 Note, that the above does not imply that it is legal or moral to publicly share a
 dataset that you created using NASTY.
@@ -323,7 +328,7 @@ Please feel free to submit
 `bug reports <https://github.com/lschmelzeisen/nasty/issues>`_ and
 `pull requests <https://github.com/lschmelzeisen/nasty/pulls>`_!
 
-There are the ``Makefile``-helpers to run the plethora of axuiliary development tools.
+There are the ``Makefile``-helpers to run the plethora of auxiliary development tools.
 See ``make help`` for detailed descriptions.
 The most important commands are::
 
@@ -331,7 +336,7 @@ The most important commands are::
 
     Targets:
       help        Show this help message.
-      devinstall  Install Nasty in editable mode with all test and dev dependencies (in the currently active environment).
+      devinstall  Install NASTY in editable mode with all test and dev dependencies (in the currently active environment).
       test        Run all tests and report test coverage.
       check       Run linters and perform static type-checking.
       format      Auto format all code.

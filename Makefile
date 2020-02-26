@@ -9,7 +9,7 @@ venv: ##- Create a new Python 3.6 virtual environment in .venv/ (need to activat
 	@python3.6 -m venv .venv
 .PHONY: devvenv
 
-devinstall: ##- Install Nasty in editable mode with all test and dev dependencies (in the currently active environment).
+devinstall: ##- Install NASTY in editable mode with all test and dev dependencies (in the currently active environment).
 	@pip install --upgrade pip setuptools wheel
 	@pip install -e .[test,dev]
 .PHONY: devinstall
