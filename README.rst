@@ -298,8 +298,9 @@ Luckily, using NASTY is still perfectly legal in many cases:
   (Web Scraping under German Copyright Law)". Available at SSRN 3491192.
   <https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3491192>`_
 
-  Also in the United States, [some courts have affirmed the right to scrape publicly
-  available information](http://cdn.ca9.uscourts.gov/datastore/opinions/2019/09/09/17-16783.pdf).
+  Also in the United States, `some courts have affirmed the right to scrape publicly
+  available information
+  <http://cdn.ca9.uscourts.gov/datastore/opinions/2019/09/09/17-16783.pdf>`_.
 
 Note, that the above does not imply that it is legal or moral to publicly share a
 dataset that you created using NASTY.
