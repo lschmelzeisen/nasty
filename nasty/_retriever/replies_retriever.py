@@ -168,6 +168,8 @@ class RepliesRetrieverBatch(ConversationRetrieverBatch):
                 pass
             elif entry["entryId"].startswith("cursor-showMoreThreadsPrompt-"):
                 pass
+            elif entry["entryId"] == "novel_coronavirus_message":
+                pass
             else:
                 raise RuntimeError(
                     "Unknown entry type in entry-ID: '{}'.".format(entry["entryId"])

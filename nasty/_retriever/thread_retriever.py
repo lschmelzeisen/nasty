@@ -138,6 +138,8 @@ class ThreadRetrieverBatch(ConversationRetrieverBatch):
                 "entryId"
             ].endswith("-show_more_cursor"):
                 pass
+            elif entry["entryId"] == "novel_coronavirus_message":
+                pass
             else:
                 raise RuntimeError(
                     "Unknown entry type in entry-ID: '{}'.".format(entry["entryId"])
