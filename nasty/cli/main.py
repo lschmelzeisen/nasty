@@ -68,9 +68,9 @@ def _load_args(argv: Sequence[str]) -> Tuple[argparse.Namespace, _Command]:
     argparser = ArgumentParser(
         prog="nasty",
         usage=(
-            "nasty [-h] [-v] ["
+            "nasty [-h] [-v] {"
             + "|".join(command_type.command() for command_type in command_types)
-            + "] ..."
+            + "} ..."
         ),
         description="NASTY Advanced Search Tweet Yielder.",
         add_help=False,
