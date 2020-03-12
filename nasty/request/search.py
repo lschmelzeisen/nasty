@@ -35,7 +35,7 @@ class SearchFilter(Enum):
         with or sharing via Retweets and replies)
     - LATEST: Sort result Tweets by most-recent post date.
     - PHOTOS: To only see Tweets that includes photos.
-    - PHOTOS: To only see Tweets that includes videos.
+    - VIDEOS: To only see Tweets that includes videos.
 
     See: https://help.twitter.com/en/using-twitter/top-search-results-faqs
     """
