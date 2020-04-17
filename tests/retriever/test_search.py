@@ -230,3 +230,13 @@ def test_lang_de() -> None:
 
 def test_lang_invalid() -> None:
     assert not list(Search("trump", lang="INVALID", max_tweets=50).request())
+
+
+# -- test_special_msg_* ----------------------------------------------------------------
+
+
+def test_special_msg_coronavirus() -> None:
+    tweets = list(
+        Search("coronavirus", max_tweets=50, filter_=SearchFilter.LATEST).request()
+    )
+    assert 50 == len(tweets)
