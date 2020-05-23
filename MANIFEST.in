@@ -9,6 +9,6 @@ include setup.cfg
 include setup.py
 include vulture-whitelist.py
 recursive-include assets *.svg *.png
-recursive-include nasty *.py
+recursive-include nasty *.py *.typed
 recursive-include stubs *.pyi
 recursive-include tests *.py
