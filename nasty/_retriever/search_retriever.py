@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+from logging import getLogger
 from typing import Any, Iterable, Mapping, Optional, Sequence, Type, cast
 
 from overrides import overrides
@@ -23,6 +24,8 @@ from .._util.typing_ import checked_cast
 from ..request.search import Search, SearchFilter
 from ..tweet.tweet import TweetId
 from .retriever import Retriever, RetrieverBatch
+
+logger = getLogger(__name__)
 
 
 class SearchRetrieverBatch(RetrieverBatch):
@@ -116,9 +119,25 @@ class SearchRetrieverBatch(RetrieverBatch):
                 #         }
                 #     },
                 # }
-                yield checked_cast(
-                    TweetId, entry["content"]["item"]["content"]["tweet"]["id"]
-                )
+                tweet = entry["content"]["item"]["content"]["tweet"]
+
+                if "promotedMetadata" in tweet:
+                    # Tweets which have been promoted look like this:
+                    # {
+                    #     "id": "1279090694313959431",
+                    #     "displayType": "Tweet",
+                    #     "promotedMetadata": {
+                    #         "advertiserId": "177112193",
+                    #         "impressionId": "14aeb0b7a6b63a42",
+                    #         "disclosureType": "NoDisclosure",
+                    #         "experimentValues": {},
+                    #         "promotedTrendId": "0",
+                    #     },
+                    # }
+                    logger.debug("Skipping promoted Tweet {}.".format(tweet["id"]))
+                    continue
+
+                yield checked_cast(TweetId, tweet["id"])
             elif entry["entryId"].startswith("sq-M-"):
                 pass
             elif entry["entryId"].startswith("sq-E-"):
