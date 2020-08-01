@@ -7,12 +7,12 @@ __pycache__/
 build/
 dist/
 .eggs
-*.egg-info/
+/src/*.egg-info/
 
 # Unit test / coverage reports
 .coverage*
 .pytest_cache/
-.tox
+.nox/
 tests-coverage
 tests-report.html
 
@@ -26,8 +26,8 @@ tests-report.html
 .venv/
 
 # Project specific generated files
+/src/*/_version.py
 tests/util/.requests_cache.jsonl
-nasty/version.py
 
-# Config file with secrets
-config.sh
+# Config files
+.config/

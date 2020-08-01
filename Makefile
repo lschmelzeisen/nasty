@@ -5,12 +5,13 @@ help: ##- Show this help message.
 
 # ------------------------------------------------------------------------------
 
-venv: ##- Create a new Python 3.6 virtual environment in .venv/ (need to activate manually).
+venv: ##- Create a new Python virtual environment in .venv/ (need to activate manually).
 	@python3.6 -m venv .venv
 .PHONY: devvenv
 
-devinstall: ##- Install NASTY in editable mode with all test and dev dependencies (in the currently active environment).
+devinstall: ##- Install the project in editable mode with all test and dev dependencies (in the currently active environment).
 	@pip install --upgrade pip setuptools wheel
+	@grep git+git setup.cfg | awk '{ gsub (" ", "", $$0); print}' | xargs -r pip install --upgrade
 	@pip install -e .[test,dev]
 .PHONY: devinstall
 
@@ -25,39 +26,39 @@ test-pytest: ##- Run all tests in the currently active environment.
 	@coverage report
 .PHONY: test-pytest
 
-test-tox: ##- Run all tests against all supported Python versions (in separate environments).
+test-nox: ##- Run all tests against all supported Python versions (in separate environments).
 	@coverage erase
-	@tox
+	@nox
 	@coverage html --dir tests-coverage
 	@coverage report
-.PHONY: test-tox
+.PHONY: test-nox
 
 # ------------------------------------------------------------------------------
 
 check: check-flake8 check-mypy check-vulture check-isort check-black ##- Run linters and perform static type-checking.
 .PHONY: check
 
-# Not using including the following in `check`-rule because it always spams
-# output, even in case of success (no quiet flag) and because most of the
-# checking is already performed by flake8.
+# Not using the following in `check`-rule because it always spams output, even
+# in case of success (no quiet flag) and because most of the checking is already
+# performed by flake8.
 check-autoflake: ##- Check for unused imports and variables.
 	@autoflake --check --remove-all-unused-imports --remove-duplicate-keys --remove-unused-variables --recursive .
 .PHONY: check-autoflake
 
 check-flake8: ##- Run linters.
-	@flake8 nasty stubs tests setup.py vulture-whitelist.py
+	@flake8 src tests *.py
 .PHONY: check-flake8
 
 check-mypy: ##- Run static type-checking.
-	@mypy .
+	@mypy src .
 .PHONY: check-mypy
 
 check-vulture: ##- Check for unsued code.
-	@vulture nasty vulture-whitelist.py
+	@vulture src tests *.py
 .PHONY: check-vulture
 
 check-isort: ##- Check if imports are sorted correctly.
-	@isort --check-only --recursive --quiet .
+	@isort --check-only --quiet .
 .PHONY: check-isort
 
 check-black: ##- Check if code is formatted correctly.
@@ -70,8 +71,7 @@ format: format-licenseheaders format-autoflake format-isort format-black ##- Aut
 .PHONY: format
 
 format-licenseheaders: ##- Prepend license headers to all code files.
-	@licenseheaders --tmpl LICENSE.header --years 2019-2020 --owner "Lukas Schmelzeisen" --dir nasty
-	@licenseheaders --tmpl LICENSE.header --years 2019-2020 --owner "Lukas Schmelzeisen" --dir stubs --additional-extensions python=.pyi
+	@licenseheaders --tmpl LICENSE.header --years 2019-2020 --owner "Lukas Schmelzeisen" --dir src
 	@licenseheaders --tmpl LICENSE.header --years 2019-2020 --owner "Lukas Schmelzeisen" --dir tests
 .PHONY: format-licenseheaders
 
@@ -80,7 +80,7 @@ format-autoflake: ##- Remove unused imports and variables.
 .PHONY: format-autoflake
 
 format-isort: ##- Sort all imports.
-	@isort --recursive --quiet .
+	@isort --quiet .
 .PHONY: format-isort
 
 format-black: ##- Format all code.
@@ -97,7 +97,7 @@ publish-setuppy: #-- Build source and binary distributions.
 	@python setup.py sdist bdist_wheel
 .PHONY: publish-setuppy
 
-publish-twine-check: ##- Check source and binary distribtuions for upload.
+publish-twine-check: ##- Check source and binary distributions for upload.
 	@twine check dist/*
 .PHONY: publish-twine-check
 
@@ -112,11 +112,12 @@ publish-twine-upload: ##- Upload to PyPI.
 # ------------------------------------------------------------------------------
 
 clean: ##- Remove all created cache/build files, test/coverage reports, and virtual environments.
-	@rm -rf .coverage* .eggs *.egg-info .mypy_cache .pytest_cache .tox .venv build dist nasty/version.py tests/util/.requests_cache.jsonl tests-coverage tests-report.html
+	@rm -rf .coverage* .eggs .mypy_cache .pytest_cache .nox .venv build dist src/*/_version.py src/*.egg-info tets/util/.requests_cache.jsonl tests-coverage tests-report.html
+	@find . -type d -name __pycache__ -exec rm -r {} +
 .PHONY: clean
 
 # ------------------------------------------------------------------------------
 
 build-vulture-whitelistpy:  ##- Regenerate vulture whitelist (list of currently seemingly unused code that will not be reported).
-	@vulture nasty --make-whitelist > vulture-whitelist.py || true
+	@vulture src tests *.py --make-whitelist > vulture-whitelist.py || true
 .PHONY: build-vulture-whitelistpy

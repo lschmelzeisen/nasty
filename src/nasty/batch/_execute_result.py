@@ -14,18 +14,10 @@
 # limitations under the License.
 #
 
-from typing import Any, Callable, TypeVar
+from enum import Enum
 
-_T_func = TypeVar("_T_func", bound=Callable[..., Any])
 
-GET: str
-
-def activate(func: _T_func) -> _T_func: ...
-def add(
-    method: str = ...,  # method or ``Response``
-    url: str = ...,
-    body: str = ...,
-    adding_headers: Any = ...,
-    *args: Any,
-    **kwargs: Any,
-) -> None: ...
+class _ExecuteResult(Enum):
+    SUCCESS = "success"
+    SKIP = "skip"
+    FAIL = "fail"

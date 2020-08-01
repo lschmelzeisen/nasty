@@ -184,7 +184,7 @@ reproducing shared datasets of Tweets).
 The downside is that you need to apply for API keys from Twitter (see `Twitter
 Developers: Getting Started
 <https://developer.twitter.com/en/docs/basics/getting-started>`_).
-After you have optained your keys, provide them to NASTY via the environment variables
+After you have obtained your keys, provide them to NASTY via the environment variables
 ``NASTY_CONSUMER_KEY`` and ``NASTY_CONSUMER_SECRET``.
 For convenience, you may use the ``config.example.sh`` shell script to do this::
 

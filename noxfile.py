@@ -14,9 +14,24 @@
 # limitations under the License.
 #
 
-class CaptureResult:
-    out: str
-    err: str
+from nox import options, session
+from nox.sessions import Session
 
-class CaptureFixture:
-    def readouterr(self) -> CaptureResult: ...
+options.error_on_external_run = True
+options.reuse_existing_virtualenvs = True
+options.stop_on_first_error = True
+
+
+@session(python=["3.6", "3.7", "3.8", "pypy3"])
+def test(session: Session) -> None:
+    session.install("-e", ".[test]")
+    session.run(
+        "pytest",
+        "--cov",
+        "--cov-report=",
+        "--cov-context",
+        "test",
+        "--html",
+        "tests-report.html",
+        "--self-contained-html",
+    )

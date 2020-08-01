@@ -14,6 +14,18 @@
 # limitations under the License.
 #
 
+__version__ = "dev"
+try:
+    from nasty._version import __version__ # type: ignore
+except ImportError:
+    pass
+
+__version_info__ = tuple(
+    (int(part) if part.isdigit() else part)
+    for part in __version__.split(".", maxsplit=4)
+)
+
+
 import logging
 
 from .batch.batch import Batch
@@ -30,16 +42,6 @@ from .tweet.tweet_stream import TweetStream
 
 from .cli import main  # isort:skip  # noqa
 
-__version__ = "dev"
-try:
-    from .version import __version__
-except ImportError:
-    pass
-
-__version_info__ = tuple(
-    (int(part) if part.isdigit() else part)
-    for part in __version__.split(".", maxsplit=4)
-)
 
 __all__ = [
     "Batch",

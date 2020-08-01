@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 
-import enum
 from datetime import date, timedelta
 from enum import Enum
 from typing import Dict, Mapping, Optional, Sequence, cast

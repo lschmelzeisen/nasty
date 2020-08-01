@@ -1,14 +1,6 @@
-include config.example.sh
 include LICENSE
-include LICENSE.header
-include Makefile
-include MANIFEST.in
 include pyproject.toml
 include README.rst
 include setup.cfg
 include setup.py
-include vulture-whitelist.py
-recursive-include assets *.svg *.png
-recursive-include nasty *.py *.typed
-recursive-include stubs *.pyi
-recursive-include tests *.py
+recursive-include src *.py *.typed
