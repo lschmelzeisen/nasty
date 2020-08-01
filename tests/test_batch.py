@@ -150,10 +150,14 @@ def _assert_results_dir_structure(
 
         assert checked_cast(int, batch_entry.request.max_tweets) >= len(tweets)
         for tweet in tweets:
-            assert (
-                checked_cast(Search, batch_entry.request).query.lower()
-                in json.dumps(tweet.to_json()).lower()
-            )
+            try:
+                assert (
+                    checked_cast(Search, batch_entry.request).query.lower()
+                    in json.dumps(tweet.to_json()).lower()
+                )
+            except:
+                print(json.dumps(tweet.to_json(), indent=2).lower())
+                raise
 
 
 def test_execute_success(tmp_path: Path) -> None:

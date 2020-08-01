@@ -28,7 +28,11 @@ from nasty.request.search import Search, SearchFilter
 def test_max_tweets(max_tweets: int) -> None:
     # Using batch_size=100 to speed up these larger requests and since we don't care
     # about accuracy to query here.
-    tweets = list(Search("trump", max_tweets=max_tweets, batch_size=100).request())
+    tweets = list(
+        Search(
+            "trump", filter_=SearchFilter.LATEST, max_tweets=max_tweets, batch_size=100
+        ).request()
+    )
     assert max_tweets == len(tweets)
     assert len(tweets) == len({tweet.id for tweet in tweets})
 
@@ -67,7 +71,11 @@ def test_query_word_and(args: Tuple[str, str]) -> None:
 @pytest.mark.parametrize("args", TEST_QUERY_KEYWORDS, ids=repr)
 def test_query_word_or(args: Tuple[str, str]) -> None:
     word1, word2 = args
-    tweets = list(Search("{} or {}".format(word1, word2), max_tweets=50).request())
+    tweets = list(
+        Search(
+            "{} or {}".format(word1, word2), filter_=SearchFilter.LATEST, max_tweets=50
+        ).request()
+    )
     assert 50 == len(tweets)
     for tweet in tweets:
         all_tweet_text = json.dumps(tweet.to_json()).lower()
@@ -155,7 +163,15 @@ def test_query_user_to(user: str) -> None:
 )
 def test_date_range(args: Tuple[date, date]) -> None:
     since, until = args
-    tweets = list(Search("trump", since=since, until=until, max_tweets=40).request())
+    tweets = list(
+        Search(
+            "trump",
+            since=since,
+            until=until,
+            filter_=SearchFilter.LATEST,
+            max_tweets=40,
+        ).request()
+    )
     assert 40 == len(tweets)
     for tweet in tweets:
         assert since <= tweet.created_at.date() < until
