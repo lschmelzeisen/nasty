@@ -19,6 +19,6 @@ from enum import Enum
 
 
 class _ExecuteResult(Enum):
-    SUCCESS = enum.auto()
-    SKIP = enum.auto()
-    FAIL = enum.auto()
+    SUCCESS = "success"
+    SKIP = "skip"
+    FAIL = "fail"

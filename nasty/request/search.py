@@ -40,10 +40,10 @@ class SearchFilter(Enum):
     See: https://help.twitter.com/en/using-twitter/top-search-results-faqs
     """
 
-    TOP = enum.auto()
-    LATEST = enum.auto()
-    PHOTOS = enum.auto()
-    VIDEOS = enum.auto()
+    TOP = "top"
+    LATEST = "latest"
+    PHOTOS = "photos"
+    VIDEOS = "videos"
 
     def to_json(self) -> str:
         return self.name
