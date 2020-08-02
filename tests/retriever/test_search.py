@@ -42,7 +42,7 @@ def test_max_tweets(max_tweets: int) -> None:
 
 @pytest.mark.parametrize("word", ["trump", "hillary", "obama"], ids=repr)
 def test_query_word_single(word: str) -> None:
-    tweets = list(Search(word, max_tweets=50).request())
+    tweets = list(Search(word, filter_=SearchFilter.LATEST, max_tweets=50).request())
     assert 50 == len(tweets)
     for tweet in tweets:
         assert word.lower() in json.dumps(tweet.to_json()).lower()
@@ -60,7 +60,11 @@ TEST_QUERY_KEYWORDS = [("trump", "hillary"), ("trump", "obama"), ("obama", "hill
 @pytest.mark.parametrize("args", TEST_QUERY_KEYWORDS, ids=repr)
 def test_query_word_and(args: Tuple[str, str]) -> None:
     word1, word2 = args
-    tweets = list(Search("{} and {}".format(word1, word2), max_tweets=50).request())
+    tweets = list(
+        Search(
+            "{} and {}".format(word1, word2), filter_=SearchFilter.LATEST, max_tweets=50
+        ).request()
+    )
     assert 50 == len(tweets)
     for tweet in tweets:
         all_tweet_text = json.dumps(tweet.to_json()).lower()
