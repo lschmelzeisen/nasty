@@ -134,7 +134,7 @@ def test_double_unidify(settings: NastySettings, tmp_path: Path) -> None:
 
 def _mock_statuses_lookup(
     tweets: Mapping[TweetId, Tweet]
-) -> Callable[[Iterable[TweetId]], Iterable[Optional[Tweet]]]:
+) -> Callable[[Iterable[TweetId], TwitterApiSettings], Iterable[Optional[Tweet]]]:
     def statuses_lookup(
         tweet_ids: Iterable[TweetId], twitter_api_settings: TwitterApiSettings
     ) -> Iterable[Tweet]:
