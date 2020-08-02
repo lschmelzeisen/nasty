@@ -17,6 +17,7 @@
 from pathlib import Path
 from typing import Optional
 
+from nasty._settings import TwitterApiSettings
 from nasty.request.request import Request
 from nasty.tweet.tweet import Tweet
 from nasty.tweet.tweet_stream import TweetStream
@@ -82,7 +83,9 @@ class MockBatchResultsContext:
                 self.idify_args = (results_dir,)
 
             @staticmethod
-            def unidify(results_dir: Path) -> None:
+            def unidify(
+                twitter_api_settings: TwitterApiSettings, results_dir: Path,
+            ) -> None:
                 self.unidify_args = (results_dir,)
 
         self.MockBatchResults = MockBatchResults

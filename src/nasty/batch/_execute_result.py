@@ -18,6 +18,6 @@ from enum import Enum
 
 
 class _ExecuteResult(Enum):
-    SUCCESS = "success"
-    SKIP = "skip"
-    FAIL = "fail"
+    SUCCESS = "SUCCESS"
+    SKIP = "SKIP"
+    FAIL = "FAIL"

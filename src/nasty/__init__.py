@@ -16,7 +16,7 @@
 
 __version__ = "dev"
 try:
-    from nasty._version import __version__ # type: ignore
+    from nasty._version import __version__  # type: ignore
 except ImportError:
     pass
 
@@ -28,22 +28,21 @@ __version_info__ = tuple(
 
 import logging
 
-from .batch.batch import Batch
-from .batch.batch_entry import BatchEntry
-from .batch.batch_results import BatchResults
-from .request.conversation_request import ConversationRequest
-from .request.replies import Replies
-from .request.request import DEFAULT_BATCH_SIZE, DEFAULT_MAX_TWEETS, Request
-from .request.search import DEFAULT_FILTER, Search, SearchFilter
-from .request.thread import Thread
-from .tweet.conversation_tweet_stream import ConversationTweetStream
-from .tweet.tweet import Tweet, TweetId, User, UserId
-from .tweet.tweet_stream import TweetStream
-
-from .cli import main  # isort:skip  # noqa
-
+from nasty.__main__ import main
+from nasty.batch.batch import Batch
+from nasty.batch.batch_entry import BatchEntry
+from nasty.batch.batch_results import BatchResults
+from nasty.request.conversation_request import ConversationRequest
+from nasty.request.replies import Replies
+from nasty.request.request import DEFAULT_BATCH_SIZE, DEFAULT_MAX_TWEETS, Request
+from nasty.request.search import DEFAULT_FILTER, Search, SearchFilter
+from nasty.request.thread import Thread
+from nasty.tweet.conversation_tweet_stream import ConversationTweetStream
+from nasty.tweet.tweet import Tweet, TweetId, User, UserId
+from nasty.tweet.tweet_stream import TweetStream
 
 __all__ = [
+    "main",
     "Batch",
     "BatchEntry",
     "BatchResults",

@@ -20,8 +20,8 @@ import pytest
 from _pytest.capture import CaptureFixture
 from _pytest.monkeypatch import MonkeyPatch
 
-import nasty.cli._batch_command
-from nasty.cli.main import main
+import nasty._cli
+from nasty import main
 
 from .mock_context import MockBatchContext
 
@@ -31,14 +31,14 @@ def test_correct_call(
 ) -> None:
     mock_context = MockBatchContext()
     monkeypatch.setattr(
-        nasty.cli._batch_command,
-        nasty.cli._batch_command.Batch.__name__,  # type: ignore
+        nasty._cli,
+        nasty._cli.Batch.__name__,  # type: ignore
         mock_context.MockBatch,
     )
 
     batch_file = tmp_path / "batch.jsonl"
     results_dir = tmp_path / "out"
-    main(["batch", "--batch-file", str(batch_file), "--results-dir", str(results_dir)])
+    main("batch", "--batch-file", str(batch_file), "--results-dir", str(results_dir))
 
     assert mock_context.load_args == (batch_file,)
     assert mock_context.execute_args == (results_dir,)
@@ -51,11 +51,5 @@ def test_no_batch_file(tmp_path: Path) -> None:
 
     with pytest.raises(FileNotFoundError):
         main(
-            [
-                "batch",
-                "--batch-file",
-                str(batch_file),
-                "--results-dir",
-                str(results_dir),
-            ]
+            "batch", "--batch-file", str(batch_file), "--results-dir", str(results_dir),
         )

@@ -22,6 +22,7 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
 import nasty.batch.batch_results
+from nasty._settings import NastySettings, TwitterApiSettings
 from nasty.batch.batch import Batch
 from nasty.batch.batch_results import BatchResults
 from nasty.request.replies import Replies
@@ -31,7 +32,10 @@ from nasty.tweet.tweet import Tweet, TweetId
 
 
 def _make_batch_results(
-    *, idify_dir: Optional[Path] = None, unidify_dir: Optional[Path] = None
+    settings: NastySettings,
+    *,
+    idify_dir: Optional[Path] = None,
+    unidify_dir: Optional[Path] = None,
 ) -> BatchResults:
     batch = Batch()
     batch.append(Thread("1115689254271819777"))
@@ -43,7 +47,7 @@ def _make_batch_results(
         assert results is not None
 
     if unidify_dir is not None:
-        results = results.unidify(unidify_dir)
+        results = results.unidify(settings.twitter_api, unidify_dir)
         assert results is not None
 
     return results
@@ -72,51 +76,57 @@ def _assert_tweet_ids(results: BatchResults) -> None:
     ] == list(results.tweet_ids(results[0]))
 
 
-def test_tweets_from_exectue() -> None:
-    results = _make_batch_results()
+def test_tweets_from_exectue(settings: NastySettings) -> None:
+    results = _make_batch_results(settings)
     _assert_tweet_texts(results)
     _assert_tweet_ids(results)
 
 
-def test_tweets_from_idify(tmp_path: Path) -> None:
-    results = _make_batch_results(idify_dir=tmp_path)
+def test_tweets_from_idify(settings: NastySettings, tmp_path: Path) -> None:
+    results = _make_batch_results(settings, idify_dir=tmp_path)
     with pytest.raises(Exception):
         list(results.tweets(results[0]))
     _assert_tweet_ids(results)
 
 
-def test_tweets_from_unidify(tmp_path: Path) -> None:
+def test_tweets_from_unidify(settings: NastySettings, tmp_path: Path) -> None:
     idify_dir = tmp_path / "idify"
     unidify_dir = tmp_path / "unidify"
-    results = _make_batch_results(idify_dir=idify_dir, unidify_dir=unidify_dir)
+    results = _make_batch_results(
+        settings, idify_dir=idify_dir, unidify_dir=unidify_dir
+    )
     _assert_tweet_texts(results)
     _assert_tweet_ids(results)
 
 
-def test_samedir(tmp_path: Path) -> None:
+def test_samedir(settings: NastySettings, tmp_path: Path) -> None:
     idify_dir = tmp_path / "idify"
     unidify_dir = tmp_path / "unidify"
-    results = _make_batch_results(idify_dir=idify_dir)
+    results = _make_batch_results(settings, idify_dir=idify_dir)
     _assert_tweet_ids(results)
-    results = _make_batch_results(idify_dir=idify_dir, unidify_dir=unidify_dir)
+    results = _make_batch_results(
+        settings, idify_dir=idify_dir, unidify_dir=unidify_dir
+    )
     _assert_tweet_ids(results)
     _assert_tweet_texts(results)
 
 
-def test_double_idify(tmp_path: Path) -> None:
-    results = _make_batch_results(idify_dir=tmp_path).idify(tmp_path)
+def test_double_idify(settings: NastySettings, tmp_path: Path) -> None:
+    results = _make_batch_results(settings, idify_dir=tmp_path).idify(tmp_path)
     assert results is not None
     with pytest.raises(Exception):
         list(results.tweets(results[0]))
     _assert_tweet_ids(results)
 
 
-def test_double_unidify(tmp_path: Path) -> None:
+def test_double_unidify(settings: NastySettings, tmp_path: Path) -> None:
     idify_dir = tmp_path / "idify"
     unidify_dir = tmp_path / "unidify"
 
-    results = _make_batch_results(idify_dir=idify_dir, unidify_dir=unidify_dir)
-    results = results.unidify(unidify_dir)
+    results = _make_batch_results(
+        settings, idify_dir=idify_dir, unidify_dir=unidify_dir
+    )
+    results = results.unidify(settings.twitter_api, unidify_dir)
     assert results is not None
     _assert_tweet_ids(results)
     _assert_tweet_texts(results)
@@ -125,7 +135,9 @@ def test_double_unidify(tmp_path: Path) -> None:
 def _mock_statuses_lookup(
     tweets: Mapping[TweetId, Tweet]
 ) -> Callable[[Iterable[TweetId]], Iterable[Optional[Tweet]]]:
-    def statuses_lookup(tweet_ids: Iterable[TweetId]) -> Iterable[Tweet]:
+    def statuses_lookup(
+        tweet_ids: Iterable[TweetId], twitter_api_settings: TwitterApiSettings
+    ) -> Iterable[Tweet]:
         return (tweets[tweet_id] for tweet_id in tweet_ids)
 
     return statuses_lookup
@@ -145,7 +157,10 @@ def _mock_statuses_lookup(
     ids=repr,
 )
 def test_unidify_fail_and_restart(
-    requests: Iterable[Request], monkeypatch: MonkeyPatch, tmp_path: Path
+    requests: Iterable[Request],
+    settings: NastySettings,
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
     idify_dir = tmp_path / "idify"
     unidify_dir = tmp_path / "unidify"
@@ -171,7 +186,7 @@ def test_unidify_fail_and_restart(
 
     # Assert KeyError is propagated, because a Tweet is missing from tweets_truncated.
     with pytest.raises(KeyError):
-        idified.unidify(unidify_dir)
+        idified.unidify(settings.twitter_api, unidify_dir)
     unidified = BatchResults(unidify_dir)
     assert len(batch) > len(unidified)
 
@@ -181,7 +196,7 @@ def test_unidify_fail_and_restart(
         _mock_statuses_lookup(tweets),
     )
 
-    unidified = idified.unidify(unidify_dir)
+    unidified = idified.unidify(settings.twitter_api, unidify_dir)
     assert unidified is not None
     assert len(batch) == len(unidified)
     assert tweets == {

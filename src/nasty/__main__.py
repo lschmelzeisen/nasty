@@ -14,6 +14,16 @@
 # limitations under the License.
 #
 
-from .cli.main import main
+from sys import argv
 
-main()
+from nasty._cli import NastyProgram
+
+
+def main(*args: str) -> None:
+    if not args:
+        args = tuple(argv[1:])
+    NastyProgram.init(*args).run()
+
+
+if __name__ == "__main__":
+    main()

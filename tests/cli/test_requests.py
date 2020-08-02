@@ -25,8 +25,8 @@ from _pytest.capture import CaptureFixture
 from _pytest.monkeypatch import MonkeyPatch
 from typing_extensions import Final
 
+from nasty import main
 from nasty.batch.batch import Batch
-from nasty.cli.main import main
 from nasty.request.replies import Replies
 from nasty.request.request import DEFAULT_BATCH_SIZE, DEFAULT_MAX_TWEETS, Request
 from nasty.request.search import DEFAULT_FILTER, DEFAULT_LANG, Search, SearchFilter
@@ -115,7 +115,7 @@ def test_correct_call(
         type(request_), request_.request.__name__, mock_context.mock_request
     )
 
-    main(_make_args(request_))
+    main(*_make_args(request_))
 
     assert mock_context.request == request_
     assert not mock_context.remaining_result_tweets
@@ -143,7 +143,7 @@ def test_correct_call_results(
         type(request_), request_.request.__name__, mock_context.mock_request
     )
 
-    main(_make_args(request_))
+    main(*_make_args(request_))
 
     assert mock_context.request == request_
     assert not mock_context.remaining_result_tweets
@@ -158,7 +158,7 @@ def test_correct_call_to_batch(
 ) -> None:
     batch_file = tmp_path / "batch.jsonl"
 
-    main(_make_args(request_, to_batch=batch_file))
+    main(*_make_args(request_, to_batch=batch_file))
 
     assert capsys.readouterr().out == ""
     batch = Batch()
@@ -187,7 +187,7 @@ def test_correct_call_to_batch_exists(
     batch.append(old_request)
     batch.dump(batch_file)
 
-    main(_make_args(new_request, to_batch=batch_file))
+    main(*_make_args(new_request, to_batch=batch_file))
 
     assert capsys.readouterr().out == ""
     batch = Batch()
@@ -207,7 +207,7 @@ def test_correct_call_to_batch_daily(capsys: CaptureFixture, tmp_path: Path) -> 
     # Needed for type checking.
     assert request.until is not None and request.since is not None
 
-    main(_make_args(request, to_batch=batch_file, daily=True))
+    main(*_make_args(request, to_batch=batch_file, daily=True))
 
     assert capsys.readouterr().out == ""
     batch = Batch()

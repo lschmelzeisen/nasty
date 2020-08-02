@@ -15,38 +15,23 @@
 #
 
 import json
-from contextlib import contextmanager
+import sys
 from copy import deepcopy
 from io import StringIO
 from pathlib import Path
-from types import ModuleType
-from typing import Iterator
 
 from _pytest.capture import CaptureFixture
 from _pytest.monkeypatch import MonkeyPatch
 
-import nasty.cli._idify_command
-import nasty.cli._unidify_command
-from nasty.cli.main import main
+import nasty._cli
+from nasty import main
 from nasty.tweet.tweet import Tweet
 
 from ..test_tweet import tweet_jsons
 from .mock_context import MockBatchResultsContext
 
 
-@contextmanager
-def _mock_stdin(module: ModuleType, content: str) -> Iterator[None]:
-    """Can't do regular mock here, because that it will fail with pytest's capsys."""
-
-    # Need to use getattr/setattr and hide warnings for those via noqa here, because I
-    # do not know how to type the module argument so that mypy understands module.stdin.
-    old_stdin = getattr(module, "stdin")  # noqa: B009
-    setattr(module, "stdin", StringIO(content))  # noqa: B010
-    yield None
-    setattr(module, "stdin", old_stdin)  # noqa: B010
-
-
-def test_idify_stdin(capsys: CaptureFixture) -> None:
+def test_idify_stdin(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -> None:
     tweet_json = tweet_jsons["1142944425502543875"]
     tweets = []
     for i in range(5):
@@ -55,22 +40,22 @@ def test_idify_stdin(capsys: CaptureFixture) -> None:
         tweet["id_str"] = str(i)
         tweets.append(tweet)
 
-    with _mock_stdin(
-        nasty.cli._idify_command, "\n".join(json.dumps(tweet) for tweet in tweets),
-    ):
-        main(["idify"])
+    monkeypatch.setattr(
+        sys, "stdin", StringIO("\n".join(json.dumps(tweet) for tweet in tweets)),
+    )
+    main("idify")
     assert capsys.readouterr().out == "\n".join(str(i) for i in range(5)) + "\n"
 
 
 def test_idify_indir(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     mock_context = MockBatchResultsContext()
     monkeypatch.setattr(
-        nasty.cli._idify_command,
-        nasty.cli._idify_command.BatchResults.__name__,  # type: ignore
+        nasty._cli,
+        nasty._cli.BatchResults.__name__,  # type: ignore
         mock_context.MockBatchResults,
     )
 
-    main(["idify", "--in-dir", str(tmp_path)])
+    main("idify", "--in-dir", str(tmp_path))
 
     assert mock_context.init_args == (tmp_path,)
     assert mock_context.idify_args == (tmp_path,)
@@ -83,26 +68,29 @@ def test_idify_indir_outdir(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
 
     mock_context = MockBatchResultsContext()
     monkeypatch.setattr(
-        nasty.cli._idify_command,
-        nasty.cli._idify_command.BatchResults.__name__,  # type: ignore
+        nasty._cli,
+        nasty._cli.BatchResults.__name__,  # type: ignore
         mock_context.MockBatchResults,
     )
 
-    main(["idify", "--in-dir", str(in_dir), "--out-dir", str(out_dir)])
+    main("idify", "--in-dir", str(in_dir), "--out-dir", str(out_dir))
 
     assert mock_context.init_args == (in_dir,)
     assert mock_context.idify_args == (out_dir,)
     assert mock_context.unidify_args is None
 
 
-def test_unidify_std(capsys: CaptureFixture) -> None:
-    with _mock_stdin(
-        nasty.cli._unidify_command,
-        "\n".join(
-            ("1115690002233556993", "1115690615612825601", "1115691710657499137")
+def test_unidify_stdin(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -> None:
+    monkeypatch.setattr(
+        sys,
+        "stdin",
+        StringIO(
+            "\n".join(
+                ("1115690002233556993", "1115690615612825601", "1115691710657499137")
+            )
         ),
-    ):
-        main(["unidify"])
+    )
+    main("unidify")
 
     assert [
         "We encourage submissions of new, previously, or concurrently published "
@@ -124,12 +112,12 @@ def test_unidify_std(capsys: CaptureFixture) -> None:
 def test_unidify_indir(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
     mock_context = MockBatchResultsContext()
     monkeypatch.setattr(
-        nasty.cli._unidify_command,
-        nasty.cli._unidify_command.BatchResults.__name__,  # type: ignore
+        nasty._cli,
+        nasty._cli.BatchResults.__name__,  # type: ignore
         mock_context.MockBatchResults,
     )
 
-    main(["unidify", "--in-dir", str(tmp_path)])
+    main("unidify", "--in-dir", str(tmp_path))
 
     assert mock_context.init_args == (tmp_path,)
     assert mock_context.idify_args is None
@@ -142,12 +130,12 @@ def test_unidify_indir_outdir(monkeypatch: MonkeyPatch, tmp_path: Path) -> None:
 
     mock_context = MockBatchResultsContext()
     monkeypatch.setattr(
-        nasty.cli._unidify_command,
-        nasty.cli._unidify_command.BatchResults.__name__,  # type: ignore
+        nasty._cli,
+        nasty._cli.BatchResults.__name__,  # type: ignore
         mock_context.MockBatchResults,
     )
 
-    main(["unidify", "--in-dir", str(in_dir), "--out-dir", str(out_dir)])
+    main("unidify", "--in-dir", str(in_dir), "--out-dir", str(out_dir))
 
     assert mock_context.init_args == (in_dir,)
     assert mock_context.idify_args is None

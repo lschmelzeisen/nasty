@@ -32,6 +32,8 @@ from typing import (
 
 from more_itertools import groupby_transform, spy, unzip
 
+from nasty._settings import TwitterApiSettings
+
 from .._util.io_ import read_lines_file, write_lines_file
 from .._util.json_ import read_json, read_json_lines, write_json, write_jsonl_lines
 from .._util.tweepy_ import statuses_lookup
@@ -73,7 +75,8 @@ class BatchResults(Sequence[BatchEntry]):
         self,
         new_results_dir: Optional[Path],
         transform_name: str,
-        transform_func: Callable[[Path], Counter[_ExecuteResult]],
+        transform_func: Callable[..., Counter[_ExecuteResult]],
+        **transform_kwargs: object,
     ) -> Optional["BatchResults"]:
         results_dir = self._results_dir
         if new_results_dir is not None:
@@ -89,7 +92,7 @@ class BatchResults(Sequence[BatchEntry]):
         if not same_dir:
             Path.mkdir(results_dir, exist_ok=True, parents=True)
 
-        result_counter = transform_func(results_dir)
+        result_counter = transform_func(results_dir, **transform_kwargs)
         logger.info(
             "  {} batch results completed. {:d} successful, {:d} skipped, {:d} "
             "failed.".format(
@@ -130,11 +133,20 @@ class BatchResults(Sequence[BatchEntry]):
         return result_counter
 
     def unidify(
-        self, new_results_dir: Optional[Path] = None
+        self,
+        twitter_api_settings: TwitterApiSettings,
+        new_results_dir: Optional[Path] = None,
     ) -> Optional["BatchResults"]:
-        return self._transform(new_results_dir, "Unidifying", self._transform_unidify)
+        return self._transform(
+            new_results_dir,
+            "Unidifying",
+            self._transform_unidify,
+            twitter_api_settings=twitter_api_settings,
+        )
 
-    def _transform_unidify(self, results_dir: Path) -> Counter[_ExecuteResult]:
+    def _transform_unidify(
+        self, results_dir: Path, twitter_api_settings: TwitterApiSettings,
+    ) -> Counter[_ExecuteResult]:
         result_counter = Counter[_ExecuteResult]()
 
         head, entries_tweet_ids = spy(
@@ -147,7 +159,7 @@ class BatchResults(Sequence[BatchEntry]):
             Tuple[Iterator[BatchEntry], Iterator[TweetId]], unzip(entries_tweet_ids)
         )
         for entry, tweets in groupby_transform(
-            zip(entries, statuses_lookup(tweet_ids)),
+            zip(entries, statuses_lookup(tweet_ids, twitter_api_settings)),
             keyfunc=itemgetter(0),
             valuefunc=itemgetter(1),
         ):

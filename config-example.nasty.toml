@@ -1,0 +1,54 @@
+[twitter_api]
+consumer_api_key = "Enter Twitter consumer API key here"
+consumer_api_secret = "Enter Twitter consumer API secret key here"
+access_token = "Enter Twitter access token here"
+access_token_secret = "Enter Twitter access token secret here"
+
+[logging]
+version = 1
+disable_existing_loggers = false
+
+    [logging.formatters]
+        [logging.formatters.colored]
+        "()" = "nasty_utils.ColoredArgumentsFormatter"
+        format = "{log_color}{message}"
+        style = "{"
+        arg_color = "reset"
+
+        [logging.formatters.json]
+        "()" = "jsonlog.JSONFormatter"
+        keys = [
+            "timestamp", "levelno", "level", "message", "name", "pathname", "lineno",
+            "thread", "threadName", "process", "processName", "traceback",
+        ]
+        timespec = "milliseconds"
+
+    [logging.handlers]
+        [logging.handlers.console]
+        class = "nasty_utils.TqdmAwareStreamHandler"
+        level = "INFO"
+        formatter = "colored"
+
+        [logging.handlers.file]
+        class = "nasty_utils.TqdmAwareFileHandler"
+        formatter = "json"
+        filename = "{XDG_DATA_HOME}/logs/{argv0}-{asctime:%Y%m%d-%H%M%S}.log"
+        encoding = "UTF-8"
+        symlink = "{XDG_DATA_HOME}/logs/{argv0}-current.log"
+
+    [logging.loggers]
+        [logging.loggers.oauthlib]
+        level = "INFO"
+
+        [logging.loggers.requests_oauthlib]
+        level = "INFO"
+
+        [logging.loggers."tweepy.binder"]
+        level = "INFO"
+
+        [logging.loggers.urllib3]
+        level = "INFO"
+
+    [logging.root]
+    level = "DEBUG"
+    handlers = [ "console", "file" ]

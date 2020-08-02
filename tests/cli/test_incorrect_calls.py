@@ -18,7 +18,7 @@ from logging import getLogger
 import pytest
 from _pytest.capture import CaptureFixture
 
-from nasty.cli.main import main
+from nasty import main
 
 logger = getLogger(__name__)
 
@@ -67,7 +67,7 @@ def test_incorrect_calls(args_string: str, capsys: CaptureFixture) -> None:
     logger.debug("Raw arguments: {}".format(args))
 
     with pytest.raises(SystemExit) as excinfo:
-        main(args)
+        main(*args)
 
     assert excinfo.value.code == 2
 
@@ -75,5 +75,4 @@ def test_incorrect_calls(args_string: str, capsys: CaptureFixture) -> None:
     logger.debug("Captured Error:")
     for line in captured.split("\n"):
         logger.debug("  " + line)
-    assert captured.startswith("usage: nasty ")
-    assert ": error: " in captured
+    assert "usage: nasty" in captured and ": error: " in captured

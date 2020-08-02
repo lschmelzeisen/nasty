@@ -15,42 +15,44 @@
 #
 
 from logging import getLogger
-from os import getenv
 from time import sleep
 from typing import Iterable, Mapping, Optional, cast
 
 import tweepy
 from more_itertools import chunked
 
+from nasty._settings import NastySettings, TwitterApiSettings
+
 from ..tweet.tweet import Tweet, TweetId
 
 logger = getLogger(__name__)
 
 
-def _get_key(name: str) -> Optional[str]:
-    key = getenv(name)
-    # Check if environment variable is not set or set to default
-    return key if (key is not None and " " not in key) else None
-
-
-def _make_tweepy_api() -> tweepy.API:
-    consumer_api_key = _get_key("NASTY_CONSUMER_API_KEY")
-    consumer_api_secret = _get_key("NASTY_CONSUMER_API_SECRET")
-    access_token = _get_key("NASTY_ACCESS_TOKEN")
-    access_token_secret = _get_key("NASTY_ACCESS_TOKEN_SECRET")
-    if consumer_api_key is None or consumer_api_secret is None:
+def _make_tweepy_api(settings: TwitterApiSettings) -> tweepy.API:
+    if settings.consumer_api_key is None or settings.consumer_api_secret is None:
         raise ValueError(
-            "To use this you need to define environment variables with your Twitter "
-            "API keys. Set file config.example.sh in the nasty source folder and "
-            "source it into your environment, e.g., via `source config.example.sh`."
+            "To use this you need to create a configuration file with your Twitter API "
+            "keys. Copy file config-example.nasty.toml in the nasty source folder "
+            "to ${{XDG_CONFIG_HOME}}/{} and fill out the respective values.".format(
+                NastySettings.Config.search_path
+            )
         )
 
     tweepy_auth: tweepy.auth.AuthHandler
-    if access_token is not None and access_token_secret is not None:
-        tweepy_auth = tweepy.OAuthHandler(consumer_api_key, consumer_api_secret)
-        tweepy_auth.set_access_token(access_token, access_token_secret)
+    if settings.access_token is not None and settings.access_token_secret is not None:
+        tweepy_auth = tweepy.OAuthHandler(
+            settings.consumer_api_key.get_secret_value(),
+            settings.consumer_api_secret.get_secret_value(),
+        )
+        tweepy_auth.set_access_token(
+            settings.access_token.get_secret_value(),
+            settings.access_token_secret.get_secret_value(),
+        )
     else:
-        tweepy_auth = tweepy.AppAuthHandler(consumer_api_key, consumer_api_secret)
+        tweepy_auth = tweepy.AppAuthHandler(
+            settings.consumer_api_key.get_secret_value(),
+            settings.consumer_api_secret.get_secret_value(),
+        )
     return tweepy.API(tweepy_auth, parser=tweepy.parsers.JSONParser())
 
 
@@ -59,12 +61,14 @@ CHUNK_LOOKUPS_SINCE_LAST_RATE_LIMIT_ERROR = 0
 TWEEPY_API: Optional[tweepy.API] = None
 
 
-def statuses_lookup(tweet_ids: Iterable[TweetId]) -> Iterable[Optional[Tweet]]:
+def statuses_lookup(
+    tweet_ids: Iterable[TweetId], twitter_api_settings: TwitterApiSettings
+) -> Iterable[Optional[Tweet]]:
     global CHUNK_LOOKUPS_SINCE_LAST_RATE_LIMIT_ERROR
     global TWEEPY_API
 
     if TWEEPY_API is None:
-        TWEEPY_API = _make_tweepy_api()
+        TWEEPY_API = _make_tweepy_api(twitter_api_settings)
 
     for tweet_ids_chunk in chunked(tweet_ids, STATUSES_LOOKUP_CHUNK_SIZE):
         num_retries = 0
