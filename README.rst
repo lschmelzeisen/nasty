@@ -337,12 +337,13 @@ The most important commands are::
 
     Targets:
       help        Show this help message.
-      devinstall  Install NASTY in editable mode with all test and dev dependencies (in the currently active environment).
+      devinstall  Install the project in editable mode with all test and dev dependencies (in a virtual environment).
       test        Run all tests and report test coverage.
       check       Run linters and perform static type-checking.
       format      Auto format all code.
       publish     Build and check source and binary distributions.
       clean       Remove all created cache/build files, test/coverage reports, and virtual environments.
+
 
 Acknowledgements
 ========================================================================================
