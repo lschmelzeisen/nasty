@@ -84,7 +84,8 @@ class MockBatchResultsContext:
 
             @staticmethod
             def unidify(
-                twitter_api_settings: TwitterApiSettings, results_dir: Path,
+                twitter_api_settings: TwitterApiSettings,
+                results_dir: Path,
             ) -> None:
                 self.unidify_args = (results_dir,)
 

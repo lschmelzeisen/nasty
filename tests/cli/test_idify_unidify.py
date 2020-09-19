@@ -41,7 +41,9 @@ def test_idify_stdin(monkeypatch: MonkeyPatch, capsys: CaptureFixture) -> None:
         tweets.append(tweet)
 
     monkeypatch.setattr(
-        sys, "stdin", StringIO("\n".join(json.dumps(tweet) for tweet in tweets)),
+        sys,
+        "stdin",
+        StringIO("\n".join(json.dumps(tweet) for tweet in tweets)),
     )
     main("idify")
     assert capsys.readouterr().out == "\n".join(str(i) for i in range(5)) + "\n"

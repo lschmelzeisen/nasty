@@ -27,7 +27,9 @@ from .mock_context import MockBatchContext
 
 
 def test_correct_call(
-    monkeypatch: MonkeyPatch, capsys: CaptureFixture, tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+    tmp_path: Path,
 ) -> None:
     mock_context = MockBatchContext()
     monkeypatch.setattr(
@@ -51,5 +53,9 @@ def test_no_batch_file(tmp_path: Path) -> None:
 
     with pytest.raises(FileNotFoundError):
         main(
-            "batch", "--batch-file", str(batch_file), "--results-dir", str(results_dir),
+            "batch",
+            "--batch-file",
+            str(batch_file),
+            "--results-dir",
+            str(results_dir),
         )

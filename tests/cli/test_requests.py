@@ -63,7 +63,9 @@ ALL_REQUESTS: Final[Sequence[Request]] = [
 
 
 def _make_args(  # noqa: C901
-    request: Request, to_batch: Optional[Path] = None, daily: bool = False,
+    request: Request,
+    to_batch: Optional[Path] = None,
+    daily: bool = False,
 ) -> Sequence[str]:
     args: List[str] = []
 
@@ -154,7 +156,9 @@ def test_correct_call_results(
 
 @pytest.mark.parametrize("request_", ALL_REQUESTS, ids=repr)
 def test_correct_call_to_batch(
-    request_: Request, capsys: CaptureFixture, tmp_path: Path,
+    request_: Request,
+    capsys: CaptureFixture,
+    tmp_path: Path,
 ) -> None:
     batch_file = tmp_path / "batch.jsonl"
 
@@ -180,7 +184,10 @@ def test_correct_call_to_batch(
     ids=repr,
 )
 def test_correct_call_to_batch_exists(
-    old_request: Request, new_request: Request, capsys: CaptureFixture, tmp_path: Path,
+    old_request: Request,
+    new_request: Request,
+    capsys: CaptureFixture,
+    tmp_path: Path,
 ) -> None:
     batch_file = tmp_path / "batch.jsonl"
     batch = Batch()

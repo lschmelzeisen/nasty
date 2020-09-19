@@ -57,7 +57,9 @@ def test_json_conversion(request_: Request) -> None:
 
 
 @pytest.mark.parametrize(
-    "search", [Search("q", since=date(2010, 1, 1), until=date(2010, 2, 1))], ids=repr,
+    "search",
+    [Search("q", since=date(2010, 1, 1), until=date(2010, 2, 1))],
+    ids=repr,
 )
 def test_search_to_daily_requests(search: Search) -> None:
     # assert is not None necessary for mypy type checking

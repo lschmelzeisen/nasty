@@ -289,7 +289,9 @@ def test_execute_skipping(tmp_path: Path, caplog: LogCaptureFixture) -> None:
 def test_execute_exception_internal_server_error(tmp_path: Path) -> None:
     # Simulate 500 Internal Server Error on first request to Twitter.
     responses.add(
-        responses.GET, "https://mobile.twitter.com/robots.txt", body="Crawl-delay: 1",
+        responses.GET,
+        "https://mobile.twitter.com/robots.txt",
+        body="Crawl-delay: 1",
     )
     responses.add(
         responses.GET,
