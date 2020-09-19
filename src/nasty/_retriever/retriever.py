@@ -312,7 +312,8 @@ class Retriever(Generic[_T_Request], ABC):
         # via response headers to the session.
         response = self._session_get(**self._timeline_url())
         main_js_url = re.findall(
-            "(https://abs.twimg.com/responsive-web/web(?:_legacy)?/main.[a-z0-9]+.js)",
+            "(https://abs.twimg.com/responsive-web/"
+            "(?:client[-_])?web(?:[-_]legacy)?/main.[a-z0-9]+.js)",
             response.text,
         )[0]
         guest_token = re.findall(
