@@ -128,7 +128,9 @@ TEST_QUERY_USERS = ["realDonaldTrump", "HillaryClinton", "BarackObama"]
 
 @pytest.mark.parametrize("user", TEST_QUERY_USERS, ids=repr)
 def test_query_user_from(user: str) -> None:
-    tweets = list(Search("from:@" + user, max_tweets=50).request())
+    tweets = list(
+        Search("from:@" + user, max_tweets=50, filter_=SearchFilter.LATEST).request()
+    )
     assert 0 < len(tweets) <= 50
     for tweet in tweets:
         assert user.lower() == tweet.user.screen_name.lower()
@@ -136,7 +138,9 @@ def test_query_user_from(user: str) -> None:
 
 @pytest.mark.parametrize("user", TEST_QUERY_USERS, ids=repr)
 def test_query_user_to(user: str) -> None:
-    tweets = list(Search("to:@" + user, max_tweets=50).request())
+    tweets = list(
+        Search("to:@" + user, max_tweets=50, filter_=SearchFilter.LATEST).request()
+    )
     assert 50 == len(tweets)
     for tweet in tweets:
         if not tweet.text.lower().count("@" + user.lower()):
