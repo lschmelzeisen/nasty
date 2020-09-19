@@ -65,6 +65,9 @@ class RepliesRetrieverBatch(ConversationRetrieverBatch):
         # "cursor-showMoreThreadsPrompt-..." reply. If no more replies exist the cursor
         # entry will also not exist.
 
+        if "addEntries" not in instructions[0]:
+            return
+
         for entry in instructions[0]["addEntries"]["entries"]:
             if entry["entryId"].startswith("tweet-"):
                 # We do not want to return the Tweet with the requested ID because it is
@@ -180,6 +183,9 @@ class RepliesRetrieverBatch(ConversationRetrieverBatch):
         instructions: Final = cast(
             Sequence[Any], self._json["timeline"]["instructions"]
         )
+
+        if "addEntries" not in instructions[0]:
+            return None
 
         # See the documentation of _tweet_ids_in_batch() on where the cursor entry
         # occurs. It looks like this:
