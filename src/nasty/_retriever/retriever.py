@@ -242,6 +242,11 @@ class Retriever(Generic[_T_Request], ABC):
         if self._request.max_tweets:
             tweets = tweets[: self._request.max_tweets - self._retrieved_tweets]
         self._retrieved_tweets += len(tweets)
+        logger.debug(
+            "  Received new batch of {} Tweets ({}/{})".format(
+                len(tweets), self._retrieved_tweets, self._request.max_tweets
+            )
+        )
         if (
             self._request.max_tweets
             and self._request.max_tweets == self._retrieved_tweets
