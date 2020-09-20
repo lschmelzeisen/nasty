@@ -19,6 +19,17 @@ devinstall: ##- Install the project in editable mode with all test and dev depen
 	@make --silent .venv/.devinstall
 .PHONY: devinstall
 
+devinstall-localdeps: .venv/.devinstall ##- Install dependencies developed together with this project in editable mode.
+	@if [ -z "$(DIR)" ]; then \
+		echo "Directory from which to install dependencies not set. Use like this: make devinstall-localdeps DIR=.."; \
+	else \
+		.venv/bin/pip install \
+			-e $(DIR)/nasty-typeshed \
+			-e $(DIR)/nasty-utils \
+		; \
+	fi
+.PHONY: devinstall-localdeps
+
 # ------------------------------------------------------------------------------
 
 test: test-pytest ##- Run all tests and report test coverage.
@@ -96,7 +107,7 @@ format-black: .venv/.devinstall ##- Format all code.
 publish: publish-setuppy publish-twine-check ##- Build and check source and binary distributions.
 .PHONY: publish
 
-publish-setuppy: .venv/.devinstall #-- Build source and binary distributions.
+publish-setuppy: .venv/.devinstall ##- Build source and binary distributions.
 	@rm -rf build dist
 	@.venv/bin/python setup.py sdist bdist_wheel
 .PHONY: publish-setuppy
@@ -105,11 +116,11 @@ publish-twine-check: .venv/.devinstall ##- Check source and binary distributions
 	@.venv/bin/twine check dist/*
 .PHONY: publish-twine-check
 
-publish-twine-upload-testpypi: .venv/.devinstall ##- Upload to TestPyPI.
+publish-upload-testpypi: .venv/.devinstall ##- Upload to TestPyPI.
 	@.venv/bin/twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 .PHONY: publish-twine-upload-testpypi
 
-publish-twine-upload: .venv/.devinstall ##- Upload to PyPI.
+publish-upload-pypi: .venv/.devinstall ##- Upload to PyPI.
 	@.venv/bin/twine upload dist/*
 .PHONY: publish-twine-upload
 
