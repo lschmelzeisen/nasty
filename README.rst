@@ -40,6 +40,24 @@ Install via::
 
     $ pip install nasty
 
+Next, you need to place the configuration file in a location where NASTY searches for
+it.
+For example::
+
+    $ mkdir -p .config
+    $ curl -o .config/nasty.toml https://raw.githubusercontent.com/lschmelzeisen/nasty/master/config-example.nasty.toml
+
+The places where NASTY looks for the ``nasty.toml`` file are in order:
+
+* In a ``.config`` sub-directory of the current directory and all subdirectories:
+  ``./.config/nasty.toml``, ``../.config/nasty.toml``, etc.
+* If the respective environment variables exists in ``${XDG_CONFIG_HOME}/nasty.toml``
+  and ``${XDG_CONFIG_DIRS}/nasty.toml``.
+  If not, it defaults to ``~/.config/nasty.toml`` and ``/etc/xdg/nasty.toml``.
+
+That's it.
+For most operations you won't need to modify the default settings at all.
+
 Command Line Interface
 ========================================================================================
 
@@ -184,13 +202,8 @@ reproducing shared datasets of Tweets).
 The downside is that you need to apply for API keys from Twitter (see `Twitter
 Developers: Getting Started
 <https://developer.twitter.com/en/docs/basics/getting-started>`_).
-After you have obtained your keys, provide them to NASTY via the environment variables
-``NASTY_CONSUMER_KEY`` and ``NASTY_CONSUMER_SECRET``.
-For convenience, you may use the ``config.example.sh`` shell script to do this::
-
-    $ cp config.example.sh config.sh
-    $ # Edit config.sh to contain your consumer key and secret
-    $ source config.sh
+After you have obtained your keys, provide them to NASTY in the ``[twitter_api]``
+section of the ``nasty.toml`` configuration file.
 
 Idify/unidify also support operating on batch results (and keep meta information, that
 is which Tweets were the results of which requests).
