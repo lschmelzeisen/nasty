@@ -168,8 +168,8 @@ class SearchProgram(RequestProgram):
         alias="filter",
         short_alias="f",
         description=(
-            "Sorting/filtering of Tweets (top, latest, photos, videos). Defaults "
-            "to 'top'."
+            "Sorting/filtering of Tweets (TOP, LATEST, PHOTOS, VIDEOS). Defaults "
+            "to 'TOP'."
         ),
         group=_SEARCH_ARGUMENT_GROUP,
     )
