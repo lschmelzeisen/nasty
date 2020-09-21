@@ -138,16 +138,124 @@ class SearchRetrieverBatch(RetrieverBatch):
                     continue
 
                 yield checked_cast(TweetId, tweet["id"])
+            elif entry["entryId"].startswith("sq-I-s-"):
+                # These entries look like the following and seem to be related to
+                # spell-checking the search queries, offering alternative suggestions,
+                # and highlighting results, so we ignore them.
+                # {
+                #   "entryId": "sq-I-s-aca75bb6",
+                #   "sortIndex": "999980",
+                #   "content": {
+                #     "item": {
+                #       "content": {
+                #         "spelling": {
+                #           "spellingResult": {
+                #             "text": "hilary",
+                #             "hitHighlights": [
+                #               {
+                #                 "startIndex": 0,
+                #                 "endIndex": 6
+                #               }
+                #             ],
+                #             "score": 101.78357696533203
+                #           },
+                #           "spellingAction": "Expand",
+                #           "originalQuery": "hillary lang:en"
+                #         }
+                #       },
+                #       "clientEventInfo": {
+                #         "component": "result",
+                #         "element": "spelling"
+                #       }
+                #     }
+                #   }
+                # }
+                pass
             elif entry["entryId"].startswith("sq-M-"):
+                # These entries look like the following and seem to suggest users
+                # related to the search term, so we ignore them.
+                # {
+                #   "entryId": "sq-M-1-a0d759d2",
+                #   "sortIndex": "999970",
+                #   "content": {
+                #     "timelineModule": {
+                #       "items": [
+                #         {
+                #           "entryId": "sq-MI-u-1339835893",
+                #           "item": {
+                #             "content": {
+                #               "user": {
+                #                 "id": "1339835893",
+                #                 "displayType": "UserDetailed"
+                #               }
+                #             },
+                #             "clientEventInfo": {
+                #               "component": "user_module",
+                #               "element": "user",
+                #               "details": {
+                #                 "timelinesDetails": {
+                #                   "controllerData": "DAACDAAFDAABDAABDAACCgABAAAAAAAAAAAAAAwAAgoAAQAAAAAAAAABCgACACkc9QD8cSgLAAMAAAAPaGlsbGFyeSBsYW5nOmVuAAAAAAA="
+                #                 }
+                #               }
+                #             }
+                #           }
+                #         },
+                #         ...
+                #       ],
+                #       "displayType": "Vertical",
+                #       "header": {
+                #         "text": "People",
+                #         "sticky": true
+                #       },
+                #       "footer": {
+                #         "text": "View all",
+                #         "url": "twitter://search?query=hillary+lang%3Aen&src=typed_query&type=users"
+                #       },
+                #       "clientEventInfo": {
+                #         "component": "user_module",
+                #         "element": "module"
+                #       }
+                #     }
+                #   }
+                # }
                 pass
             elif entry["entryId"].startswith("sq-E-"):
+                # TODO: document usage and example.
                 pass
             elif entry["entryId"].startswith("sq-cursor-"):
+                # These entries look like the following and are used to query the
+                # previous/next Tweet batch. They are used in _next_cursor() but ignored
+                # here.
+                # {
+                #   "entryId": "sq-cursor-top",
+                #   "sortIndex": "999999999",
+                #   "content": {
+                #     "operation": {
+                #       "cursor": {
+                #         "value": "refresh:thGAVUV0VFVBYBFoCo98iIpPfgIxIYzAESY8LrAAAB9D-AYk3S8an8AAAAFxImKQvel2AHEiYpPuYXcAMSJiaHY1eQARE-MiL5FqABEiYlsPPXgAASJq0IQFTABBImicvYVgAQEiYSREbWoAESJkPX7xdwAhImPlMvl7AAEiYiUtlXsAMSIecAAVdgBhImRZcjF4ABEiZSHUTWkAQSJkUYiJeQBhIHM6qRVqAAEiZ34vSWsAASJipgjxewARImFK06V5AAEiaBkGQXcAESJifVa9agAhImkTQ-1gADEiYmF5rWkAElABUAJQARFaCFehWAiXoYBFVTRVIVABUAFS4VABUAAA==",
+                #         "cursorType": "Top"
+                #       }
+                #     }
+                #   }
+                # },
+                # {
+                #   "entryId": "sq-cursor-bottom",
+                #   "sortIndex": "0",
+                #   "content": {
+                #     "operation": {
+                #       "cursor": {
+                #         "value": "scroll:thGAVUV0VFVBYBFoCo98iIpPfgIxIYzAESY8LrAAAB9D-AYk3S8an8AAAAFxImKQvel2AHEiYpPuYXcAMSJiaHY1eQARE-MiL5FqABEiYlsPPXgAASJq0IQFTABBImicvYVgAQEiYSREbWoAESJkPX7xdwAhImPlMvl7AAEiYiUtlXsAMSIecAAVdgBhImRZcjF4ABEiZSHUTWkAQSJkUYiJeQBhIHM6qRVqAAEiZ34vSWsAASJipgjxewARImFK06V5AAEiaBkGQXcAESJifVa9agAhImkTQ-1gADEiYmF5rWkAElABUAJQARFaCFehWAiXoYBFVTRVIVABUAFS4VABUAAA==",
+                #         "cursorType": "Bottom"
+                #       }
+                #     }
+                #   }
+                # }
                 pass
             elif (
                 entry["entryId"] == "novel_coronavirus_message"
                 or entry["entryId"] == "novel_coronavirus_msg"
             ):
+                # TODO: document usage and example.
                 pass
             else:
                 raise RuntimeError(
