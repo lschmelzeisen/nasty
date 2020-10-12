@@ -36,6 +36,7 @@ from typing import (
 import requests
 from overrides import overrides
 from requests.adapters import HTTPAdapter
+from requests.exceptions import RetryError
 from typing_extensions import Final, final
 from urllib3 import Retry
 
@@ -200,6 +201,7 @@ class Retriever(Generic[_T_Request], ABC):
         if self._request_finished:
             return False
 
+        consecutive_retry_error = 0
         consecutive_rate_limits = 0
         consecutive_forbidden = 0
         consecutive_empty_batches = 0
@@ -207,19 +209,28 @@ class Retriever(Generic[_T_Request], ABC):
         while True:
             try:
                 batch = self._fetch_batch()
+            except RetryError:
+                consecutive_retry_error += 1
+                if consecutive_retry_error != 3:
+                    self._fetch_new_twitter_session()
+                    continue
+                logger.warning("Received 3 consecutive RetryErrors.")
+                return False
             except UnexpectedStatusCodeException as e:
                 if e.status_code == HTTPStatus.TOO_MANY_REQUESTS:  # HTTP 429
                     consecutive_rate_limits += 1
                     if consecutive_rate_limits != 3:
                         self._fetch_new_twitter_session()
                         continue
-                    logger.info("Received 3 consecutive TOO MANY REQUESTS responses.")
+                    logger.warning(
+                        "Received 3 consecutive TOO MANY REQUESTS responses."
+                    )
                 elif e.status_code == HTTPStatus.FORBIDDEN:  # HTTP 403
                     consecutive_forbidden += 1
                     if consecutive_forbidden != 3:
                         self._fetch_new_twitter_session()
                         continue
-                    logger.info("Received 3 consecutive FORBIDDEN responses.")
+                    logger.warning("Received 3 consecutive FORBIDDEN responses.")
                 raise
             consecutive_rate_limits = 0
 
