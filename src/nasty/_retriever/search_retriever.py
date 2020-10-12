@@ -119,7 +119,40 @@ class SearchRetrieverBatch(RetrieverBatch):
                 #         }
                 #     },
                 # }
-                tweet = entry["content"]["item"]["content"]["tweet"]
+                try:
+                    tweet = entry["content"]["item"]["content"]["tweet"]
+                except KeyError:
+                    # It can happen that Twitter locks a Tweet behind a tombstone, but
+                    # still has it accessible. A corresponding entry:
+                    # {
+                    #     "entryId": "sq-I-t-1313449844413992961",
+                    #     "sortIndex": "999820",
+                    #     "content": {
+                    #         "item": {
+                    #             "content": {
+                    #                 "tombstone": {
+                    #                     "displayType": "NonCompliant",
+                    #                     "tombstoneInfo": {
+                    #                         "text": "This Tweet violated the Twitter
+                    #                         Rules about spreading misleading and
+                    #                         potentially harmful information related
+                    #                         to COVID-19. However, Twitter has
+                    #                         determined that it may be in the
+                    #                         public\u2019s interest for the Tweet to
+                    #                         remain accessible. Learn more",
+                    #                         ...
+                    #                     },
+                    #                     "tweet": {
+                    #                         "id": "1313449844413992961",
+                    #                         "displayType": "Tweet"
+                    #                     }
+                    #                 }
+                    #             },
+                    #             ...
+                    #         }
+                    #     }
+                    # },
+                    tweet = entry["content"]["item"]["content"]["tombstone"]["tweet"]
 
                 if "promotedMetadata" in tweet:
                     # Tweets which have been promoted look like this:
