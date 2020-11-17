@@ -246,6 +246,7 @@ To fetch all Tweets about "climate change" written after 14 January 2019 in Germ
                                 lang="de").request()
     for tweet in tweet_stream:
         print(tweet.created_at, tweet.text)
+        # Use tweet.to_json() to access the full JSON result dictionary.
 
 Similar functionality is available in the ``nasty.Replies`` and ``nasty.Thread``
 classes.
