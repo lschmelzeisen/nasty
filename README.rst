@@ -136,6 +136,24 @@ specific dates::
 
     $ nasty search --query "climate change" --since 2019-01-01 --until 2019-01-31
 
+The query parameter supports many more complex operations.
+For example, exact phrase matches or only returning Tweets from/to specific accounts.
+To explore what is possible, you can use the `Twitter Advanced Search Interface
+<https://twitter.com/search-advanced>`_ and copy the ``q``-URL parameter from the
+result page.
+
+For example, if in the advanced search interface we specify ``climate change`` for
+*This exact phrase* and ``realDonaldTrump`` for *From these accounts*, after clicking
+*Search*, Twitter will redirect to the following URL::
+
+    https://twitter.com/search?q=%22climate%20change%22%20(from%3ArealDonaldTrump)&src=typed_query
+
+Here, ``%22climate%20change%22%20(from%3ArealDonaldTrump)`` is the query string we are
+interested in.
+After `URL-decoding <https://www.urldecoder.org/>`_ this, we end up with the following::
+
+    $ nasty search --query '"climate change" (from:realDonaldTrump)'
+
 replies
 ----------------------------------------------------------------------------------------
 
