@@ -98,12 +98,14 @@ You can search for Tweets about "climate change"::
 
 NASTY's output are lines of JSON objects, one per retrieved Tweet.
 Each Tweet-JSON has the following format (pretty-printed and abbreviated for clarity,
-many other interesting features are also available, such as referenced entities, etc.)::
+many other interesting features are also available, such as referenced entities, etc.):
+
+.. code-block:: javascript
 
     {
         "created_at": "Wed Jan 11 04:52:08 +0000 2017",
         "id_str": "8190441963...",
-        "full_text": Thank you for everything..."
+        "full_text": "Thank you for everything..."
         "retweet_count": 795...,
         "favorite_count": 1744...,
         "reply_count": 22...,
@@ -236,7 +238,9 @@ To do the reverse::
 Python API
 ========================================================================================
 
-To fetch all Tweets about "climate change" written after 14 January 2019 in German::
+To fetch all Tweets about "climate change" written after 14 January 2019 in German:
+
+.. code-block:: python
 
     import nasty
     from datetime import datetime
@@ -255,7 +259,9 @@ The returned ``tweet_stream`` is an `Iterable
 
 The batch functionality is available in the ``nasty.Batch`` class.
 To read the output of a batch execution (for example, from ``nasty batch``) written
-to directory ``out/``::
+to directory ``out/``:
+
+.. code-block:: python
 
     import nasty
     from pathlib import Path
