@@ -358,7 +358,7 @@ If you operate in a commercial context, you should `pay for the services where p
 <https://developer.twitter.com/en/products/products-overview>`_.
 
 For more discussion on the topic, see `Perry Stephenson (2018). "Is it okay to scrape
-Twitter?" <https://perrystephenson.me/2018/08/11/is-it-okay-to-scrape-twitter/>`_
+Twitter?" <https://perry.stephenson.id/2018/08/11/is-it-okay-to-scrape-twitter/>`_
 
 Contributing
 ========================================================================================
